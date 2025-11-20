@@ -44,7 +44,8 @@ SET
     cost = ?,
     last_todo_write_turn = ?,
     last_reminder_turn = ?,
-    assistant_turn_count = ?
+    assistant_turn_count = ?,
+    plan_mode = ?
 WHERE id = ?
 RETURNING *;
 

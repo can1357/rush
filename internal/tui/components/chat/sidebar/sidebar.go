@@ -704,6 +704,15 @@ func (s *sidebarCmp) currentModelBlock() string {
 			parts = append(parts, reasoningInfoStyle.Render(formatter.String(fmt.Sprintf("Reasoning %s", reasoningEffort))))
 		}
 	}
+	// Add plan mode indicator
+	if s.session.PlanMode {
+		planModeStyle := t.S().Base.
+			Foreground(t.Warning).
+			Bold(true).
+			PaddingLeft(2)
+		parts = append(parts, planModeStyle.Render("📋 Plan Mode (Read-Only)"))
+	}
+
 	if s.session.ID != "" {
 		parts = append(
 			parts,

@@ -84,6 +84,7 @@ type (
 	OpenReasoningDialogMsg struct{}
 	OpenExternalEditorMsg  struct{}
 	ToggleYoloModeMsg      struct{}
+	TogglePlanModeMsg      struct{}
 	CompactMsg             struct {
 		SessionID string
 	}
@@ -395,6 +396,17 @@ func (c *commandDialogCmp) defaultCommands() []Command {
 			}
 		}
 	}
+	// Always show plan mode toggle (even without a session)
+	commands = append(commands, Command{
+		ID:          "toggle_plan_mode",
+		Title:       "Toggle Plan Mode",
+		Shortcut:    "ctrl+/",
+		Description: "Toggle read-only planning/research mode",
+		Handler: func(cmd Command) tea.Cmd {
+			return util.CmdHandler(TogglePlanModeMsg{})
+		},
+	})
+
 	// Only show toggle compact mode command if window width is larger than compact breakpoint (90)
 	if c.wWidth > 120 && c.sessionID != "" {
 		commands = append(commands, Command{

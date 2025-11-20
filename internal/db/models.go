@@ -45,6 +45,7 @@ type Session struct {
 	LastTodoWriteTurn  int64          `json:"last_todo_write_turn"`
 	LastReminderTurn   int64          `json:"last_reminder_turn"`
 	AssistantTurnCount int64          `json:"assistant_turn_count"`
+	PlanMode           int64          `json:"plan_mode"`
 }
 
 type Todo struct {

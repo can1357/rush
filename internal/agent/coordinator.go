@@ -348,6 +348,7 @@ func (c *coordinator) buildTools(ctx context.Context, agent config.Agent) ([]fan
 		tools.NewDownloadTool(c.permissions, c.cfg.WorkingDir(), nil),
 		tools.NewEditTool(c.lspClients, c.permissions, c.history, c.cfg.WorkingDir()),
 		tools.NewMultiEditTool(c.lspClients, c.permissions, c.history, c.cfg.WorkingDir()),
+		tools.NewExitPlanModeTool(c.sessions),
 		tools.NewFetchTool(c.permissions, c.cfg.WorkingDir(), nil),
 		tools.NewGlobTool(c.cfg.WorkingDir()),
 		tools.NewGrepTool(c.cfg.WorkingDir()),

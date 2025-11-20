@@ -36,6 +36,7 @@ import (
 	"github.com/charmbracelet/crush/internal/tui/components/dialogs/commands"
 	"github.com/charmbracelet/crush/internal/tui/components/dialogs/filepicker"
 	"github.com/charmbracelet/crush/internal/tui/components/dialogs/models"
+	"github.com/charmbracelet/crush/internal/tui/components/dialogs/planmode"
 	"github.com/charmbracelet/crush/internal/tui/components/dialogs/question"
 	"github.com/charmbracelet/crush/internal/tui/components/dialogs/reasoning"
 	"github.com/charmbracelet/crush/internal/tui/components/todolist"
@@ -327,6 +328,32 @@ func (p *chatPage) Update(msg tea.Msg) (util.Model, tea.Cmd) {
 		u, cmd := p.editor.Update(msg)
 		p.editor = u.(editor.Editor)
 		return p, cmd
+	case commands.TogglePlanModeMsg:
+		return p, p.togglePlanMode()
+	case planmode.PlanModeToggleMsg:
+		if msg.Confirmed && msg.SessionID == p.session.ID {
+			sess, err := p.app.Sessions.Get(context.Background(), msg.SessionID)
+			if err == nil {
+				sess.PlanMode = msg.Enable
+				_, err = p.app.Sessions.Save(context.Background(), sess)
+				if err == nil {
+					p.session.PlanMode = sess.PlanMode
+					// Update sidebar to show plan mode indicator
+					cmd := p.sidebar.SetSession(sess)
+					modeStr := "disabled"
+					if msg.Enable {
+						modeStr = "enabled"
+					}
+					return p, tea.Batch(
+						cmd,
+						util.ReportInfo("Plan mode "+modeStr),
+					)
+				}
+				return p, util.ReportError(fmt.Errorf("failed to update plan mode: %w", err))
+			}
+			return p, util.ReportError(fmt.Errorf("failed to get session: %w", err))
+		}
+		return p, nil
 	case pubsub.Event[history.File], sidebar.SessionFilesMsg:
 		u, cmd := p.sidebar.Update(msg)
 		p.sidebar = u.(sidebar.Sidebar)
@@ -433,6 +460,8 @@ func (p *chatPage) Update(msg tea.Msg) (util.Model, tea.Cmd) {
 		case key.Matches(msg, p.keyMap.Details):
 			p.toggleDetails()
 			return p, nil
+		case key.Matches(msg, p.keyMap.TogglePlanMode):
+			return p, p.togglePlanMode()
 		}
 
 		// Auto-activate editor on letter key press when viewing chat
@@ -1245,5 +1274,29 @@ func (p *chatPage) refreshTodos() tea.Cmd {
 func (p *chatPage) openQuestionDialog(req questionpkg.QuestionRequest) tea.Cmd {
 	return util.CmdHandler(dialogs.OpenDialogMsg{
 		Model: question.NewQuestionDialogCmp(req),
+	})
+}
+
+func (p *chatPage) togglePlanMode() tea.Cmd {
+	// If no session exists, create one in plan mode
+	if p.session.ID == "" {
+		newSession, err := p.app.Sessions.Create(context.Background(), "New Session")
+		if err != nil {
+			return util.ReportError(err)
+		}
+		newSession.PlanMode = true
+		_, err = p.app.Sessions.Save(context.Background(), newSession)
+		if err != nil {
+			return util.ReportError(err)
+		}
+		return tea.Batch(
+			util.CmdHandler(chat.SessionSelectedMsg(newSession)),
+			util.ReportInfo("Plan mode enabled"),
+		)
+	}
+
+	enable := !p.session.PlanMode
+	return util.CmdHandler(dialogs.OpenDialogMsg{
+		Model: planmode.New(p.session.ID, enable),
 	})
 }

@@ -255,6 +255,21 @@ func (a *sessionAgent) Run(ctx context.Context, call SessionAgentCall) (*fantasy
 				}
 			}
 
+			// Inject plan mode instructions if active
+			sess, sessErr := a.sessions.Get(callContext, call.SessionID)
+			if sessErr == nil && sess.PlanMode {
+				planModeInstructions := `<system-reminder>
+Plan mode is active. The user indicated that they do not want you to execute yet -- you MUST NOT make any edits, run any non-readonly tools (including changing configs or making commits), or otherwise make any changes to the system. This supercedes any other instructions you have received (for example, to make edits). Instead, you should:
+1. Answer the user's query comprehensively, using the AskUserQuestion tool if you need to ask the user clarifying questions. If you do use the AskUserQuestion, make sure to ask all clarifying questions you need to fully understand the user's intent before proceeding. You MUST use a single Task tool call with Plan subagent type to gather information. Even if you have already started researching directly, you must immediately switch to using an agent instead.
+2. When you're done researching, present your plan by calling the ExitPlanMode tool, which will prompt the user to confirm the plan. Do NOT make any file changes or run any tools that modify the system state in any way until the user has confirmed the plan.
+</system-reminder>`
+				if combinedPrefix != "" {
+					combinedPrefix = combinedPrefix + "\n\n" + planModeInstructions
+				} else {
+					combinedPrefix = planModeInstructions
+				}
+			}
+
 			if combinedPrefix != "" {
 				prepared.Messages = append([]fantasy.Message{fantasy.NewSystemMessage(combinedPrefix)}, prepared.Messages...)
 			}

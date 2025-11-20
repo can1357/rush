@@ -33,7 +33,7 @@ INSERT INTO sessions (
     null,
     strftime('%s', 'now'),
     strftime('%s', 'now')
-) RETURNING id, parent_session_id, title, message_count, prompt_tokens, completion_tokens, cost, updated_at, created_at, summary_message_id, last_todo_write_turn, last_reminder_turn, assistant_turn_count
+) RETURNING id, parent_session_id, title, message_count, prompt_tokens, completion_tokens, cost, updated_at, created_at, summary_message_id, last_todo_write_turn, last_reminder_turn, assistant_turn_count, plan_mode
 `
 
 type CreateSessionParams struct {
@@ -71,6 +71,7 @@ func (q *Queries) CreateSession(ctx context.Context, arg CreateSessionParams) (S
 		&i.LastTodoWriteTurn,
 		&i.LastReminderTurn,
 		&i.AssistantTurnCount,
+		&i.PlanMode,
 	)
 	return i, err
 }
@@ -86,7 +87,7 @@ func (q *Queries) DeleteSession(ctx context.Context, id string) error {
 }
 
 const getSessionByID = `-- name: GetSessionByID :one
-SELECT id, parent_session_id, title, message_count, prompt_tokens, completion_tokens, cost, updated_at, created_at, summary_message_id, last_todo_write_turn, last_reminder_turn, assistant_turn_count
+SELECT id, parent_session_id, title, message_count, prompt_tokens, completion_tokens, cost, updated_at, created_at, summary_message_id, last_todo_write_turn, last_reminder_turn, assistant_turn_count, plan_mode
 FROM sessions
 WHERE id = ? LIMIT 1
 `
@@ -108,12 +109,13 @@ func (q *Queries) GetSessionByID(ctx context.Context, id string) (Session, error
 		&i.LastTodoWriteTurn,
 		&i.LastReminderTurn,
 		&i.AssistantTurnCount,
+		&i.PlanMode,
 	)
 	return i, err
 }
 
 const listSessions = `-- name: ListSessions :many
-SELECT id, parent_session_id, title, message_count, prompt_tokens, completion_tokens, cost, updated_at, created_at, summary_message_id, last_todo_write_turn, last_reminder_turn, assistant_turn_count
+SELECT id, parent_session_id, title, message_count, prompt_tokens, completion_tokens, cost, updated_at, created_at, summary_message_id, last_todo_write_turn, last_reminder_turn, assistant_turn_count, plan_mode
 FROM sessions
 WHERE parent_session_id is NULL
 ORDER BY created_at DESC
@@ -142,6 +144,7 @@ func (q *Queries) ListSessions(ctx context.Context) ([]Session, error) {
 			&i.LastTodoWriteTurn,
 			&i.LastReminderTurn,
 			&i.AssistantTurnCount,
+			&i.PlanMode,
 		); err != nil {
 			return nil, err
 		}
@@ -166,9 +169,10 @@ SET
     cost = ?,
     last_todo_write_turn = ?,
     last_reminder_turn = ?,
-    assistant_turn_count = ?
+    assistant_turn_count = ?,
+    plan_mode = ?
 WHERE id = ?
-RETURNING id, parent_session_id, title, message_count, prompt_tokens, completion_tokens, cost, updated_at, created_at, summary_message_id, last_todo_write_turn, last_reminder_turn, assistant_turn_count
+RETURNING id, parent_session_id, title, message_count, prompt_tokens, completion_tokens, cost, updated_at, created_at, summary_message_id, last_todo_write_turn, last_reminder_turn, assistant_turn_count, plan_mode
 `
 
 type UpdateSessionParams struct {
@@ -180,6 +184,7 @@ type UpdateSessionParams struct {
 	LastTodoWriteTurn  int64          `json:"last_todo_write_turn"`
 	LastReminderTurn   int64          `json:"last_reminder_turn"`
 	AssistantTurnCount int64          `json:"assistant_turn_count"`
+	PlanMode           int64          `json:"plan_mode"`
 	ID                 string         `json:"id"`
 }
 
@@ -193,6 +198,7 @@ func (q *Queries) UpdateSession(ctx context.Context, arg UpdateSessionParams) (S
 		arg.LastTodoWriteTurn,
 		arg.LastReminderTurn,
 		arg.AssistantTurnCount,
+		arg.PlanMode,
 		arg.ID,
 	)
 	var i Session
@@ -210,6 +216,7 @@ func (q *Queries) UpdateSession(ctx context.Context, arg UpdateSessionParams) (S
 		&i.LastTodoWriteTurn,
 		&i.LastReminderTurn,
 		&i.AssistantTurnCount,
+		&i.PlanMode,
 	)
 	return i, err
 }

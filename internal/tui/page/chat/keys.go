@@ -5,11 +5,12 @@ import (
 )
 
 type KeyMap struct {
-	NewSession    key.Binding
-	AddAttachment key.Binding
-	Cancel        key.Binding
-	Tab           key.Binding
-	Details       key.Binding
+	NewSession     key.Binding
+	AddAttachment  key.Binding
+	Cancel         key.Binding
+	Tab            key.Binding
+	Details        key.Binding
+	TogglePlanMode key.Binding
 }
 
 func DefaultKeyMap() KeyMap {
@@ -33,6 +34,10 @@ func DefaultKeyMap() KeyMap {
 		Details: key.NewBinding(
 			key.WithKeys("ctrl+d"),
 			key.WithHelp("ctrl+d", "toggle details"),
+		),
+		TogglePlanMode: key.NewBinding(
+			key.WithKeys("ctrl+/"),
+			key.WithHelp("ctrl+/", "toggle plan mode"),
 		),
 	}
 }

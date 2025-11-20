@@ -26,6 +26,7 @@ type Session struct {
 	LastTodoWriteTurn  int64
 	LastReminderTurn   int64
 	AssistantTurnCount int64
+	PlanMode           bool
 }
 
 type Service interface {
@@ -114,6 +115,10 @@ func (s *service) Get(ctx context.Context, id string) (Session, error) {
 }
 
 func (s *service) Save(ctx context.Context, session Session) (Session, error) {
+	var planModeInt int64
+	if session.PlanMode {
+		planModeInt = 1
+	}
 	dbSession, err := s.q.UpdateSession(ctx, db.UpdateSessionParams{
 		ID:               session.ID,
 		Title:            session.Title,
@@ -127,6 +132,7 @@ func (s *service) Save(ctx context.Context, session Session) (Session, error) {
 		LastTodoWriteTurn:  session.LastTodoWriteTurn,
 		LastReminderTurn:   session.LastReminderTurn,
 		AssistantTurnCount: session.AssistantTurnCount,
+		PlanMode:           planModeInt,
 	})
 	if err != nil {
 		return Session{}, err
@@ -163,6 +169,7 @@ func (s service) fromDBItem(item db.Session) Session {
 		LastTodoWriteTurn:  item.LastTodoWriteTurn,
 		LastReminderTurn:   item.LastReminderTurn,
 		AssistantTurnCount: item.AssistantTurnCount,
+		PlanMode:           item.PlanMode == 1,
 	}
 }
 

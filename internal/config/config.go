@@ -519,6 +519,7 @@ func allToolNames() []string {
 		"job_kill",
 		"download",
 		"edit",
+		"exit_plan_mode",
 		"multiedit",
 		"lsp_diagnostics",
 		"lsp_references",
