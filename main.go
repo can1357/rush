@@ -6,7 +6,7 @@ import (
 	_ "net/http/pprof"
 	"os"
 
-	"github.com/can1357/rush/internal/cmd"
+	"github.com/can1357/rush/cmd"
 	_ "github.com/joho/godotenv/autoload"
 )
 

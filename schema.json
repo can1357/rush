@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://github.com/can1357/rush/internal/config/config",
+  "$id": "https://github.com/can1357/rush/config/config",
   "$ref": "#/$defs/Config",
   "$defs": {
     "Completions": {

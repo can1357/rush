@@ -551,63 +551,6 @@ rush update-providers embedded
 rush update-providers --help
 ```
 
-## Metrics
-
-Rush records pseudonymous usage metrics (tied to a device-specific hash),
-which maintainers rely on to inform development and support priorities. The
-metrics include solely usage metadata; prompts and responses are NEVER
-collected.
-
-Details on exactly what’s collected are in the source code ([here](https://github.com/can1357/rush/tree/main/internal/event)
-and [here](https://github.com/can1357/rush/blob/main/internal/llm/agent/event.go)).
-
-You can opt out of metrics collection at any time by setting the environment
-variable by setting the following in your environment:
-
-```bash
-export RUSH_DISABLE_METRICS=1
-```
-
-Or by setting the following in your config:
-
-```json
-{
-	"options": {
-		"disable_metrics": true
-	}
-}
-```
-
-Rush also respects the [`DO_NOT_TRACK`](https://consoledonottrack.com)
-convention which can be enabled via `export DO_NOT_TRACK=1`.
-
-## A Note on Claude Max and GitHub Copilot
-
-Rush only supports model providers through official, compliant APIs. We do not
-support or endorse any methods that rely on personal Claude Max and GitHub
-Copilot accounts or OAuth workarounds, which violate Anthropic and
-Microsoft’s Terms of Service.
-
-We’re committed to building sustainable, trusted integrations with model
-providers. If you’re a provider interested in working with us,
-[reach out](mailto:vt100@charm.sh).
-
-## Contributing
-
-See the [contributing guide](https://github.com/can1357/rush?tab=contributing-ov-file#contributing).
-
-## Whatcha think?
-
-We’d love to hear your thoughts on this project. Need help? We gotchu. You can find us on:
-
-- [Twitter](https://twitter.com/charmcli)
-- [Slack](https://charm.land/slack)
-- [Discord][discord]
-- [The Fediverse](https://mastodon.social/@charmcli)
-- [Bluesky](https://bsky.app/profile/charm.land)
-
-[discord]: https://charm.land/discord
-
 ## License
 
 This fork maintains the original [FSL-1.1-MIT](https://github.com/can1357/rush/raw/main/LICENSE.md) license from Charm's Crush project.

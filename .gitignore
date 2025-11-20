@@ -49,5 +49,5 @@ Thumbs.db
 
 manpages/
 completions/
-!internal/tui/components/completions/
+!tui/components/completions/
 .prettierignore

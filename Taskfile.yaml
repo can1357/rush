@@ -35,7 +35,7 @@ tasks:
   build:
     desc: Run build
     vars:
-      LDFLAGS: '{{if .VERSION}}-ldflags="-X github.com/can1357/rush/internal/version.Version={{.VERSION}}"{{end}}'
+      LDFLAGS: '{{if .VERSION}}-ldflags="-X github.com/can1357/rush/version.Version={{.VERSION}}"{{end}}'
     cmds:
       - go build {{.LDFLAGS}} .
     generates:
@@ -55,8 +55,8 @@ tasks:
     desc: Run tests and record all VCR cassettes again
     aliases: [record]
     cmds:
-      - rm -r internal/agent/testdata
-      - go test -v -count=1 -timeout=1h ./internal/agent
+      - rm -r agent/testdata
+      - go test -v -count=1 -timeout=1h ./agent
 
   fmt:
     desc: Run gofumpt
@@ -73,7 +73,7 @@ tasks:
   install:
     desc: Install the application
     vars:
-      LDFLAGS: '{{if .VERSION}}-ldflags="-X github.com/can1357/rush/internal/version.Version={{.VERSION}}"{{end}}'
+      LDFLAGS: '{{if .VERSION}}-ldflags="-X github.com/can1357/rush/version.Version={{.VERSION}}"{{end}}'
     cmds:
       - task: fetch-tags
       - go install {{.LDFLAGS}} -v .
