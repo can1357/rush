@@ -26,11 +26,12 @@ func DefaultEditorKeyMap() EditorKeyMap {
 			key.WithHelp("ctrl+o", "open editor"),
 		),
 		Newline: key.NewBinding(
-			key.WithKeys("shift+enter", "ctrl+j"),
-			// "ctrl+j" is a common keybinding for newline in many editors. If
-			// the terminal supports "shift+enter", we substitute the help text
-			// to reflect that.
-			key.WithHelp("ctrl+j", "newline"),
+			key.WithKeys("shift+enter", "ctrl+j", "alt+enter"),
+			// "ctrl+j" is a common keybinding for newline in many editors.
+			// "alt+enter" works on macOS Terminal.
+			// "shift+enter" works when terminal is configured (via terminal-setup).
+			key.WithHelp("shift+enter/ctrl+j", "newline"),
+		),
 		),
 	}
 }

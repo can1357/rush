@@ -261,6 +261,20 @@ func (m *editorCmp) Update(msg tea.Msg) (util.Model, tea.Cmd) {
 		m.setEditorPrompt()
 		return m, nil
 	case tea.KeyPressMsg:
+		// Handle escape sequence for shift+enter (from terminal configuration)
+		// Terminals configured to send special sequences for shift+enter:
+		// - Ghostty/WezTerm/iTerm2: \x1b\r (ESC + Carriage Return)
+		// - VSCode/Cursor/Windsurf: literal \\r or \\r\n
+		// - Some terminals: \r with shift modifier
+		msgStr := msg.String()
+		keyMsg := tea.Key(msg)
+		if msgStr == "\x1b\r" || msgStr == "\\r" || msgStr == "\\r\n" ||
+		   (msgStr == "\r" && (keyMsg.Mod&tea.ModShift != 0 || keyMsg.Mod&tea.ModAlt != 0)) {
+			m.textarea.InsertRune('\n')
+			cmds = append(cmds, util.CmdHandler(completions.CloseCompletionsMsg{}))
+			return m, tea.Batch(cmds...)
+		}
+
 		cur := m.textarea.Cursor()
 		curIdx := m.textarea.Width()*cur.Y + cur.X
 		switch {
@@ -307,6 +321,9 @@ func (m *editorCmp) Update(msg tea.Msg) (util.Model, tea.Cmd) {
 				return m, util.ReportWarn("Agent is working, please wait...")
 			}
 			return m, m.openEditor(m.textarea.Value())
+		}
+		if key.Matches(msg, m.keyMap.ToggleThinking) {
+			return m, util.CmdHandler(commands.ToggleThinkingMsg{})
 		}
 		if key.Matches(msg, DeleteKeyMaps.Escape) {
 			m.deleteMode = false
