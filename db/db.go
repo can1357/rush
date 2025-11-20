@@ -24,6 +24,15 @@ func New(db DBTX) *Queries {
 func Prepare(ctx context.Context, db DBTX) (*Queries, error) {
 	q := Queries{db: db}
 	var err error
+	if q.addPromptHistoryStmt, err = db.PrepareContext(ctx, addPromptHistory); err != nil {
+		return nil, fmt.Errorf("error preparing query AddPromptHistory: %w", err)
+	}
+	if q.clearPromptHistoryStmt, err = db.PrepareContext(ctx, clearPromptHistory); err != nil {
+		return nil, fmt.Errorf("error preparing query ClearPromptHistory: %w", err)
+	}
+	if q.countMessagesAfterStmt, err = db.PrepareContext(ctx, countMessagesAfter); err != nil {
+		return nil, fmt.Errorf("error preparing query CountMessagesAfter: %w", err)
+	}
 	if q.createFileStmt, err = db.PrepareContext(ctx, createFile); err != nil {
 		return nil, fmt.Errorf("error preparing query CreateFile: %w", err)
 	}
@@ -41,6 +50,12 @@ func Prepare(ctx context.Context, db DBTX) (*Queries, error) {
 	}
 	if q.deleteMessageStmt, err = db.PrepareContext(ctx, deleteMessage); err != nil {
 		return nil, fmt.Errorf("error preparing query DeleteMessage: %w", err)
+	}
+	if q.deleteMessageByIDStmt, err = db.PrepareContext(ctx, deleteMessageByID); err != nil {
+		return nil, fmt.Errorf("error preparing query DeleteMessageByID: %w", err)
+	}
+	if q.deleteMessagesAfterStmt, err = db.PrepareContext(ctx, deleteMessagesAfter); err != nil {
+		return nil, fmt.Errorf("error preparing query DeleteMessagesAfter: %w", err)
 	}
 	if q.deleteSessionStmt, err = db.PrepareContext(ctx, deleteSession); err != nil {
 		return nil, fmt.Errorf("error preparing query DeleteSession: %w", err)
@@ -69,11 +84,23 @@ func Prepare(ctx context.Context, db DBTX) (*Queries, error) {
 	if q.getMessageStmt, err = db.PrepareContext(ctx, getMessage); err != nil {
 		return nil, fmt.Errorf("error preparing query GetMessage: %w", err)
 	}
+	if q.getMessagesAfterStmt, err = db.PrepareContext(ctx, getMessagesAfter); err != nil {
+		return nil, fmt.Errorf("error preparing query GetMessagesAfter: %w", err)
+	}
+	if q.getPromptByIDStmt, err = db.PrepareContext(ctx, getPromptByID); err != nil {
+		return nil, fmt.Errorf("error preparing query GetPromptByID: %w", err)
+	}
+	if q.getPromptHistoryCountStmt, err = db.PrepareContext(ctx, getPromptHistoryCount); err != nil {
+		return nil, fmt.Errorf("error preparing query GetPromptHistoryCount: %w", err)
+	}
 	if q.getSessionByIDStmt, err = db.PrepareContext(ctx, getSessionByID); err != nil {
 		return nil, fmt.Errorf("error preparing query GetSessionByID: %w", err)
 	}
 	if q.getTodoByIDStmt, err = db.PrepareContext(ctx, getTodoByID); err != nil {
 		return nil, fmt.Errorf("error preparing query GetTodoByID: %w", err)
+	}
+	if q.getUserMessagesStmt, err = db.PrepareContext(ctx, getUserMessages); err != nil {
+		return nil, fmt.Errorf("error preparing query GetUserMessages: %w", err)
 	}
 	if q.listFilesByPathStmt, err = db.PrepareContext(ctx, listFilesByPath); err != nil {
 		return nil, fmt.Errorf("error preparing query ListFilesByPath: %w", err)
@@ -89,6 +116,9 @@ func Prepare(ctx context.Context, db DBTX) (*Queries, error) {
 	}
 	if q.listNewFilesStmt, err = db.PrepareContext(ctx, listNewFiles); err != nil {
 		return nil, fmt.Errorf("error preparing query ListNewFiles: %w", err)
+	}
+	if q.listPromptHistoryStmt, err = db.PrepareContext(ctx, listPromptHistory); err != nil {
+		return nil, fmt.Errorf("error preparing query ListPromptHistory: %w", err)
 	}
 	if q.listSessionsStmt, err = db.PrepareContext(ctx, listSessions); err != nil {
 		return nil, fmt.Errorf("error preparing query ListSessions: %w", err)
@@ -116,6 +146,21 @@ func Prepare(ctx context.Context, db DBTX) (*Queries, error) {
 
 func (q *Queries) Close() error {
 	var err error
+	if q.addPromptHistoryStmt != nil {
+		if cerr := q.addPromptHistoryStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing addPromptHistoryStmt: %w", cerr)
+		}
+	}
+	if q.clearPromptHistoryStmt != nil {
+		if cerr := q.clearPromptHistoryStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing clearPromptHistoryStmt: %w", cerr)
+		}
+	}
+	if q.countMessagesAfterStmt != nil {
+		if cerr := q.countMessagesAfterStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing countMessagesAfterStmt: %w", cerr)
+		}
+	}
 	if q.createFileStmt != nil {
 		if cerr := q.createFileStmt.Close(); cerr != nil {
 			err = fmt.Errorf("error closing createFileStmt: %w", cerr)
@@ -144,6 +189,16 @@ func (q *Queries) Close() error {
 	if q.deleteMessageStmt != nil {
 		if cerr := q.deleteMessageStmt.Close(); cerr != nil {
 			err = fmt.Errorf("error closing deleteMessageStmt: %w", cerr)
+		}
+	}
+	if q.deleteMessageByIDStmt != nil {
+		if cerr := q.deleteMessageByIDStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing deleteMessageByIDStmt: %w", cerr)
+		}
+	}
+	if q.deleteMessagesAfterStmt != nil {
+		if cerr := q.deleteMessagesAfterStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing deleteMessagesAfterStmt: %w", cerr)
 		}
 	}
 	if q.deleteSessionStmt != nil {
@@ -191,6 +246,21 @@ func (q *Queries) Close() error {
 			err = fmt.Errorf("error closing getMessageStmt: %w", cerr)
 		}
 	}
+	if q.getMessagesAfterStmt != nil {
+		if cerr := q.getMessagesAfterStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing getMessagesAfterStmt: %w", cerr)
+		}
+	}
+	if q.getPromptByIDStmt != nil {
+		if cerr := q.getPromptByIDStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing getPromptByIDStmt: %w", cerr)
+		}
+	}
+	if q.getPromptHistoryCountStmt != nil {
+		if cerr := q.getPromptHistoryCountStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing getPromptHistoryCountStmt: %w", cerr)
+		}
+	}
 	if q.getSessionByIDStmt != nil {
 		if cerr := q.getSessionByIDStmt.Close(); cerr != nil {
 			err = fmt.Errorf("error closing getSessionByIDStmt: %w", cerr)
@@ -199,6 +269,11 @@ func (q *Queries) Close() error {
 	if q.getTodoByIDStmt != nil {
 		if cerr := q.getTodoByIDStmt.Close(); cerr != nil {
 			err = fmt.Errorf("error closing getTodoByIDStmt: %w", cerr)
+		}
+	}
+	if q.getUserMessagesStmt != nil {
+		if cerr := q.getUserMessagesStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing getUserMessagesStmt: %w", cerr)
 		}
 	}
 	if q.listFilesByPathStmt != nil {
@@ -224,6 +299,11 @@ func (q *Queries) Close() error {
 	if q.listNewFilesStmt != nil {
 		if cerr := q.listNewFilesStmt.Close(); cerr != nil {
 			err = fmt.Errorf("error closing listNewFilesStmt: %w", cerr)
+		}
+	}
+	if q.listPromptHistoryStmt != nil {
+		if cerr := q.listPromptHistoryStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing listPromptHistoryStmt: %w", cerr)
 		}
 	}
 	if q.listSessionsStmt != nil {
@@ -300,12 +380,17 @@ func (q *Queries) queryRow(ctx context.Context, stmt *sql.Stmt, query string, ar
 type Queries struct {
 	db                          DBTX
 	tx                          *sql.Tx
+	addPromptHistoryStmt        *sql.Stmt
+	clearPromptHistoryStmt      *sql.Stmt
+	countMessagesAfterStmt      *sql.Stmt
 	createFileStmt              *sql.Stmt
 	createMessageStmt           *sql.Stmt
 	createSessionStmt           *sql.Stmt
 	createTodoStmt              *sql.Stmt
 	deleteFileStmt              *sql.Stmt
 	deleteMessageStmt           *sql.Stmt
+	deleteMessageByIDStmt       *sql.Stmt
+	deleteMessagesAfterStmt     *sql.Stmt
 	deleteSessionStmt           *sql.Stmt
 	deleteSessionFilesStmt      *sql.Stmt
 	deleteSessionMessagesStmt   *sql.Stmt
@@ -315,13 +400,18 @@ type Queries struct {
 	getFileByPathAndSessionStmt *sql.Stmt
 	getMaxTodoPositionStmt      *sql.Stmt
 	getMessageStmt              *sql.Stmt
+	getMessagesAfterStmt        *sql.Stmt
+	getPromptByIDStmt           *sql.Stmt
+	getPromptHistoryCountStmt   *sql.Stmt
 	getSessionByIDStmt          *sql.Stmt
 	getTodoByIDStmt             *sql.Stmt
+	getUserMessagesStmt         *sql.Stmt
 	listFilesByPathStmt         *sql.Stmt
 	listFilesBySessionStmt      *sql.Stmt
 	listLatestSessionFilesStmt  *sql.Stmt
 	listMessagesBySessionStmt   *sql.Stmt
 	listNewFilesStmt            *sql.Stmt
+	listPromptHistoryStmt       *sql.Stmt
 	listSessionsStmt            *sql.Stmt
 	listTodosBySessionStmt      *sql.Stmt
 	updateMessageStmt           *sql.Stmt
@@ -335,12 +425,17 @@ func (q *Queries) WithTx(tx *sql.Tx) *Queries {
 	return &Queries{
 		db:                          tx,
 		tx:                          tx,
+		addPromptHistoryStmt:        q.addPromptHistoryStmt,
+		clearPromptHistoryStmt:      q.clearPromptHistoryStmt,
+		countMessagesAfterStmt:      q.countMessagesAfterStmt,
 		createFileStmt:              q.createFileStmt,
 		createMessageStmt:           q.createMessageStmt,
 		createSessionStmt:           q.createSessionStmt,
 		createTodoStmt:              q.createTodoStmt,
 		deleteFileStmt:              q.deleteFileStmt,
 		deleteMessageStmt:           q.deleteMessageStmt,
+		deleteMessageByIDStmt:       q.deleteMessageByIDStmt,
+		deleteMessagesAfterStmt:     q.deleteMessagesAfterStmt,
 		deleteSessionStmt:           q.deleteSessionStmt,
 		deleteSessionFilesStmt:      q.deleteSessionFilesStmt,
 		deleteSessionMessagesStmt:   q.deleteSessionMessagesStmt,
@@ -350,13 +445,18 @@ func (q *Queries) WithTx(tx *sql.Tx) *Queries {
 		getFileByPathAndSessionStmt: q.getFileByPathAndSessionStmt,
 		getMaxTodoPositionStmt:      q.getMaxTodoPositionStmt,
 		getMessageStmt:              q.getMessageStmt,
+		getMessagesAfterStmt:        q.getMessagesAfterStmt,
+		getPromptByIDStmt:           q.getPromptByIDStmt,
+		getPromptHistoryCountStmt:   q.getPromptHistoryCountStmt,
 		getSessionByIDStmt:          q.getSessionByIDStmt,
 		getTodoByIDStmt:             q.getTodoByIDStmt,
+		getUserMessagesStmt:         q.getUserMessagesStmt,
 		listFilesByPathStmt:         q.listFilesByPathStmt,
 		listFilesBySessionStmt:      q.listFilesBySessionStmt,
 		listLatestSessionFilesStmt:  q.listLatestSessionFilesStmt,
 		listMessagesBySessionStmt:   q.listMessagesBySessionStmt,
 		listNewFilesStmt:            q.listNewFilesStmt,
+		listPromptHistoryStmt:       q.listPromptHistoryStmt,
 		listSessionsStmt:            q.listSessionsStmt,
 		listTodosBySessionStmt:      q.listTodosBySessionStmt,
 		updateMessageStmt:           q.updateMessageStmt,

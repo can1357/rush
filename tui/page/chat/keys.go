@@ -11,6 +11,8 @@ type KeyMap struct {
 	Tab            key.Binding
 	Details        key.Binding
 	TogglePlanMode key.Binding
+	EditMessage    key.Binding
+	ExportChat     key.Binding
 }
 
 func DefaultKeyMap() KeyMap {
@@ -38,6 +40,14 @@ func DefaultKeyMap() KeyMap {
 		TogglePlanMode: key.NewBinding(
 			key.WithKeys("ctrl+/"),
 			key.WithHelp("ctrl+/", "toggle plan mode"),
+		),
+		EditMessage: key.NewBinding(
+			key.WithKeys("ctrl+e"),
+			key.WithHelp("ctrl+e", "edit message"),
+		),
+		ExportChat: key.NewBinding(
+			key.WithKeys("ctrl+x"),
+			key.WithHelp("ctrl+x", "export chat"),
 		),
 	}
 }

@@ -9,12 +9,17 @@ import (
 )
 
 type Querier interface {
+	AddPromptHistory(ctx context.Context, arg AddPromptHistoryParams) (PromptHistory, error)
+	ClearPromptHistory(ctx context.Context) error
+	CountMessagesAfter(ctx context.Context, arg CountMessagesAfterParams) (int64, error)
 	CreateFile(ctx context.Context, arg CreateFileParams) (File, error)
 	CreateMessage(ctx context.Context, arg CreateMessageParams) (Message, error)
 	CreateSession(ctx context.Context, arg CreateSessionParams) (Session, error)
 	CreateTodo(ctx context.Context, arg CreateTodoParams) (Todo, error)
 	DeleteFile(ctx context.Context, id string) error
 	DeleteMessage(ctx context.Context, id string) error
+	DeleteMessageByID(ctx context.Context, id string) error
+	DeleteMessagesAfter(ctx context.Context, arg DeleteMessagesAfterParams) error
 	DeleteSession(ctx context.Context, id string) error
 	DeleteSessionFiles(ctx context.Context, sessionID string) error
 	DeleteSessionMessages(ctx context.Context, sessionID string) error
@@ -24,13 +29,18 @@ type Querier interface {
 	GetFileByPathAndSession(ctx context.Context, arg GetFileByPathAndSessionParams) (File, error)
 	GetMaxTodoPosition(ctx context.Context, sessionID string) (interface{}, error)
 	GetMessage(ctx context.Context, id string) (Message, error)
+	GetMessagesAfter(ctx context.Context, arg GetMessagesAfterParams) ([]Message, error)
+	GetPromptByID(ctx context.Context, id string) (PromptHistory, error)
+	GetPromptHistoryCount(ctx context.Context) (int64, error)
 	GetSessionByID(ctx context.Context, id string) (Session, error)
 	GetTodoByID(ctx context.Context, id string) (Todo, error)
+	GetUserMessages(ctx context.Context, sessionID string) ([]Message, error)
 	ListFilesByPath(ctx context.Context, path string) ([]File, error)
 	ListFilesBySession(ctx context.Context, sessionID string) ([]File, error)
 	ListLatestSessionFiles(ctx context.Context, sessionID string) ([]File, error)
 	ListMessagesBySession(ctx context.Context, sessionID string) ([]Message, error)
 	ListNewFiles(ctx context.Context) ([]File, error)
+	ListPromptHistory(ctx context.Context, limit int64) ([]PromptHistory, error)
 	ListSessions(ctx context.Context) ([]Session, error)
 	ListTodosBySession(ctx context.Context, sessionID string) ([]Todo, error)
 	UpdateMessage(ctx context.Context, arg UpdateMessageParams) error

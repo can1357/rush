@@ -3,6 +3,7 @@ package editor
 import (
 	"context"
 	"fmt"
+	"log/slog"
 	"math/rand"
 	"net/http"
 	"os"
@@ -11,6 +12,7 @@ import (
 	"runtime"
 	"slices"
 	"strings"
+	"time"
 	"unicode"
 
 	"charm.land/bubbles/v2/key"
@@ -46,6 +48,7 @@ type Editor interface {
 	HasAttachments() bool
 	HasContent() bool
 	Clear()
+	SetText(text string)
 	Cursor() *tea.Cursor
 }
 
@@ -71,6 +74,12 @@ type editorCmp struct {
 	currentQuery          string
 	completionsStartIndex int
 	isCompletionsOpen     bool
+
+	// Prompt history navigation
+	historyCache  []string // Cached prompts (newest first)
+	historyIndex  int      // Current position in history (-1 = not navigating)
+	historyDraft  string   // User's typed text before navigating
+	historyLoaded bool     // Whether history has been loaded
 }
 
 var DeleteKeyMaps = DeleteAttachmentKeyMaps{
@@ -160,6 +169,22 @@ func (m *editorCmp) send() tea.Cmd {
 		return nil
 	}
 
+	// Reset history navigation state
+	m.historyIndex = -1
+	m.historyDraft = ""
+
+	// Save prompt to history (async, don't block on error)
+	go func() {
+		ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
+		defer cancel()
+		if err := m.app.PromptHistory.Add(ctx, value); err != nil {
+			slog.Warn("Failed to save prompt to history", "error", err)
+		} else {
+			// Refresh cache
+			m.loadHistoryCache()
+		}
+	}()
+
 	// Change the placeholder when sending a new message.
 	m.randomizePlaceholders()
 
@@ -169,6 +194,64 @@ func (m *editorCmp) send() tea.Cmd {
 			Attachments: attachments,
 		}),
 	)
+}
+
+func (m *editorCmp) loadHistoryCache() {
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+	defer cancel()
+
+	items, err := m.app.PromptHistory.List(ctx, 100) // Cache last 100
+	if err != nil {
+		slog.Warn("Failed to load prompt history", "error", err)
+		return
+	}
+
+	m.historyCache = make([]string, len(items))
+	for i, item := range items {
+		m.historyCache[i] = item.Prompt
+	}
+	m.historyLoaded = true
+	slog.Debug("Loaded prompt history cache", "count", len(m.historyCache))
+}
+
+func (m *editorCmp) navigateHistoryUp() {
+	if len(m.historyCache) == 0 {
+		return
+	}
+
+	// First time navigating? Save current draft
+	if m.historyIndex == -1 {
+		m.historyDraft = m.textarea.Value()
+		m.historyIndex = 0
+	} else if m.historyIndex < len(m.historyCache)-1 {
+		m.historyIndex++
+	} else {
+		// At oldest entry, do nothing
+		return
+	}
+
+	m.textarea.SetValue(m.historyCache[m.historyIndex])
+	m.textarea.MoveToEnd()
+}
+
+func (m *editorCmp) navigateHistoryDown() {
+	if m.historyIndex == -1 {
+		// Not navigating, do nothing
+		return
+	}
+
+	if m.historyIndex > 0 {
+		// Go to newer history entry
+		m.historyIndex--
+		m.textarea.SetValue(m.historyCache[m.historyIndex])
+	} else {
+		// At newest entry, restore draft
+		m.historyIndex = -1
+		m.textarea.SetValue(m.historyDraft)
+		m.historyDraft = ""
+	}
+
+	m.textarea.MoveToEnd()
 }
 
 func (m *editorCmp) repositionCompletions() tea.Msg {
@@ -265,6 +348,31 @@ func (m *editorCmp) Update(msg tea.Msg) (util.Model, tea.Cmd) {
 		m.setEditorPrompt()
 		return m, nil
 	case tea.KeyPressMsg:
+		// Handle history navigation first (before other keys)
+		if m.historyLoaded && !m.isCompletionsOpen {
+			switch msg.String() {
+			case "up":
+				m.navigateHistoryUp()
+				return m, nil
+			case "down":
+				m.navigateHistoryDown()
+				return m, nil
+			}
+		}
+
+		// If user types anything while navigating history, reset to draft mode
+		if m.historyIndex >= 0 && msg.String() != "up" && msg.String() != "down" {
+			// User is typing, exit history navigation and restore draft
+			draft := m.historyDraft
+			m.historyIndex = -1
+			m.historyDraft = ""
+			// Only restore draft if user hasn't already modified the textarea
+			// This allows the keystroke to apply normally
+			if draft != "" && m.textarea.Value() != draft {
+				// Let the keystroke apply to the history entry
+			}
+		}
+
 		// Handle escape sequence for shift+enter (from terminal configuration)
 		// Terminals configured to send special sequences for shift+enter:
 		// - Ghostty/WezTerm/iTerm2: \x1b\r (ESC + Carriage Return)
@@ -607,6 +715,11 @@ func (c *editorCmp) Clear() {
 	c.attachments = nil
 }
 
+func (c *editorCmp) SetText(text string) {
+	c.textarea.SetValue(text)
+	c.textarea.MoveToEnd()
+}
+
 func normalPromptFunc(info textarea.PromptInfo) string {
 	t := styles.CurrentTheme()
 	if info.LineNumber == 0 {
@@ -695,14 +808,18 @@ func New(app *app.App) Editor {
 
 	e := &editorCmp{
 		// TODO: remove the app instance from here
-		app:      app,
-		textarea: ta,
-		keyMap:   DefaultEditorKeyMap(),
+		app:          app,
+		textarea:     ta,
+		keyMap:       DefaultEditorKeyMap(),
+		historyIndex: -1, // Not navigating
 	}
 	e.setEditorPrompt()
 
 	e.randomizePlaceholders()
 	e.textarea.Placeholder = e.readyPlaceholder
+
+	// Load history cache asynchronously
+	go e.loadHistoryCache()
 
 	return e
 }

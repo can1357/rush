@@ -31,6 +31,12 @@ type Message struct {
 	IsSummaryMessage int64          `json:"is_summary_message"`
 }
 
+type PromptHistory struct {
+	ID        string `json:"id"`
+	Prompt    string `json:"prompt"`
+	CreatedAt int64  `json:"created_at"`
+}
+
 type Session struct {
 	ID                  string         `json:"id"`
 	ParentSessionID     sql.NullString `json:"parent_session_id"`

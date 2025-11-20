@@ -20,6 +20,7 @@ import (
 	"github.com/can1357/rush/config"
 	"github.com/can1357/rush/csync"
 	"github.com/can1357/rush/db"
+	"github.com/can1357/rush/export"
 	"github.com/can1357/rush/format"
 	"github.com/can1357/rush/genai"
 	"github.com/can1357/rush/history"
@@ -27,6 +28,7 @@ import (
 	"github.com/can1357/rush/lsp"
 	"github.com/can1357/rush/message"
 	"github.com/can1357/rush/permission"
+	"github.com/can1357/rush/prompthistory"
 	"github.com/can1357/rush/pubsub"
 	"github.com/can1357/rush/question"
 	"github.com/can1357/rush/session"
@@ -42,12 +44,14 @@ import (
 )
 
 type App struct {
-	Sessions    session.Service
-	Messages    message.Service
-	History     history.Service
-	Todos       todo.Service
-	Questions   question.Service
-	Permissions permission.Service
+	Sessions      session.Service
+	Messages      message.Service
+	History       history.Service
+	Todos         todo.Service
+	Questions     question.Service
+	Permissions   permission.Service
+	PromptHistory prompthistory.Service
+	Export        export.Service
 
 	AgentCoordinator agent.Coordinator
 
@@ -73,6 +77,8 @@ func New(ctx context.Context, conn *sql.DB, cfg *config.Config) (*App, error) {
 	files := history.NewService(q, conn)
 	todos := todo.NewService(q)
 	questions := question.NewService()
+	promptHist := prompthistory.NewService(q)
+	exportSvc := export.NewService(q, sessions, messages)
 	skipPermissionsRequests := cfg.Permissions != nil && cfg.Permissions.SkipRequests
 	allowedTools := []string{}
 	if cfg.Permissions != nil && cfg.Permissions.AllowedTools != nil {
@@ -80,13 +86,15 @@ func New(ctx context.Context, conn *sql.DB, cfg *config.Config) (*App, error) {
 	}
 
 	app := &App{
-		Sessions:    sessions,
-		Messages:    messages,
-		History:     files,
-		Todos:       todos,
-		Questions:   questions,
-		Permissions: permission.NewPermissionService(cfg.WorkingDir(), skipPermissionsRequests, allowedTools),
-		LSPClients:  csync.NewMap[string, *lsp.Client](),
+		Sessions:      sessions,
+		Messages:      messages,
+		History:       files,
+		Todos:         todos,
+		Questions:     questions,
+		Permissions:   permission.NewPermissionService(cfg.WorkingDir(), skipPermissionsRequests, allowedTools),
+		PromptHistory: promptHist,
+		Export:        exportSvc,
+		LSPClients:    csync.NewMap[string, *lsp.Client](),
 
 		globalCtx: ctx,
 

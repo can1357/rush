@@ -17,6 +17,8 @@ import (
 	"github.com/can1357/rush/agent"
 	"github.com/can1357/rush/app"
 	"github.com/can1357/rush/config"
+	"github.com/can1357/rush/db"
+	"github.com/can1357/rush/export"
 	"github.com/can1357/rush/genaiopts"
 	"github.com/can1357/rush/history"
 	"github.com/can1357/rush/message"
@@ -27,7 +29,9 @@ import (
 	"github.com/can1357/rush/todo"
 	"github.com/can1357/rush/tui/components/anim"
 	"github.com/can1357/rush/tui/components/chat"
+	"github.com/can1357/rush/tui/components/chat/confirmdelete"
 	"github.com/can1357/rush/tui/components/chat/editor"
+	"github.com/can1357/rush/tui/components/chat/editoverlay"
 	"github.com/can1357/rush/tui/components/chat/header"
 	"github.com/can1357/rush/tui/components/chat/messages"
 	"github.com/can1357/rush/tui/components/chat/sidebar"
@@ -134,6 +138,11 @@ type chatPage struct {
 
 	// Model state for plan mode restoration
 	previousModel *config.ModelSelection
+
+	// Edit mode state
+	editOverlay      *editoverlay.Model
+	confirmDialog    *confirmdelete.Model
+	editingMessageID string
 }
 
 func New(app *app.App) ChatPage {
@@ -247,6 +256,16 @@ func (p *chatPage) Update(msg tea.Msg) (util.Model, tea.Cmd) {
 		p.chat = u.(chat.MessageListCmp)
 		return p, cmd
 	case tea.WindowSizeMsg:
+		// Update overlay components if active
+		if p.editOverlay != nil {
+			u, _ := p.editOverlay.Update(msg)
+			p.editOverlay = u.(*editoverlay.Model)
+		}
+		if p.confirmDialog != nil {
+			u, _ := p.confirmDialog.Update(msg)
+			p.confirmDialog = u.(*confirmdelete.Model)
+		}
+
 		u, cmd := p.editor.Update(msg)
 		p.editor = u.(editor.Editor)
 		return p, tea.Batch(p.SetSize(msg.Width, msg.Height), cmd)
@@ -493,7 +512,30 @@ func (p *chatPage) Update(msg tea.Msg) (util.Model, tea.Cmd) {
 		}
 		return p, p.newSession()
 	case tea.KeyPressMsg:
+		// Handle edit overlay first
+		if p.editOverlay != nil {
+			u, cmd := p.editOverlay.Update(msg)
+			p.editOverlay = u.(*editoverlay.Model)
+			return p, cmd
+		}
+		// Handle confirm dialog
+		if p.confirmDialog != nil {
+			u, cmd := p.confirmDialog.Update(msg)
+			p.confirmDialog = u.(*confirmdelete.Model)
+			return p, cmd
+		}
+
 		switch {
+		case key.Matches(msg, p.keyMap.EditMessage):
+			if p.session.ID == "" {
+				return p, util.ReportWarn("No session active")
+			}
+			return p, p.enterEditMode()
+		case key.Matches(msg, p.keyMap.ExportChat):
+			if p.session.ID == "" {
+				return p, util.ReportWarn("No session to export")
+			}
+			return p, p.exportToClipboard()
 		case key.Matches(msg, p.keyMap.NewSession):
 			// if we have no agent do nothing
 			if p.app.AgentCoordinator == nil {
@@ -572,6 +614,18 @@ func (p *chatPage) Update(msg tea.Msg) (util.Model, tea.Cmd) {
 			cmds = append(cmds, cmd)
 			return p, tea.Batch(cmds...)
 		}
+
+	// Edit mode messages
+	case editoverlay.SelectionConfirmedMsg:
+		p.editOverlay = nil
+		return p, p.showDeleteConfirmation(msg.Message)
+	case confirmdelete.ConfirmEditMsg:
+		p.confirmDialog = nil
+		return p, p.executeEdit(msg.Message)
+	case editoverlay.CancelEditMsg, confirmdelete.CancelEditMsg:
+		p.editOverlay = nil
+		p.confirmDialog = nil
+		return p, nil
 	}
 	return p, tea.Batch(cmds...)
 }
@@ -637,6 +691,18 @@ func (p *chatPage) View() string {
 
 	layers := []*lipgloss.Layer{
 		lipgloss.NewLayer(chatView).X(0).Y(0),
+	}
+
+	// Add edit overlay if active
+	if p.editOverlay != nil {
+		overlayView := p.editOverlay.View()
+		layers = append(layers, lipgloss.NewLayer(overlayView).X(0).Y(0))
+	}
+
+	// Add confirm dialog if active
+	if p.confirmDialog != nil {
+		dialogView := p.confirmDialog.View()
+		layers = append(layers, lipgloss.NewLayer(dialogView).X(0).Y(0))
 	}
 
 	if p.showingDetails {
@@ -1368,3 +1434,145 @@ func (p *chatPage) togglePlanMode() tea.Cmd {
 		Model: planmode.New(p.session.ID, enable),
 	})
 }
+
+func (p *chatPage) enterEditMode() tea.Cmd {
+	return func() tea.Msg {
+		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
+
+		// Get user messages through the service wrapper
+		svc, ok := p.app.Messages.(interface {
+			GetUserMessages(context.Context, string) ([]db.Message, error)
+			CountMessagesAfter(context.Context, string, string) (int64, error)
+		})
+		if !ok {
+			return util.ReportError(fmt.Errorf("message service does not support edit operations"))
+		}
+
+		dbMessages, err := svc.GetUserMessages(ctx, p.session.ID)
+		if err != nil {
+			return util.ReportError(fmt.Errorf("failed to get messages: %w", err))
+		}
+
+		if len(dbMessages) == 0 {
+			return util.ReportWarn("No messages to edit")
+		}
+
+		// Convert to editable messages
+		editableMessages := make([]editoverlay.EditableMessage, len(dbMessages))
+		for i, msg := range dbMessages {
+			// Count subsequent messages
+			count, err := svc.CountMessagesAfter(ctx, p.session.ID, msg.ID)
+			if err != nil {
+				count = 0
+			}
+
+			// Extract text preview
+			preview := msg.Parts
+			if len(preview) > 100 {
+				preview = preview[:100]
+			}
+
+			editableMessages[i] = editoverlay.EditableMessage{
+				ID:              msg.ID,
+				Preview:         preview,
+				SubsequentCount: int(count),
+				CreatedAt:       msg.CreatedAt,
+			}
+		}
+
+		// Create and show overlay
+		overlay := editoverlay.New(editableMessages)
+		p.editOverlay = &overlay
+		return nil
+	}
+}
+
+func (p *chatPage) showDeleteConfirmation(msg editoverlay.EditableMessage) tea.Cmd {
+	dialog := confirmdelete.New(msg)
+	p.confirmDialog = &dialog
+	p.editingMessageID = msg.ID
+	return nil
+}
+
+func (p *chatPage) executeEdit(msg editoverlay.EditableMessage) tea.Cmd {
+	return func() tea.Msg {
+		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+		defer cancel()
+
+		// Get service with edit operations
+		svc, ok := p.app.Messages.(interface {
+			GetMessage(context.Context, string) (db.Message, error)
+			DeleteMessagesAfter(context.Context, string, string) error
+			DeleteMessageByID(context.Context, string) error
+		})
+		if !ok {
+			return util.ReportError(fmt.Errorf("message service does not support edit operations"))
+		}
+
+		// Get the original message to extract text
+		_, err := svc.GetMessage(ctx, p.editingMessageID)
+		if err != nil {
+			return util.ReportError(fmt.Errorf("failed to get message: %w", err))
+		}
+
+		// Delete messages after this point
+		err = svc.DeleteMessagesAfter(ctx, p.session.ID, p.editingMessageID)
+		if err != nil {
+			return util.ReportError(fmt.Errorf("failed to delete messages: %w", err))
+		}
+
+		// Delete the original message
+		err = svc.DeleteMessageByID(ctx, p.editingMessageID)
+		if err != nil {
+			return util.ReportError(fmt.Errorf("failed to delete message: %w", err))
+		}
+
+		// Get the original message to populate editor
+		dbMsg, err := svc.GetMessage(ctx, p.editingMessageID)
+		if err != nil {
+			return util.ReportError(fmt.Errorf("failed to get message for editing: %w", err))
+		}
+
+		// Get the full message (with parsed parts) using the message service
+		fullMsg, err := p.app.Messages.Get(ctx, p.editingMessageID)
+		if err != nil {
+			return util.ReportError(fmt.Errorf("failed to parse message: %w", err))
+		}
+
+		// Extract text content from parts
+		var textContent string
+		for _, part := range fullMsg.Parts {
+			if textPart, ok := part.(message.TextContent); ok {
+				textContent = textPart.Text
+				break
+			}
+		}
+
+		// If no text part found, use raw JSON as fallback
+		if textContent == "" {
+			textContent = dbMsg.Parts
+		}
+
+		// Populate editor with original text
+		p.editor.SetText(textContent)
+
+		p.editingMessageID = ""
+		return util.ReportInfo("Message loaded in editor. Edit and press Enter to regenerate.")
+	}
+}
+
+func (p *chatPage) exportToClipboard() tea.Cmd {
+	return func() tea.Msg {
+		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+		defer cancel()
+
+		err := p.app.Export.ExportToClipboard(ctx, p.session.ID, export.DefaultExportOptions)
+		if err != nil {
+			return util.ReportError(fmt.Errorf("export failed: %w", err))
+		}
+
+		return util.ReportInfo("Chat exported to clipboard")
+	}
+}
+

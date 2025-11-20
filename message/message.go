@@ -288,3 +288,37 @@ func unmarshallParts(data []byte) ([]ContentPart, error) {
 
 	return parts, nil
 }
+
+// Edit-related methods for time travel feature
+func (s *service) GetUserMessages(ctx context.Context, sessionID string) ([]db.Message, error) {
+	return s.q.GetUserMessages(ctx, sessionID)
+}
+
+func (s *service) GetMessagesAfter(ctx context.Context, sessionID string, messageID string) ([]db.Message, error) {
+	return s.q.GetMessagesAfter(ctx, db.GetMessagesAfterParams{
+		SessionID: sessionID,
+		ID:        messageID,
+	})
+}
+
+func (s *service) CountMessagesAfter(ctx context.Context, sessionID string, messageID string) (int64, error) {
+	return s.q.CountMessagesAfter(ctx, db.CountMessagesAfterParams{
+		SessionID: sessionID,
+		ID:        messageID,
+	})
+}
+
+func (s *service) DeleteMessagesAfter(ctx context.Context, sessionID string, messageID string) error {
+	return s.q.DeleteMessagesAfter(ctx, db.DeleteMessagesAfterParams{
+		SessionID: sessionID,
+		ID:        messageID,
+	})
+}
+
+func (s *service) GetMessage(ctx context.Context, messageID string) (db.Message, error) {
+	return s.q.GetMessage(ctx, messageID)
+}
+
+func (s *service) DeleteMessageByID(ctx context.Context, messageID string) error {
+	return s.q.DeleteMessageByID(ctx, messageID)
+}
