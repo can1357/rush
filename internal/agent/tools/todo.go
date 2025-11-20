@@ -75,10 +75,9 @@ func NewTodoTool(todoService todo.Service) fantasy.AgentTool {
 				}
 			}
 
-			// Validate exactly one in_progress (unless all tasks are completed)
-			allCompleted := completedCount == len(params.Todos)
-			if inProgressCount != 1 && !allCompleted {
-				return fantasy.NewTextErrorResponse("exactly ONE task must be 'in_progress' at any time (not less, not more). 0 tasks in progress is okay if there are also no tasks left, it would imply that you are finished!"), nil
+			// Validate at most one in_progress
+			if inProgressCount > 1 {
+				return fantasy.NewTextErrorResponse("at most one task must be 'in_progress' at any time"), nil
 			}
 
 			// Convert to todo inputs
