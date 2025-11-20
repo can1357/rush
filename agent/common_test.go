@@ -143,8 +143,16 @@ func testSessionAgent(env fakeEnv, large, small genai.LanguageModel, systemPromp
 			DefaultMaxTokens: 10000,
 		},
 	}
+	smallModel := Model{
+		Model: small,
+		Props: &catwalk.Model{
+			ContextWindow:    200000,
+			DefaultMaxTokens: 4000,
+		},
+	}
 	agent := NewSessionAgent(SessionAgentOptions{
 		Model:                largeModel,
+		SmallModel:           smallModel,
 		SystemPromptPrefix:   "",
 		SystemPrompt:         systemPrompt,
 		DisableAutoSummarize: false,

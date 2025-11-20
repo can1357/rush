@@ -78,6 +78,7 @@ type Model struct {
 
 type sessionAgent struct {
 	model                Model
+	smallModel           Model
 	systemPromptPrefix   string
 	systemPrompt         string
 	tools                []genai.AgentTool
@@ -93,6 +94,7 @@ type sessionAgent struct {
 
 type SessionAgentOptions struct {
 	Model                Model
+	SmallModel           Model
 	SystemPromptPrefix   string
 	SystemPrompt         string
 	DisableAutoSummarize bool
@@ -108,6 +110,7 @@ func NewSessionAgent(
 ) SessionAgent {
 	return &sessionAgent{
 		model:                opts.Model,
+		smallModel:           opts.SmallModel,
 		systemPromptPrefix:   opts.SystemPromptPrefix,
 		systemPrompt:         opts.SystemPrompt,
 		sessions:             opts.Sessions,
@@ -583,7 +586,7 @@ func (a *sessionAgent) Summarize(ctx context.Context, sessionID string, opts gen
 	defer a.activeRequests.Del(sessionID)
 	defer cancel()
 
-	agent := genai.NewAgent(a.model.Model,
+	agent := genai.NewAgent(a.smallModel.Model,
 		genai.WithSystemPrompt("You are a helpful AI assistant tasked with summarizing conversations."),
 		genai.WithStopConditions(
 			genai.StepCountIs(5),        // Max 5 steps for summarization.
@@ -592,8 +595,8 @@ func (a *sessionAgent) Summarize(ctx context.Context, sessionID string, opts gen
 	)
 	summaryMessage, err := a.messages.Create(ctx, sessionID, message.CreateMessageParams{
 		Role:             message.Assistant,
-		Model:            a.model.Model.Model().ID,
-		Provider:         a.model.Model.Provider(),
+		Model:            a.smallModel.Model.Model().ID,
+		Provider:         a.smallModel.Model.Provider(),
 		IsSummaryMessage: true,
 	})
 	if err != nil {
@@ -650,8 +653,8 @@ func (a *sessionAgent) Summarize(ctx context.Context, sessionID string, opts gen
 	// Add a continuation prompt after the summary to resume work
 	continuationMsg, err := a.messages.Create(ctx, sessionID, message.CreateMessageParams{
 		Role:     message.User,
-		Model:    a.model.Model.Model().ID,
-		Provider: a.model.Model.Provider(),
+		Model:    a.smallModel.Model.Model().ID,
+		Provider: a.smallModel.Model.Provider(),
 	})
 	if err != nil {
 		return err
@@ -771,11 +774,11 @@ func (a *sessionAgent) generateTitle(ctx context.Context, session *session.Sessi
 	}
 
 	var maxOutput int64 = 40
-	if a.model.Props.CanReason {
-		maxOutput = a.model.Props.DefaultMaxTokens
+	if a.smallModel.Props.CanReason {
+		maxOutput = a.smallModel.Props.DefaultMaxTokens
 	}
 
-	agent := genai.NewAgent(a.model.Model,
+	agent := genai.NewAgent(a.smallModel.Model,
 		genai.WithSystemPrompt(string(titlePrompt)+"\n /no_think"),
 		genai.WithMaxOutputTokens(maxOutput),
 		genai.WithStopConditions(

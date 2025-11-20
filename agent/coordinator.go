@@ -291,10 +291,16 @@ func (c *coordinator) buildAgent(ctx context.Context, prompt *prompt.Prompt, age
 		return nil, err
 	}
 
+	smallModel, err := c.buildAgentModel(ctx, c.cfg.Models[config.SmallAI])
+	if err != nil {
+		return nil, fmt.Errorf("error building small model: %w", err)
+	}
+
 	modelProviderCfg, _ := c.cfg.Providers.Get(model.Selection.Provider)
 	reminderService := reminder.NewService(c.todos, c.sessions)
 	result := NewSessionAgent(SessionAgentOptions{
 		Model:                model,
+		SmallModel:           smallModel,
 		SystemPromptPrefix:   modelProviderCfg.SystemPromptPrefix,
 		SystemPrompt:         systemPrompt,
 		DisableAutoSummarize: c.cfg.Options.DisableAutoSummarize,
