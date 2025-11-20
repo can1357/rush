@@ -594,7 +594,7 @@ func (m *Manager) List() []string {
 // formats.
 func ParseHex(hex string) color.Color {
 	hex = strings.TrimPrefix(hex, "#")
-	
+
 	switch len(hex) {
 	case 6:
 		// #RRGGBB format

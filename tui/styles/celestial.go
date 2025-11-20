@@ -7,10 +7,10 @@ func NewCelestialTheme() *Theme {
 		Name:   "celestial",
 		IsDark: true,
 
-		Primary:   ParseHex("#E95378"), // activeBorder/progressBar.background
-		Secondary: ParseHex("#FAB795"), // strings/terminal yellow
-		Tertiary:  ParseHex("#25B0BC"), // terminal blue (from ansiBlue)
-		Accent:    ParseHex("#B877DB"), // keywords/storage
+		Primary:   ParseHex("#E95378"), // activeBorder/progressBar.background - red/pink primary
+		Secondary: ParseHex("#B877DB"), // keywords/storage - purple secondary
+		Tertiary:  ParseHex("#FAB795"), // strings/terminal yellow
+		Accent:    ParseHex("#EE64AC"), // terminal.ansiMagenta - pink/purple accent
 
 		// Backgrounds - mapped from VSCode theme
 		BgBase:        ParseHex("#0b0c0f"), // editor.background
@@ -20,14 +20,14 @@ func NewCelestialTheme() *Theme {
 
 		// Foregrounds - from VSCode theme
 		FgBase:      ParseHex("#D5D8DA"),   // foreground
-		FgMuted:     ParseHex("#6C6F93"),   // comments (from tokenColors)
+		FgMuted:     ParseHex("#6C6F93"),   // comments (from tokenColors) - purplish muted
 		FgHalfMuted: ParseHex("#BBBBBB"),   // CSS properties
 		FgSubtle:    ParseHex("#D5D8DA80"), // sideBar.foreground
 		FgSelected:  ParseHex("#D5D8DA"),   // list.activeSelectionForeground
 
 		// Borders
 		Border:      ParseHex("#22252e"), // focusBorder
-		BorderFocus: ParseHex("#E95378"), // tab.activeBorder
+		BorderFocus: ParseHex("#E95378"), // tab.activeBorder - red/pink focus
 
 		// Status colors
 		Success: ParseHex("#27D797"), // gitDecoration.untrackedResourceForeground
@@ -61,21 +61,21 @@ func NewCelestialTheme() *Theme {
 		// Editor-specific colors - directly from VSCode theme
 		EditorLineNumber:         ParseHex("#D5D8DA1A"), // editorLineNumber.foreground
 		EditorLineNumberActive:   ParseHex("#D5D8DA80"), // editorLineNumber.activeForeground
-		EditorCursor:             ParseHex("#E95378"),   // editorCursor.foreground
+		EditorCursor:             ParseHex("#E95378"),   // editorCursor.foreground - red/pink cursor
 		EditorSelection:          ParseHex("#2E303EB3"), // editor.selectionBackground
-		EditorSelectionHighlight: ParseHex("#6C6F934D"), // editor.selectionHighlightBackground
-		EditorWordHighlight:      ParseHex("#6C6F9380"), // editor.wordHighlightBackground
+		EditorSelectionHighlight: ParseHex("#6C6F934D"), // editor.selectionHighlightBackground - purplish
+		EditorWordHighlight:      ParseHex("#6C6F9380"), // editor.wordHighlightBackground - purplish
 		EditorFindMatch:          ParseHex("#6C6F9380"), // editor.findMatchBackground
 		EditorFindMatchHighlight: ParseHex("#6C6F934D"), // editor.findMatchHighlightBackground
 		EditorLineHighlight:      ParseHex("#2E303E4D"), // editor.lineHighlightBackground
 
-		// Diff colors - from VSCode theme
-		DiffInsertedTextBg:  ParseHex("#09F7A01A"), // diffEditor.insertedTextBackground
-		DiffRemovedTextBg:   ParseHex("#F43E5C1A"), // diffEditor.removedTextBackground
-		DiffInsertLineBg:    ParseHex("#09F7A01A"), // Same as inserted text
-		DiffDeleteLineBg:    ParseHex("#F43E5C1A"), // Same as removed text
-		DiffInsertLineNumBg: ParseHex("#09F7A0B3"), // editorGutter.addedBackground
-		DiffDeleteLineNumBg: ParseHex("#F43E5CB3"), // editorGutter.deletedBackground
+		// Diff colors - balanced darkness
+		DiffInsertedTextBg:  ParseHex("#18604830"), // balanced green for inserted text
+		DiffRemovedTextBg:   ParseHex("#65303030"), // balanced red for removed text
+		DiffInsertLineBg:    ParseHex("#18604830"), // Same as inserted text
+		DiffDeleteLineBg:    ParseHex("#65303030"), // Same as removed text
+		DiffInsertLineNumBg: ParseHex("#18604860"), // balanced green for gutter
+		DiffDeleteLineNumBg: ParseHex("#65303060"), // balanced red for gutter
 
 		// Terminal ANSI colors - directly from VSCode theme
 		AnsiBlue:          ParseHex("#26BBD9"), // terminal.ansiBlue
@@ -101,29 +101,29 @@ func NewCelestialTheme() *Theme {
 
 	// Text selection - from VSCode theme
 	t.TextSelection = lipgloss.NewStyle().
-		Foreground(ParseHex("#D5D8DA")). // list.activeSelectionForeground
+		Foreground(ParseHex("#D5D8DA")).  // list.activeSelectionForeground
 		Background(ParseHex("#2E303E80")) // list.activeSelectionBackground
 
 	// LSP and MCP status indicators
 	t.ItemOfflineIcon = lipgloss.NewStyle().Foreground(ParseHex("#6C6F93")).SetString("●")
-	t.ItemBusyIcon = t.ItemOfflineIcon.Foreground(ParseHex("#FAB795")) // warning/yellow
-	t.ItemErrorIcon = t.ItemOfflineIcon.Foreground(ParseHex("#F43E5C")) // error
+	t.ItemBusyIcon = t.ItemOfflineIcon.Foreground(ParseHex("#FAB795"))   // warning/yellow
+	t.ItemErrorIcon = t.ItemOfflineIcon.Foreground(ParseHex("#F43E5C"))  // error
 	t.ItemOnlineIcon = t.ItemOfflineIcon.Foreground(ParseHex("#27D797")) // success
 
-	// Yolo mode indicators - using theme accent colors
+	// Yolo mode indicators - using theme accent colors (mix of red and purple)
 	t.YoloIconFocused = lipgloss.NewStyle().
-		Foreground(ParseHex("#0b0c0f")).  // editor.background
-		Background(ParseHex("#FAB795")).  // secondary/warning
+		Foreground(ParseHex("#0b0c0f")). // editor.background
+		Background(ParseHex("#EE64AC")). // pink/purple accent
 		Bold(true).
 		SetString(" ! ")
 	t.YoloIconBlurred = t.YoloIconFocused.
-		Foreground(ParseHex("#6C6F93")).  // muted
-		Background(ParseHex("#2E303E"))   // overlay
+		Foreground(ParseHex("#6C6F93")). // muted
+		Background(ParseHex("#2E303E"))  // overlay
 	t.YoloDotsFocused = lipgloss.NewStyle().
-		Foreground(ParseHex("#E95378")).  // primary
+		Foreground(ParseHex("#E95378")). // primary red/pink
 		SetString(":::")
 	t.YoloDotsBlurred = t.YoloDotsFocused.
-		Foreground(ParseHex("#6C6F93"))   // muted
+		Foreground(ParseHex("#6C6F93")) // muted
 
 	return t
 }
