@@ -370,11 +370,7 @@ func (c *Config) autoDetectLiteLLM(env env.Env, resolver VariableResolver) error
 		BaseURL:        baseURL,
 		APIKey:         apiKey,
 		DiscoverModels: true,
-		DefaultModelMetadata: &DefaultModelMetadata{
-			ContextWindow:    8192,
-			DefaultMaxTokens: 4096,
-		},
-		Models: []catwalk.Model{},
+		Models:         []catwalk.Model{},
 	}
 
 	// Discover models immediately

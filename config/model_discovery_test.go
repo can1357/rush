@@ -240,6 +240,85 @@ func TestModelCaching(t *testing.T) {
 	assert.Len(t, models, 2)
 }
 
+func TestDiscoverOpenRouterModels(t *testing.T) {
+	// Create test server that returns OpenRouter-style response
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assert.Equal(t, "/models", r.URL.Path)
+		assert.Equal(t, "Bearer test-openrouter-key", r.Header.Get("Authorization"))
+
+		w.WriteHeader(http.StatusOK)
+		response := map[string]any{
+			"data": []map[string]any{
+				{
+					"id":                    "anthropic/claude-3.5-sonnet",
+					"name":                  "Anthropic: Claude 3.5 Sonnet",
+					"created":               1690502400,
+					"description":           "Claude 3.5 Sonnet",
+					"context_length":        200000,
+					"max_completion_tokens": 8192,
+					"pricing": map[string]string{
+						"prompt":     "0.000003",
+						"completion": "0.000015",
+						"image":      "0",
+						"request":    "0",
+					},
+				},
+				{
+					"id":                    "openai/gpt-4o",
+					"name":                  "OpenAI: GPT-4o",
+					"created":               1690502400,
+					"context_length":        128000,
+					"max_completion_tokens": 16384,
+					"pricing": map[string]string{
+						"prompt":     "0.0000025",
+						"completion": "0.00001",
+						"image":      "0",
+						"request":    "0",
+					},
+				},
+			},
+		}
+		json.NewEncoder(w).Encode(response)
+	}))
+	defer server.Close()
+
+	// Create OpenRouter provider config
+	cfg := ProviderConfig{
+		ID:      string(catwalk.InferenceProviderOpenRouter),
+		Type:    catwalk.TypeOpenRouter,
+		BaseURL: server.URL,
+		APIKey:  "test-openrouter-key",
+	}
+
+	resolver := &mockResolver{}
+	models, err := DiscoverModelsFromProvider(cfg, resolver)
+
+	require.NoError(t, err)
+	require.Len(t, models, 2)
+
+	// Check first model (Claude)
+	claude := models[0]
+	assert.Equal(t, "anthropic/claude-3.5-sonnet", claude.ID)
+	assert.Equal(t, "Anthropic: Claude 3.5 Sonnet", claude.Name)
+	assert.Equal(t, int64(200000), claude.ContextWindow)
+	assert.Equal(t, int64(8192), claude.DefaultMaxTokens)
+	// Pricing: 0.000003 * 1M = 3.0
+	assert.InDelta(t, 3.0, claude.CostPer1MIn, 0.01)
+	// Pricing: 0.000015 * 1M = 15.0
+	assert.InDelta(t, 15.0, claude.CostPer1MOut, 0.01)
+
+	// Check second model (GPT-4o)
+	gpt := models[1]
+	assert.Equal(t, "openai/gpt-4o", gpt.ID)
+	assert.Equal(t, "OpenAI: GPT-4o", gpt.Name)
+	assert.Equal(t, int64(128000), gpt.ContextWindow)
+	assert.Equal(t, int64(16384), gpt.DefaultMaxTokens)
+	// Pricing: 0.0000025 * 1M = 2.5
+	assert.InDelta(t, 2.5, gpt.CostPer1MIn, 0.01)
+	// Pricing: 0.00001 * 1M = 10.0
+	assert.InDelta(t, 10.0, gpt.CostPer1MOut, 0.01)
+}
+
 // mockResolver implements VariableResolver for testing
 type mockResolver struct{}
 

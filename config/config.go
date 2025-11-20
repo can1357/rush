@@ -220,8 +220,8 @@ type ProviderConfig struct {
 
 // DefaultModelMetadata provides default values for discovered models
 type DefaultModelMetadata struct {
-	ContextWindow    int64   `json:"context_window,omitempty" jsonschema:"description=Default context window for discovered models,example=8192"`
-	DefaultMaxTokens int64   `json:"default_max_tokens,omitempty" jsonschema:"description=Default max tokens for discovered models,example=4096"`
+	ContextWindow    int64   `json:"context_window,omitempty" jsonschema:"description=Default context window for discovered models,example=200000"`
+	DefaultMaxTokens int64   `json:"default_max_tokens,omitempty" jsonschema:"description=Default max tokens for discovered models,example=8192"`
 	CostPer1MIn      float64 `json:"cost_per_1m_in,omitempty" jsonschema:"description=Default input cost per 1M tokens,example=0.5"`
 	CostPer1MOut     float64 `json:"cost_per_1m_out,omitempty" jsonschema:"description=Default output cost per 1M tokens,example=1.5"`
 }

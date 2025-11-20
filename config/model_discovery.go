@@ -12,8 +12,10 @@ import (
 	"strings"
 	"time"
 
+	"github.com/can1357/rush/genai/providers/openrouter"
 	"github.com/can1357/rush/home"
 	"github.com/charmbracelet/catwalk/pkg/catwalk"
+	"github.com/charmbracelet/catwalk/pkg/embedded"
 )
 
 // OpenAIModelsResponse represents the response from /v1/models endpoint
@@ -31,6 +33,11 @@ type OpenAIModel struct {
 
 // DiscoverModelsFromProvider fetches available models from an OpenAI-compatible provider
 func DiscoverModelsFromProvider(cfg ProviderConfig, resolver VariableResolver) ([]catwalk.Model, error) {
+	// Check if this is OpenRouter and use OpenRouter-specific discovery
+	if cfg.ID == string(catwalk.InferenceProviderOpenRouter) || cfg.Type == catwalk.TypeOpenRouter {
+		return discoverOpenRouterModels(cfg, resolver)
+	}
+
 	baseURL, err := resolver.ResolveValue(cfg.BaseURL)
 	if err != nil {
 		return nil, fmt.Errorf("failed to resolve base URL: %w", err)
@@ -125,15 +132,53 @@ func DiscoverModelsFromProvider(cfg ProviderConfig, resolver VariableResolver) (
 	return models, nil
 }
 
+func getModelUniqueID(modelID string) (string, bool) {
+	if idx := strings.LastIndex(modelID, "/"); idx != -1 {
+		return modelID[idx+1:], true
+	}
+	if len(modelID) > 0 {
+		return modelID, true
+	}
+	return "", false
+}
+
+const (
+	// BaseContextWindow is the default context window for discovered models
+	BaseContextWindow = 200000
+	// BaseDefaultMaxTokens is the default max tokens for discovered models
+	BaseDefaultMaxTokens = 8192
+)
+
 // toCatwalkModel converts an OpenAI model to catwalk.Model format
-func toCatwalkModel(m OpenAIModel, defaults *DefaultModelMetadata) catwalk.Model {
+func toCatwalkModel(oai OpenAIModel, defaults *DefaultModelMetadata) catwalk.Model {
 	model := catwalk.Model{
-		ID:   m.ID,
-		Name: m.ID,
+		ID:   oai.ID,
+		Name: oai.ID,
+	}
+
+	modelInfoFound := false
+
+	if modelUid, ok := getModelUniqueID(oai.ID); ok {
+		providers := embedded.GetAll()
+	outer:
+		for p := range providers {
+			prov := &providers[p]
+			for m := range prov.Models {
+				m2 := &prov.Models[m]
+
+				uid, ok := getModelUniqueID(m2.ID)
+				if ok && uid == modelUid {
+					model = *m2
+					model.ID = oai.ID
+					modelInfoFound = true
+					break outer
+				}
+			}
+		}
 	}
 
 	// Apply defaults if provided
-	if defaults != nil {
+	if defaults != nil && !modelInfoFound {
 		if defaults.ContextWindow > 0 {
 			model.ContextWindow = defaults.ContextWindow
 		}
@@ -150,10 +195,10 @@ func toCatwalkModel(m OpenAIModel, defaults *DefaultModelMetadata) catwalk.Model
 
 	// Apply sensible defaults if no metadata provided
 	if model.ContextWindow == 0 {
-		model.ContextWindow = 8192 // Conservative default
+		model.ContextWindow = BaseContextWindow
 	}
 	if model.DefaultMaxTokens == 0 {
-		model.DefaultMaxTokens = 4096 // Conservative default
+		model.DefaultMaxTokens = BaseDefaultMaxTokens
 	}
 
 	return model
@@ -257,4 +302,49 @@ func GetCachedModels(providerID string) ([]catwalk.Model, bool) {
 	}
 
 	return cached.Models, true
+}
+
+// discoverOpenRouterModels uses OpenRouter-specific API to discover models with full metadata
+func discoverOpenRouterModels(cfg ProviderConfig, resolver VariableResolver) ([]catwalk.Model, error) {
+	apiKey := ""
+	if cfg.APIKey != "" {
+		var err error
+		apiKey, err = resolver.ResolveValue(cfg.APIKey)
+		if err != nil {
+			slog.Warn("Failed to resolve API key for OpenRouter model discovery", "provider", cfg.ID, "error", err)
+		}
+	}
+
+	baseURL, err := resolver.ResolveValue(cfg.BaseURL)
+	if err != nil {
+		baseURL = openrouter.DefaultURL // Use default if resolution fails
+	}
+
+	// Create HTTP client
+	client := &http.Client{
+		Timeout: 30 * time.Second,
+	}
+
+	// Call OpenRouter-specific discovery
+	models, err := openrouter.DiscoverModels(apiKey, client)
+	if err != nil {
+		return nil, fmt.Errorf("OpenRouter model discovery failed: %w", err)
+	}
+
+	if len(models) == 0 {
+		slog.Warn("No models discovered from OpenRouter", "provider", cfg.ID)
+		return nil, nil
+	}
+
+	slog.Info("Discovered models from OpenRouter",
+		"provider", cfg.ID,
+		"count", len(models),
+		"base_url", baseURL)
+
+	// Save to cache for offline use
+	if err := SaveDiscoveredModelsToCache(cfg.ID, baseURL, models); err != nil {
+		slog.Warn("Failed to save OpenRouter models to cache", "provider", cfg.ID, "error", err)
+	}
+
+	return models, nil
 }

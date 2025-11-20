@@ -340,8 +340,8 @@ LiteLLM is a unified proxy for 100+ LLM providers. Rush supports automatic model
 			"api_key": "$LITELLM_MASTER_KEY",
 			"discover_models": true,
 			"default_model_metadata": {
-				"context_window": 8192,
-				"default_max_tokens": 4096
+				"context_window": 200000,
+				"default_max_tokens": 8192
 			}
 		}
 	}
@@ -435,7 +435,7 @@ Local models can also be configured via OpenAI-compatible API. Here are two comm
 				{
 					"name": "Qwen 3 30B",
 					"id": "qwen3:30b",
-					"context_window": 256000,
+					"context_window": 200000,
 					"default_max_tokens": 20000
 				}
 			]
@@ -457,7 +457,7 @@ Local models can also be configured via OpenAI-compatible API. Here are two comm
 				{
 					"name": "Qwen 3 30B",
 					"id": "qwen/qwen3-30b-a3b-2507",
-					"context_window": 256000,
+					"context_window": 200000,
 					"default_max_tokens": 20000
 				}
 			]
