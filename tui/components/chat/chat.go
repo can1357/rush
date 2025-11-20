@@ -409,7 +409,7 @@ func (m *messageListCmp) handleToolMessage(msg message.Message) tea.Cmd {
 			m.listCmp.UpdateItem(toolCall.ID(), toolCall)
 
 			// Check for ProposePlan tool results and trigger model switch
-			if tr.Name == tools.ProposePlanToolName && tr.Metadata != "" {
+			if tr.Name == tools.ProposePlanToolName && !tr.IsError {
 				cmds = append(cmds, util.CmdHandler(planmode.PlanModeToggleMsg{
 					SessionID: m.session.ID,
 					Enable:    false,

@@ -447,15 +447,25 @@ Plan mode is active. The user indicated that they do not want you to execute yet
 				finishReason = message.FinishReasonToolUse
 			}
 			currentAssistant.AddFinish(finishReason, "", "")
-			a.updateSessionUsage(a.model, &currentSession, stepResult.Usage, a.openrouterCost(stepResult.ProviderMetadata))
+
+			// Reload session to capture any changes made by tools (e.g., ProposePlan modifying PlanMode)
+			sessionLock.Lock()
+			freshSession, reloadErr := a.sessions.Get(genCtx, call.SessionID)
+			if reloadErr != nil {
+				sessionLock.Unlock()
+				return reloadErr
+			}
+
+			// Apply token usage updates to the fresh session
+			a.updateSessionUsage(a.model, &freshSession, stepResult.Usage, a.openrouterCost(stepResult.ProviderMetadata))
 
 			// Increment turn count if message has actual content (not thinking-only)
 			if !currentAssistant.IsThinkingOnly() {
-				currentSession.AssistantTurnCount++
+				freshSession.AssistantTurnCount++
 			}
 
-			sessionLock.Lock()
-			_, sessionErr := a.sessions.Save(genCtx, currentSession)
+			_, sessionErr := a.sessions.Save(genCtx, freshSession)
+			currentSession = freshSession // Update local copy for next iteration
 			sessionLock.Unlock()
 			if sessionErr != nil {
 				return sessionErr
