@@ -1,27 +1,21 @@
-Analyze this codebase and create/update **{{.Config.Options.InitializeAs}}** to help future agents work effectively in this repository.
+Please analyze this codebase and create a {{.Config.Options.InitializeAs}} file, which will be given to future instances of Crush to operate in this repository.
 
-**First**: Check if directory is empty or contains only config files. If so, stop and say "Directory appears empty or only contains config. Add source code first, then run this command to generate {{.Config.Options.InitializeAs}}."
+What to add:
+1. Commands that will be commonly used, such as how to build, lint, and run tests. Include the necessary commands to develop in this codebase, such as how to run a single test.
+2. High-level code architecture and structure so that future instances can be productive more quickly. Focus on the "big picture" architecture that requires reading multiple files to understand.
 
-**Goal**: Document what an agent needs to know to work in this codebase - commands, patterns, conventions, gotchas.
+Usage notes:
+- If there's already a {{.Config.Options.InitializeAs}}, suggest improvements to it.
+- When you make the initial {{.Config.Options.InitializeAs}}, do not repeat yourself and do not include obvious instructions like "Provide helpful error messages to users", "Write unit tests for all new utilities", "Never include sensitive information (API keys, tokens) in code or commits".
+- Avoid listing every component or file structure that can be easily discovered.
+- Don't include generic development practices.
+- If there are Cursor rules (in .cursor/rules/ or .cursorrules) or Copilot rules (in .github/copilot-instructions.md), make sure to include the important parts.
+- If there is a README.md, make sure to include the important parts.
+- Do not make up information such as "Common Development Tasks", "Tips for Development", "Support and Documentation" unless this is expressly included in other files that you read.
+- Be sure to prefix the file with the following text:
 
-**Discovery process**:
+```
+# {{.Config.Options.InitializeAs}}
 
-1. Check directory contents with `ls`
-2. Look for existing rule files (`.cursor/rules/*.md`, `.cursorrules`, `.github/copilot-instructions.md`, `claude.md`, `agents.md`) - only read if they exist
-3. Identify project type from config files and directory structure
-4. Find build/test/lint commands from config files, scripts, Makefiles, or CI configs
-5. Read representative source files to understand code patterns
-6. If {{.Config.Options.InitializeAs}} exists, read and improve it
-
-**Content to include**:
-
-- Essential commands (build, test, run, deploy, etc.) - whatever is relevant for this project
-- Code organization and structure
-- Naming conventions and style patterns
-- Testing approach and patterns
-- Important gotchas or non-obvious patterns
-- Any project-specific context from existing rule files
-
-**Format**: Clear markdown sections. Use your judgment on structure based on what you find. Aim for completeness over brevity - include everything an agent would need to know.
-
-**Critical**: Only document what you actually observe. Never invent commands, patterns, or conventions. If you can't find something, don't include it.
+This file provides guidance to Crush (https://github.com/charmbracelet/crush) when working with code in this repository.
+```

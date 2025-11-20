@@ -320,7 +320,9 @@ func (c *coordinator) buildAgent(ctx context.Context, prompt *prompt.Prompt, age
 func (c *coordinator) buildTools(ctx context.Context, agent config.Agent) ([]fantasy.AgentTool, error) {
 	var allTools []fantasy.AgentTool
 	if slices.Contains(agent.AllowedTools, AgentToolName) {
-		agentTool, err := c.agentTool(ctx)
+		// Generate dynamic description based on available agents
+		description := generateAgentToolDescription(c.cfg.Agents)
+		agentTool, err := c.agentTool(ctx, description)
 		if err != nil {
 			return nil, err
 		}
@@ -335,17 +337,9 @@ func (c *coordinator) buildTools(ctx context.Context, agent config.Agent) ([]fan
 		allTools = append(allTools, agenticFetchTool)
 	}
 
-	// Get the model name for the agent
-	modelName := ""
-	if modelCfg, ok := c.cfg.Models[agent.Model]; ok {
-		if model := c.cfg.GetModel(modelCfg.Provider, modelCfg.Model); model != nil {
-			modelName = model.Name
-		}
-	}
-
 	allTools = append(allTools,
 		tools.NewAskUserQuestionTool(c.questions),
-		tools.NewBashTool(c.permissions, c.cfg.WorkingDir(), c.cfg.Options.Attribution, modelName),
+		tools.NewBashTool(c.permissions, c.cfg.WorkingDir()),
 		tools.NewJobOutputTool(),
 		tools.NewJobKillTool(),
 		tools.NewDownloadTool(c.permissions, c.cfg.WorkingDir(), nil),
