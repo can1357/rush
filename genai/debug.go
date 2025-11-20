@@ -21,10 +21,15 @@ func DebugDumpRequest(call Call, resp *Response, modelID string) {
 		return // silently fail
 	}
 
-	msgID := fmt.Sprintf("%d", time.Now().UnixNano())
+	now := time.Now()
+	msgID := fmt.Sprintf("%d", now.UnixNano())
 	filename := filepath.Join(debugDir, fmt.Sprintf("%s.md", msgID))
 
 	var content strings.Builder
+
+	// Header with timestamp
+	content.WriteString(fmt.Sprintf("# LLM Request Debug Dump\n\n"))
+	content.WriteString(fmt.Sprintf("**Timestamp:** %s\n\n", now.Format("2006-01-02 15:04:05.000")))
 
 	// Write messages grouped by role
 	for _, msg := range call.Prompt {
@@ -67,9 +72,9 @@ func DebugDumpRequest(call Call, resp *Response, modelID string) {
 		content.WriteString("## Response Metadata:\n\n")
 		content.WriteString(fmt.Sprintf("- **Model:** %s\n", modelID))
 		content.WriteString(fmt.Sprintf("- **Finish Reason:** %s\n", resp.FinishReason))
-		content.WriteString(fmt.Sprintf("- **Input Tokens:** %d\n", resp.Usage.InputTokens))
-		content.WriteString(fmt.Sprintf("- **Output Tokens:** %d\n", resp.Usage.OutputTokens))
-		content.WriteString(fmt.Sprintf("- **Total Tokens:** %d\n", resp.Usage.TotalTokens))
+		content.WriteString(fmt.Sprintf("- **Request Input Tokens:** %d (this specific API call)\n", resp.Usage.InputTokens))
+		content.WriteString(fmt.Sprintf("- **Request Output Tokens:** %d\n", resp.Usage.OutputTokens))
+		content.WriteString(fmt.Sprintf("- **Request Total Tokens:** %d\n", resp.Usage.TotalTokens))
 		if resp.Usage.ReasoningTokens > 0 {
 			content.WriteString(fmt.Sprintf("- **Reasoning Tokens:** %d\n", resp.Usage.ReasoningTokens))
 		}
