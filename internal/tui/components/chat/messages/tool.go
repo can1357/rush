@@ -378,6 +378,39 @@ func (m *toolCallCmp) formatParametersForCopy() string {
 		if json.Unmarshal([]byte(m.call.Input), &params) == nil {
 			return fmt.Sprintf("**Task:**\n%s", params.Prompt)
 		}
+	case tools.TodoToolName:
+		var params tools.TodoParams
+		if json.Unmarshal([]byte(m.call.Input), &params) == nil {
+			var parts []string
+			parts = append(parts, fmt.Sprintf("**Total Tasks:** %d", len(params.Todos)))
+
+			// Count by status
+			pending := 0
+			inProgress := 0
+			completed := 0
+			for _, todo := range params.Todos {
+				switch todo.Status {
+				case "pending":
+					pending++
+				case "in_progress":
+					inProgress++
+				case "completed":
+					completed++
+				}
+			}
+
+			if inProgress > 0 {
+				parts = append(parts, fmt.Sprintf("**In Progress:** %d", inProgress))
+			}
+			if pending > 0 {
+				parts = append(parts, fmt.Sprintf("**Pending:** %d", pending))
+			}
+			if completed > 0 {
+				parts = append(parts, fmt.Sprintf("**Completed:** %d", completed))
+			}
+
+			return strings.Join(parts, "\n")
+		}
 	}
 
 	var params map[string]any
@@ -416,6 +449,8 @@ func (m *toolCallCmp) formatResultForCopy() string {
 		return m.formatWebFetchResultForCopy()
 	case agent.AgentToolName:
 		return m.formatAgentResultForCopy()
+	case tools.TodoToolName:
+		return m.formatTodoResultForCopy()
 	case tools.DownloadToolName, tools.GrepToolName, tools.GlobToolName, tools.LSToolName, tools.SourcegraphToolName, tools.DiagnosticsToolName:
 		return fmt.Sprintf("```\n%s\n```", m.result.Content)
 	default:
@@ -700,6 +735,62 @@ func (m *toolCallCmp) formatAgentResultForCopy() string {
 	}
 
 	return result.String()
+}
+
+func (m *toolCallCmp) formatTodoResultForCopy() string {
+	var meta tools.TodoResponseMetadata
+	if m.result.Metadata != "" {
+		if json.Unmarshal([]byte(m.result.Metadata), &meta) != nil {
+			return m.result.Content
+		}
+	}
+
+	var result strings.Builder
+	result.WriteString(fmt.Sprintf("Total Tasks: %d\n\n", len(meta.Todos)))
+
+	// Group by status
+	var pending, inProgress, completed []string
+	for i, todo := range meta.Todos {
+		text := todo.Content
+		if todo.Status == "in_progress" {
+			text = todo.ActiveForm
+		}
+		line := fmt.Sprintf("%d. %s", i+1, text)
+
+		switch todo.Status {
+		case "pending":
+			pending = append(pending, line)
+		case "in_progress":
+			inProgress = append(inProgress, line)
+		case "completed":
+			completed = append(completed, line)
+		}
+	}
+
+	if len(inProgress) > 0 {
+		result.WriteString("**In Progress:**\n")
+		for _, task := range inProgress {
+			result.WriteString(fmt.Sprintf("- %s\n", task))
+		}
+		result.WriteString("\n")
+	}
+
+	if len(pending) > 0 {
+		result.WriteString("**Pending:**\n")
+		for _, task := range pending {
+			result.WriteString(fmt.Sprintf("- %s\n", task))
+		}
+		result.WriteString("\n")
+	}
+
+	if len(completed) > 0 {
+		result.WriteString("**Completed:**\n")
+		for _, task := range completed {
+			result.WriteString(fmt.Sprintf("- %s\n", task))
+		}
+	}
+
+	return strings.TrimSpace(result.String())
 }
 
 // SetToolCall updates the tool call data and stops spinning if finished

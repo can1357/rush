@@ -180,6 +180,7 @@ func init() {
 	registry.register(tools.SourcegraphToolName, func() renderer { return sourcegraphRenderer{} })
 	registry.register(tools.DiagnosticsToolName, func() renderer { return diagnosticsRenderer{} })
 	registry.register(agent.AgentToolName, func() renderer { return agentRenderer{} })
+	registry.register(tools.TodoToolName, func() renderer { return todoRenderer{} })
 }
 
 // -----------------------------------------------------------------------------
@@ -848,6 +849,193 @@ func (dr diagnosticsRenderer) Render(v *toolCallCmp) string {
 	return dr.renderWithParams(v, "Diagnostics", args, func() string {
 		return renderPlainContent(v, v.result.Content)
 	})
+}
+
+// -----------------------------------------------------------------------------
+//  Todo renderer
+// -----------------------------------------------------------------------------
+
+// todoRenderer handles todo list updates with nice formatting
+type todoRenderer struct {
+	baseRenderer
+}
+
+// Render displays the todo list changes with a formatted summary showing the delta
+func (tr todoRenderer) Render(v *toolCallCmp) string {
+	t := styles.CurrentTheme()
+
+	args := []string{}
+
+	return tr.renderWithParams(v, "Todo", args, func() string {
+		var meta tools.TodoResponseMetadata
+		if err := tr.unmarshalParams(v.result.Metadata, &meta); err != nil {
+			return renderPlainContent(v, v.result.Content)
+		}
+
+		// Parse input to get previous state
+		var params tools.TodoParams
+		if err := tr.unmarshalParams(v.call.Input, &params); err != nil {
+			return renderPlainContent(v, v.result.Content)
+		}
+
+		// Count status changes
+		newlyCompleted := 0
+
+		// Track the result state
+		resultPending := 0
+		resultInProgress := 0
+		resultCompleted := 0
+
+		for _, todo := range meta.Todos {
+			switch todo.Status {
+			case "pending":
+				resultPending++
+			case "in_progress":
+				resultInProgress++
+			case "completed":
+				resultCompleted++
+			}
+		}
+
+		// Detect changes by comparing input with result
+		for _, newTodo := range params.Todos {
+			if newTodo.Status == "completed" {
+				newlyCompleted++
+			}
+		}
+
+		// Build summary line
+		var summaryParts []string
+		summaryStyle := t.S().Base.Foreground(t.FgMuted)
+
+		totalCount := len(params.Todos)
+		if totalCount == 0 {
+			summaryParts = append(summaryParts, summaryStyle.Render(" No tasks"))
+		} else if totalCount == 1 {
+			summaryParts = append(summaryParts, summaryStyle.Render(" 1 task"))
+		} else {
+			summaryParts = append(summaryParts, summaryStyle.Render(fmt.Sprintf(" %d tasks", totalCount)))
+		}
+
+		// Show status breakdown
+		if totalCount > 0 {
+			statusParts := []string{}
+			if resultPending > 0 {
+				statusParts = append(statusParts, t.S().Base.Foreground(t.FgHalfMuted).Render(fmt.Sprintf("%d pending", resultPending)))
+			}
+			if newlyCompleted > 0 {
+				statusParts = append(statusParts, t.S().Base.Foreground(t.Green).Render(fmt.Sprintf("%d done", newlyCompleted)))
+			}
+
+			if len(statusParts) > 0 {
+				summaryParts = append(summaryParts, t.S().Muted.Render(" • "+strings.Join(statusParts, ", ")))
+			}
+		}
+
+		summary := strings.Join(summaryParts, "")
+
+		width := v.textWidth() - 2
+		bgStyle := t.S().Base.Background(t.BgBaseLighter).Width(width)
+
+		lines := []string{bgStyle.Render(summary)}
+
+		// Show the delta: newly completed tasks first, then active/pending
+		var deltaItems []struct {
+			todo        tools.TodoItem
+			isCompleted bool
+		}
+
+		// First, show newly completed tasks (with strikethrough)
+		for _, todo := range params.Todos {
+			if todo.Status == "completed" && len(deltaItems) < 5 {
+				deltaItems = append(deltaItems, struct {
+					todo        tools.TodoItem
+					isCompleted bool
+				}{todo, true})
+			}
+		}
+
+		// Then show in-progress task
+		for _, todo := range params.Todos {
+			if todo.Status == "in_progress" && len(deltaItems) < 5 {
+				deltaItems = append(deltaItems, struct {
+					todo        tools.TodoItem
+					isCompleted bool
+				}{todo, false})
+			}
+		}
+
+		// Then show next pending tasks
+		for _, todo := range params.Todos {
+			if todo.Status == "pending" && len(deltaItems) < 5 {
+				deltaItems = append(deltaItems, struct {
+					todo        tools.TodoItem
+					isCompleted bool
+				}{todo, false})
+			}
+		}
+
+		// Render the delta items
+		for _, item := range deltaItems {
+			statusIcon := ""
+			statusColor := t.FgMuted
+			displayText := item.todo.Content
+
+			if item.isCompleted {
+				// Completed task with strikethrough
+				statusIcon = "✓"
+				statusColor = t.Green
+				// Add strikethrough using Unicode combining character
+				displayText = tr.strikethrough(displayText)
+			} else {
+				switch item.todo.Status {
+				case "pending":
+					statusIcon = "○"
+					statusColor = t.FgHalfMuted
+				case "in_progress":
+					statusIcon = "●"
+					statusColor = t.Blue
+					displayText = item.todo.ActiveForm
+				}
+			}
+
+			icon := t.S().Base.Foreground(statusColor).Render(statusIcon)
+			textStyle := t.S().Base.Foreground(t.FgMuted)
+			if item.isCompleted {
+				textStyle = textStyle.Foreground(t.FgHalfMuted)
+			}
+			text := textStyle.Render(displayText)
+			line := fmt.Sprintf(" %s %s", icon, text)
+
+			lines = append(lines, bgStyle.Render(v.fit(line, width)))
+		}
+
+		// Show "and N more" if there are more tasks
+		if len(params.Todos) > len(deltaItems) {
+			remaining := len(params.Todos) - len(deltaItems)
+			moreText := fmt.Sprintf(" … and %d more", remaining)
+			if remaining == 1 {
+				moreText = " … and 1 more"
+			}
+			lines = append(lines, bgStyle.Render(t.S().Muted.Render(moreText)))
+		}
+
+		return strings.Join(lines, "\n")
+	})
+}
+
+// strikethrough adds a line over text using Unicode box drawing
+func (tr todoRenderer) strikethrough(text string) string {
+	// Use Unicode strikethrough combining character
+	runes := []rune(text)
+	result := make([]rune, 0, len(runes)*2)
+	strikeChar := '\u0336' // combining long stroke overlay
+
+	for _, r := range runes {
+		result = append(result, r, strikeChar)
+	}
+
+	return string(result)
 }
 
 // -----------------------------------------------------------------------------
