@@ -12,7 +12,7 @@ import (
 	"strings"
 	"time"
 
-	"charm.land/fantasy"
+	"github.com/can1357/rush/ai"
 	"github.com/can1357/rush/filepathext"
 	"github.com/can1357/rush/permission"
 )

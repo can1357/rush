@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"log/slog"
 	"strings"
 	"time"
 	"unicode"
@@ -898,6 +899,7 @@ func (p *chatPage) sendMessage(text string, attachments []message.Attachment) te
 				if isCancelErr || isPermissionErr {
 					return nil
 				}
+				slog.Error("Agent request failed", "error", err)
 				return util.InfoMsg{
 					Type: util.InfoTypeError,
 					Msg:  err.Error(),
@@ -914,6 +916,7 @@ func (p *chatPage) sendMessage(text string, attachments []message.Attachment) te
 			if isCancelErr || isPermissionErr {
 				return nil
 			}
+			slog.Error("Agent request failed", "error", err)
 			return util.InfoMsg{
 				Type: util.InfoTypeError,
 				Msg:  err.Error(),

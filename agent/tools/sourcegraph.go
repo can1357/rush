@@ -11,7 +11,7 @@ import (
 	"strings"
 	"time"
 
-	"charm.land/fantasy"
+	"github.com/can1357/rush/ai"
 )
 
 type SourcegraphParams struct {

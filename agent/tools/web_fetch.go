@@ -9,7 +9,7 @@ import (
 	"strings"
 	"time"
 
-	"charm.land/fantasy"
+	"github.com/can1357/rush/ai"
 )
 
 //go:embed web_fetch.md

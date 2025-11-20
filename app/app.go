@@ -14,7 +14,7 @@ import (
 	"time"
 
 	tea "charm.land/bubbletea/v2"
-	"charm.land/fantasy"
+	"github.com/can1357/rush/ai"
 	"charm.land/lipgloss/v2"
 	"github.com/can1357/rush/agent"
 	"github.com/can1357/rush/agent/tools/mcp"

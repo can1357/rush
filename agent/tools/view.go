@@ -11,7 +11,7 @@ import (
 	"strings"
 	"unicode/utf8"
 
-	"charm.land/fantasy"
+	"github.com/can1357/rush/ai"
 	"github.com/can1357/rush/csync"
 	"github.com/can1357/rush/filepathext"
 	"github.com/can1357/rush/lsp"

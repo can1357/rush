@@ -7,7 +7,7 @@ import (
 	"strings"
 	"testing"
 
-	"charm.land/fantasy"
+	"github.com/can1357/rush/ai"
 	"charm.land/x/vcr"
 	"github.com/can1357/rush/agent/tools"
 	"github.com/can1357/rush/message"

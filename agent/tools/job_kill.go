@@ -5,7 +5,7 @@ import (
 	_ "embed"
 	"fmt"
 
-	"charm.land/fantasy"
+	"github.com/can1357/rush/ai"
 	"github.com/can1357/rush/shell"
 )
 

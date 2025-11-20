@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"strings"
 
-	"charm.land/fantasy"
+	"github.com/can1357/rush/ai"
 	"github.com/can1357/rush/shell"
 )
 

@@ -4,7 +4,7 @@ import (
 	"context"
 	_ "embed"
 
-	"charm.land/fantasy"
+	"github.com/can1357/rush/ai"
 	"github.com/can1357/rush/session"
 )
 

@@ -7,10 +7,10 @@ import (
 	"strings"
 	"time"
 
-	"charm.land/fantasy"
-	"charm.land/fantasy/providers/anthropic"
-	"charm.land/fantasy/providers/google"
-	"charm.land/fantasy/providers/openai"
+	"github.com/can1357/rush/ai"
+	"github.com/can1357/rush/ai/providers/anthropic"
+	"github.com/can1357/rush/ai/providers/google"
+	"github.com/can1357/rush/ai/providers/openai"
 	"github.com/charmbracelet/catwalk/pkg/catwalk"
 )
 

@@ -10,7 +10,7 @@ import (
 	"time"
 	"unicode/utf8"
 
-	"charm.land/fantasy"
+	"github.com/can1357/rush/ai"
 	md "github.com/JohannesKaufmann/html-to-markdown"
 	"github.com/PuerkitoBio/goquery"
 	"github.com/can1357/rush/permission"

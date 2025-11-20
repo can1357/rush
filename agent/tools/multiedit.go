@@ -10,7 +10,7 @@ import (
 	"strings"
 	"time"
 
-	"charm.land/fantasy"
+	"github.com/can1357/rush/ai"
 	"github.com/can1357/rush/csync"
 	"github.com/can1357/rush/diff"
 	"github.com/can1357/rush/filepathext"

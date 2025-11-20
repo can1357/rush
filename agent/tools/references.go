@@ -14,7 +14,7 @@ import (
 	"sort"
 	"strings"
 
-	"charm.land/fantasy"
+	"github.com/can1357/rush/ai"
 	"github.com/can1357/rush/csync"
 	"github.com/can1357/rush/lsp"
 	"github.com/charmbracelet/x/powernap/pkg/lsp/protocol"
