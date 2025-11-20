@@ -211,7 +211,7 @@ or globally, with the following priority:
 
 1. `.crush.json`
 2. `crush.json`
-3. `$HOME/.config/crush/crush.json`
+3. `$HOME/.crush/config.json`
 
 Configuration itself is stored as a JSON object:
 
@@ -222,14 +222,10 @@ Configuration itself is stored as a JSON object:
 }
 ```
 
-As an additional note, Crush also stores ephemeral data, such as application state, in one additional location:
+As an additional note, Crush also stores ephemeral data, such as application state, at:
 
 ```bash
-# Unix
-$HOME/.local/share/crush/crush.json
-
-# Windows
-%LOCALAPPDATA%\crush\crush.json
+$HOME/.crush/config.json
 ```
 
 ### LSPs
