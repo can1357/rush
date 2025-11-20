@@ -100,25 +100,25 @@ func DefaultDarkStyle() Style {
 		},
 		InsertLine: LineStyle{
 			LineNumber: lipgloss.NewStyle().
-				Foreground(charmtone.Turtle).
-				Background(lipgloss.Color("#293229")),
+				Foreground(lipgloss.Color("#27D797")).
+				Background(lipgloss.Color("#1a3d2d")),
 			Symbol: lipgloss.NewStyle().
-				Foreground(charmtone.Turtle).
-				Background(lipgloss.Color("#303a30")),
+				Foreground(lipgloss.Color("#27D797")).
+				Background(lipgloss.Color("#1f4a36")),
 			Code: lipgloss.NewStyle().
 				Foreground(charmtone.Salt).
-				Background(lipgloss.Color("#303a30")),
+				Background(lipgloss.Color("#1f4a36")),
 		},
 		DeleteLine: LineStyle{
 			LineNumber: lipgloss.NewStyle().
-				Foreground(charmtone.Cherry).
-				Background(lipgloss.Color("#332929")),
+				Foreground(lipgloss.Color("#F43E5C")).
+				Background(lipgloss.Color("#3d1e29")),
 			Symbol: lipgloss.NewStyle().
-				Foreground(charmtone.Cherry).
-				Background(lipgloss.Color("#3a3030")),
+				Foreground(lipgloss.Color("#F43E5C")).
+				Background(lipgloss.Color("#4a2533")),
 			Code: lipgloss.NewStyle().
 				Foreground(charmtone.Salt).
-				Background(lipgloss.Color("#3a3030")),
+				Background(lipgloss.Color("#4a2533")),
 		},
 	}
 }

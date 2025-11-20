@@ -454,23 +454,23 @@ func (t *Theme) buildStyles() *Styles {
 			},
 			InsertLine: diffview.LineStyle{
 				LineNumber: lipgloss.NewStyle().
-					Foreground(lipgloss.Color("#629657")).
-					Background(lipgloss.Color("#2b322a")),
+					Foreground(lipgloss.Color("#27D797")).
+					Background(lipgloss.Color("#1a3d2d")),
 				Symbol: lipgloss.NewStyle().
-					Foreground(lipgloss.Color("#629657")).
-					Background(lipgloss.Color("#323931")),
+					Foreground(lipgloss.Color("#27D797")).
+					Background(lipgloss.Color("#1f4a36")),
 				Code: lipgloss.NewStyle().
-					Background(lipgloss.Color("#323931")),
+					Background(lipgloss.Color("#1f4a36")),
 			},
 			DeleteLine: diffview.LineStyle{
 				LineNumber: lipgloss.NewStyle().
-					Foreground(lipgloss.Color("#a45c59")).
-					Background(lipgloss.Color("#312929")),
+					Foreground(lipgloss.Color("#F43E5C")).
+					Background(lipgloss.Color("#3d1e29")),
 				Symbol: lipgloss.NewStyle().
-					Foreground(lipgloss.Color("#a45c59")).
-					Background(lipgloss.Color("#383030")),
+					Foreground(lipgloss.Color("#F43E5C")).
+					Background(lipgloss.Color("#4a2533")),
 				Code: lipgloss.NewStyle().
-					Background(lipgloss.Color("#383030")),
+					Background(lipgloss.Color("#4a2533")),
 			},
 		},
 		FilePicker: filepicker.Styles{
@@ -519,7 +519,7 @@ func NewManager() *Manager {
 		themes: make(map[string]*Theme),
 	}
 
-	t := NewCharmtoneTheme() // default theme
+	t := NewCelestialTheme() // default theme
 	m.Register(t)
 	m.current = m.themes[t.Name]
 

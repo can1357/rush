@@ -121,7 +121,7 @@ func NewDirectoryLister(rootPath string) *directoryLister {
 // - ./.crushignore, ../.crushignore, etc, until dl.rootPath
 // ~/.config/git/ignore
 // ~/.gitignore
-// ~/.config/crush/ignore
+// ~/.crush/ignore
 func (dl *directoryLister) shouldIgnore(path string, ignorePatterns []string) bool {
 	if len(ignorePatterns) > 0 {
 		base := filepath.Base(path)
