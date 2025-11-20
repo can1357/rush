@@ -181,7 +181,9 @@ func (c *coordinator) agentTool(ctx context.Context, description string) (fantas
 			}
 
 			agentToolSessionID := c.sessions.CreateAgentToolSessionID(agentMessageID, call.ID)
-			session, err := c.sessions.CreateTaskSession(ctx, agentToolSessionID, sessionID, params.Description)
+			// Include agent type in session title for visibility
+			sessionTitle := fmt.Sprintf("[%s] %s", params.SubagentType, params.Description)
+			session, err := c.sessions.CreateTaskSession(ctx, agentToolSessionID, sessionID, sessionTitle)
 			if err != nil {
 				return fantasy.ToolResponse{}, fmt.Errorf("error creating session: %s", err)
 			}
