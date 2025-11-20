@@ -9,6 +9,7 @@ import (
 	"golang.org/x/text/language"
 
 	"github.com/can1357/rush/config"
+	"github.com/can1357/rush/genaiopts"
 	"github.com/can1357/rush/tui/components/core"
 	"github.com/can1357/rush/tui/components/dialogs"
 	"github.com/can1357/rush/tui/exp/list"
@@ -125,10 +126,19 @@ func (r *reasoningDialogCmp) populateEffortOptions() tea.Cmd {
 	if agentCfg, ok := cfg.Agents[config.AgentMaestro]; ok {
 		model := cfg.GetModelByType(agentCfg.Model)
 
-		// Get current reasoning effort from model defaults
+		// Get current reasoning effort from ProviderOptions if set, otherwise use model defaults
 		var currentEffort string
 		if model != nil {
-			currentEffort = model.DefaultReasoningEffort
+			selectedModel := cfg.Models[agentCfg.Model]
+			if selectedModel.ProviderOptions != nil {
+				effort := genaiopts.ExtractFromProviderOptionsMap(selectedModel.ProviderOptions)
+				if effort != genaiopts.ReasoningEffortOff {
+					currentEffort = effort.String()
+				}
+			}
+			if currentEffort == "" {
+				currentEffort = model.DefaultReasoningEffort
+			}
 		}
 
 		efforts := []EffortOption{}

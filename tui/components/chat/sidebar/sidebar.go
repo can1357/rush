@@ -13,6 +13,7 @@ import (
 	"github.com/can1357/rush/csync"
 	"github.com/can1357/rush/diff"
 	"github.com/can1357/rush/fsext"
+	"github.com/can1357/rush/genaiopts"
 	"github.com/can1357/rush/history"
 	"github.com/can1357/rush/home"
 	"github.com/can1357/rush/lsp"
@@ -682,13 +683,17 @@ func (s *sidebarCmp) currentModelBlock() string {
 	parts := []string{
 		modelInfo,
 	}
-	_ = selectedModel
-	if model.CanReason {
-		// Reasoning configuration is now handled via ProviderOptions
-		// TODO: Add display of reasoning settings from ProviderOptions if needed
-		_ = modelProvider.Type
-		_ = model.DefaultReasoningEffort
+
+	// Display reasoning effort if configured
+	if model.CanReason && selectedModel.ProviderOptions != nil {
+		effort := genaiopts.ExtractFromProviderOptionsMap(selectedModel.ProviderOptions)
+		if effort.IsThinkingEnabled() {
+			reasoningStyle := t.S().Subtle.PaddingLeft(2)
+			reasoningText := fmt.Sprintf("Reasoning: %s", effort.String())
+			parts = append(parts, reasoningStyle.Render(reasoningText))
+		}
 	}
+	_ = modelProvider
 	// Add plan mode indicator
 	if s.session.PlanMode {
 		planModeStyle := t.S().Base.

@@ -16,6 +16,7 @@ import (
 	"github.com/can1357/rush/agent/tools/mcp"
 	"github.com/can1357/rush/config"
 	"github.com/can1357/rush/csync"
+	"github.com/can1357/rush/genaiopts"
 	"github.com/can1357/rush/pubsub"
 	"github.com/can1357/rush/term"
 	"github.com/can1357/rush/tui/components/chat"
@@ -368,18 +369,17 @@ func (c *commandDialogCmp) defaultCommands() []Command {
 			selectedModel := cfg.Models[agentCfg.Model]
 
 			// Anthropic models: thinking toggle
-			// TODO: Re-implement thinking toggle using ProviderOptions
 			if providerCfg.Type == catwalk.TypeAnthropic {
-				_ = selectedModel
-				/*
 				status := "Enable"
-				if selectedModel.Think {
-					status = "Disable"
+				if selectedModel.ProviderOptions != nil {
+					effort := genaiopts.ExtractFromProviderOptionsMap(selectedModel.ProviderOptions)
+					if effort.IsThinkingEnabled() {
+						status = "Disable"
+					}
 				}
-				*/
 				commands = append(commands, Command{
 					ID:          "toggle_thinking",
-					Title:       "Toggle Thinking Mode",
+					Title:       status + " Thinking Mode",
 					Description: "Toggle model thinking for reasoning-capable models",
 					Handler: func(cmd Command) tea.Cmd {
 						return util.CmdHandler(ToggleThinkingMsg{})

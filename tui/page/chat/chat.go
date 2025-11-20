@@ -382,9 +382,11 @@ func (p *chatPage) Update(msg tea.Msg) (util.Model, tea.Cmd) {
 						cfg := config.Get()
 						if largeModel := cfg.ModelByClass(config.ProAI); largeModel != nil {
 							selectedModel = cfg.Models[config.ProAI]
-							// TODO: Enable thinking via ProviderOptions
+							// Enable high reasoning effort for plan mode
+							selectedModel.ProviderOptions = genaiopts.ReasoningEffortHigh.ApplyToMap(selectedModel.ProviderOptions)
 						} else {
-							// TODO: Enable thinking via ProviderOptions
+							// Enable high reasoning effort for plan mode
+							selectedModel.ProviderOptions = genaiopts.ReasoningEffortHigh.ApplyToMap(selectedModel.ProviderOptions)
 						}
 					} else {
 						// Exiting plan mode: restore previous model if saved
@@ -667,11 +669,35 @@ func (p *chatPage) updateCompactConfig(compact bool) tea.Cmd {
 }
 
 func (p *chatPage) toggleThinking() tea.Cmd {
-	p.thinkingEnabled = !p.thinkingEnabled
-	state := "off"
-	if p.thinkingEnabled {
+	cfg := config.Get()
+	agentCfg := cfg.Agents[config.AgentMaestro]
+	currentModel := cfg.Models[agentCfg.Model]
+
+	// Extract current effort from ProviderOptions
+	currentEffort := genaiopts.ReasoningEffortOff
+	if currentModel.ProviderOptions != nil {
+		currentEffort = genaiopts.ExtractFromProviderOptionsMap(currentModel.ProviderOptions)
+	}
+
+	// Toggle: if thinking is on, turn it off; otherwise set to high
+	var newEffort genaiopts.ReasoningEffort
+	var state string
+	if currentEffort.IsThinkingEnabled() {
+		newEffort = genaiopts.ReasoningEffortOff
+		state = "off"
+	} else {
+		newEffort = genaiopts.ReasoningEffortHigh
 		state = "on"
 	}
+
+	// Update ProviderOptions with new effort
+	currentModel.ProviderOptions = newEffort.ApplyToMap(currentModel.ProviderOptions)
+
+	// Save updated model selection
+	if err := cfg.UpdatePreferredModel(agentCfg.Model, currentModel); err != nil {
+		return util.ReportError(fmt.Errorf("failed to toggle thinking mode: %w", err))
+	}
+
 	return util.ReportInfo(fmt.Sprintf("Thinking mode %s", state))
 }
 
@@ -1311,10 +1337,12 @@ func (p *chatPage) togglePlanMode() tea.Cmd {
 
 		selectedModel := currentModel
 		if extraModel := cfg.ModelByClass(config.ProAI); extraModel != nil {
-			// TODO: Enable thinking via ProviderOptions
-			// TODO: Enable thinking via ProviderOptions
-			// TODO: Enable thinking via ProviderOptions
-			// TODO: Enable thinking via ProviderOptions
+			selectedModel = cfg.Models[config.ProAI]
+			// Enable high reasoning effort for plan mode
+			selectedModel.ProviderOptions = genaiopts.ReasoningEffortHigh.ApplyToMap(selectedModel.ProviderOptions)
+		} else {
+			// Enable high reasoning effort for plan mode even without Pro model
+			selectedModel.ProviderOptions = genaiopts.ReasoningEffortHigh.ApplyToMap(selectedModel.ProviderOptions)
 		}
 		p.app.SelectModel(context.Background(), selectedModel)
 

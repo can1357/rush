@@ -20,6 +20,7 @@ import (
 	"github.com/can1357/rush/app"
 	"github.com/can1357/rush/config"
 	"github.com/can1357/rush/fsext"
+	"github.com/can1357/rush/genaiopts"
 	"github.com/can1357/rush/message"
 	"github.com/can1357/rush/session"
 	"github.com/can1357/rush/tui/components/chat"
@@ -442,13 +443,18 @@ func (m *editorCmp) randomizePlaceholders() {
 func (m *editorCmp) View() string {
 	t := styles.CurrentTheme()
 
-	// Check if extended thinking mode is enabled
-	// TODO: Re-implement thinking detection from ProviderOptions
+	// Check if extended thinking mode is enabled via ProviderOptions
 	cfg := m.app.Config()
 	agentCfg := cfg.Agents[config.AgentMaestro]
-	_ = cfg.Models[agentCfg.Model]
-	thinkingEnabled := false
-	reasoningEffort := ""
+	currentModel := cfg.Models[agentCfg.Model]
+
+	// Extract reasoning effort from ProviderOptions
+	effort := genaiopts.ReasoningEffortOff
+	if currentModel.ProviderOptions != nil {
+		effort = genaiopts.ExtractFromProviderOptionsMap(currentModel.ProviderOptions)
+	}
+	thinkingEnabled := effort.IsThinkingEnabled()
+	reasoningEffort := effort.String()
 
 	// Check for ultrathink trigger in input
 	inputText := strings.ToLower(m.textarea.Value())
