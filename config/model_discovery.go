@@ -151,16 +151,10 @@ const (
 
 // toCatwalkModel converts an OpenAI model to catwalk.Model format
 func toCatwalkModel(oai OpenAIModel, defaults *DefaultModelMetadata) catwalk.Model {
-	model := catwalk.Model{
-		ID:   oai.ID,
-		Name: oai.ID,
-	}
+	id := oai.ID
 
-	modelInfoFound := false
-
-	if modelUid, ok := getModelUniqueID(oai.ID); ok {
+	if modelUid, ok := getModelUniqueID(id); ok {
 		providers := embedded.GetAll()
-	outer:
 		for p := range providers {
 			prov := &providers[p]
 			for m := range prov.Models {
@@ -168,39 +162,50 @@ func toCatwalkModel(oai OpenAIModel, defaults *DefaultModelMetadata) catwalk.Mod
 
 				uid, ok := getModelUniqueID(m2.ID)
 				if ok && uid == modelUid {
-					model = *m2
-					model.ID = oai.ID
-					modelInfoFound = true
-					break outer
+					result := *m2
+					result.ID = id
+					return result
+				}
+			}
+		}
+
+		for p := range providers {
+			prov := &providers[p]
+			for m := range prov.Models {
+				m2 := &prov.Models[m]
+				if m2.Name == id {
+					result := *m2
+					result.ID = id
+					return result
 				}
 			}
 		}
 	}
 
-	// Apply defaults if provided
-	if defaults != nil && !modelInfoFound {
-		if defaults.ContextWindow > 0 {
-			model.ContextWindow = defaults.ContextWindow
-		}
-		if defaults.DefaultMaxTokens > 0 {
-			model.DefaultMaxTokens = defaults.DefaultMaxTokens
-		}
-		if defaults.CostPer1MIn > 0 {
-			model.CostPer1MIn = defaults.CostPer1MIn
-		}
-		if defaults.CostPer1MOut > 0 {
-			model.CostPer1MOut = defaults.CostPer1MOut
-		}
+	model := catwalk.Model{
+		ID:               id,
+		Name:             id,
+		ContextWindow:    BaseContextWindow,
+		DefaultMaxTokens: BaseDefaultMaxTokens,
 	}
-
-	// Apply sensible defaults if no metadata provided
-	if model.ContextWindow == 0 {
-		model.ContextWindow = BaseContextWindow
+	if defaults != nil && defaults.ContextWindow > 0 {
+		model.ContextWindow = defaults.ContextWindow
 	}
-	if model.DefaultMaxTokens == 0 {
-		model.DefaultMaxTokens = BaseDefaultMaxTokens
+	if defaults != nil && defaults.DefaultMaxTokens > 0 {
+		model.DefaultMaxTokens = defaults.DefaultMaxTokens
 	}
-
+	if defaults != nil && defaults.CostPer1MIn > 0 {
+		model.CostPer1MIn = defaults.CostPer1MIn
+	}
+	if defaults != nil && defaults.CostPer1MOut > 0 {
+		model.CostPer1MOut = defaults.CostPer1MOut
+	}
+	if defaults != nil && defaults.CostPer1MInCached > 0 {
+		model.CostPer1MInCached = defaults.CostPer1MInCached
+	}
+	if defaults != nil && defaults.CostPer1MOutCached > 0 {
+		model.CostPer1MOutCached = defaults.CostPer1MOutCached
+	}
 	return model
 }
 

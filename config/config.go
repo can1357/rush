@@ -220,10 +220,12 @@ type ProviderConfig struct {
 
 // DefaultModelMetadata provides default values for discovered models
 type DefaultModelMetadata struct {
-	ContextWindow    int64   `json:"context_window,omitempty" jsonschema:"description=Default context window for discovered models,example=200000"`
-	DefaultMaxTokens int64   `json:"default_max_tokens,omitempty" jsonschema:"description=Default max tokens for discovered models,example=8192"`
-	CostPer1MIn      float64 `json:"cost_per_1m_in,omitempty" jsonschema:"description=Default input cost per 1M tokens,example=0.5"`
-	CostPer1MOut     float64 `json:"cost_per_1m_out,omitempty" jsonschema:"description=Default output cost per 1M tokens,example=1.5"`
+	ContextWindow      int64   `json:"context_window,omitempty" jsonschema:"description=Default context window for discovered models,example=200000"`
+	DefaultMaxTokens   int64   `json:"default_max_tokens,omitempty" jsonschema:"description=Default max tokens for discovered models,example=8192"`
+	CostPer1MIn        float64 `json:"cost_per_1m_in,omitempty" jsonschema:"description=Default input cost per 1M tokens,example=0.5"`
+	CostPer1MOut       float64 `json:"cost_per_1m_out,omitempty" jsonschema:"description=Default output cost per 1M tokens,example=1.5"`
+	CostPer1MInCached  float64 `json:"cost_per_1m_in_cached,omitempty" jsonschema:"description=Default input cost per 1M tokens for cached requests,example=0.25"`
+	CostPer1MOutCached float64 `json:"cost_per_1m_out_cached,omitempty" jsonschema:"description=Default output cost per 1M tokens for cached requests,example=0.75"`
 }
 
 type MCPType string
