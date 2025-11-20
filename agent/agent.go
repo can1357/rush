@@ -426,6 +426,14 @@ Plan mode is active. The user indicated that they do not want you to execute yet
 					threshold = int64(float64(cw) * 0.2)
 				}
 				if (remaining <= threshold) && !a.disableAutoSummarize {
+					slog.Info("auto-summarization triggered",
+						"reason", "token budget threshold exceeded",
+						"context_window", cw,
+						"tokens_used", tokens,
+						"tokens_remaining", remaining,
+						"threshold", threshold,
+						"session_id", call.SessionID,
+					)
 					shouldSummarize = true
 					return true
 				}
