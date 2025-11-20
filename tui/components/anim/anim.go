@@ -52,7 +52,7 @@ var (
 )
 
 var (
-	availableRunes = []rune("✳✴✵✶✷✸✹⁕※⁂⁎⁑")
+	spinnerFrames  = []rune("◐◓◑◒")
 	ellipsisFrames = []string{"", ".", "..", "..."}
 )
 
@@ -215,7 +215,7 @@ func New(opts Settings) *Anim {
 
 				// Also prerender the color with Lip Gloss here to avoid processing
 				// in the render loop.
-				r := availableRunes[rand.IntN(len(availableRunes))]
+				r := spinnerFrames[i%len(spinnerFrames)]
 				a.cyclingFrames[i][j] = lipgloss.NewStyle().
 					Foreground(ramp[j+offset]).
 					Render(string(r))
@@ -351,24 +351,24 @@ func (a *Anim) Update(msg tea.Msg) (util.Model, tea.Cmd) {
 func (a *Anim) View() string {
 	var b strings.Builder
 	step := int(a.step.Load())
-	for i := range a.width {
-		switch {
-		case !a.initialized.Load() && i < len(a.birthOffsets) && time.Since(a.startTime) < a.birthOffsets[i]:
-			// Birth offset not reached: render initial character.
-			b.WriteString(a.initialFrames[step][i])
-		case i < a.cyclingCharWidth:
-			// Render a cycling character.
-			b.WriteString(a.cyclingFrames[step][i])
-		case i == a.cyclingCharWidth:
-			// Render label gap.
-			b.WriteString(labelGap)
-		case i > a.cyclingCharWidth:
-			// Label.
-			if labelChar, ok := a.label.Get(i - a.cyclingCharWidth - labelGapWidth); ok {
-				b.WriteString(labelChar)
-			}
-		}
+
+	// Render single spinner icon
+	frame := spinnerFrames[step%len(spinnerFrames)]
+	ramp := makeGradientRamp(len(spinnerFrames), a.labelColor, a.labelColor)
+	b.WriteString(lipgloss.NewStyle().
+		Foreground(ramp[step%len(ramp)]).
+		Render(string(frame)))
+
+	// Render label gap if we have a label
+	if a.labelWidth > 0 {
+		b.WriteString(labelGap)
 	}
+
+	// Render label
+	for _, char := range a.label.Seq2() {
+		b.WriteString(char)
+	}
+
 	// Render animated ellipsis at the end of the label if all characters
 	// have been initialized.
 	if a.initialized.Load() && a.labelWidth > 0 {

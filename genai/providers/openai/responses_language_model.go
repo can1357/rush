@@ -13,6 +13,7 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"log/slog"
 	"reflect"
 	"strings"
 
@@ -328,10 +329,14 @@ func (o responsesLanguageModel) prepareParams(call genai.Call) (*responses.Respo
 
 	tools, toolChoice, toolWarnings := toResponsesTools(call.Tools, call.ToolChoice, openaiOptions)
 	warnings = append(warnings, toolWarnings...)
+	slog.Debug("responses: After toResponsesTools", "tools_count", len(tools), "has_call_tools", len(call.Tools))
 
 	if len(tools) > 0 {
 		params.Tools = tools
 		params.ToolChoice = toolChoice
+		slog.Debug("responses: Set tools and tool_choice in params", "count", len(tools))
+	} else if len(call.Tools) > 0 {
+		slog.Debug("responses: Skipping tools - filtered to zero", "input_count", len(call.Tools))
 	}
 
 	return params, warnings

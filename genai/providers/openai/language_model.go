@@ -14,6 +14,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log/slog"
 	"reflect"
 	"strings"
 
@@ -238,13 +239,19 @@ func (o languageModel) prepareParams(call genai.Call) (*openai.ChatCompletionNew
 	params.Model = o.modelID
 
 	if len(call.Tools) > 0 {
+		slog.Debug("Processing tools", "input_count", len(call.Tools), "has_tool_choice", call.ToolChoice != nil)
 		tools, toolChoice, toolWarnings := toOpenAiTools(call.Tools, call.ToolChoice)
+		slog.Debug("After filtering tools", "output_count", len(tools), "tool_choice_nil", toolChoice == nil)
 		// Only set tools and tool_choice if we have valid tools after filtering
 		if len(tools) > 0 {
 			params.Tools = tools
 			if toolChoice != nil {
 				params.ToolChoice = *toolChoice
+				slog.Debug("Set tool_choice in params")
 			}
+			slog.Debug("Set tools in params", "count", len(tools))
+		} else {
+			slog.Debug("Skipping tools/tool_choice - no valid tools after filtering")
 		}
 		warnings = append(warnings, toolWarnings...)
 	}
@@ -591,10 +598,12 @@ func supportsPriorityProcessing(modelID string) bool {
 }
 
 func toOpenAiTools(tools []genai.Tool, toolChoice *genai.ToolChoice) (openAiTools []openai.ChatCompletionToolUnionParam, openAiToolChoice *openai.ChatCompletionToolChoiceOptionUnionParam, warnings []genai.CallWarning) {
+	slog.Debug("toOpenAiTools called", "input_tools", len(tools), "tool_choice_provided", toolChoice != nil)
 	for _, tool := range tools {
 		if tool.GetType() == genai.ToolTypeFunction {
 			ft, ok := tool.(genai.FunctionTool)
 			if !ok {
+				slog.Debug("Tool is FunctionTool but type assertion failed")
 				continue
 			}
 			openAiTools = append(openAiTools, openai.ChatCompletionToolUnionParam{
@@ -620,9 +629,11 @@ func toOpenAiTools(tools []genai.Tool, toolChoice *genai.ToolChoice) (openAiTool
 
 	// Don't set tool_choice if there are no tools - this breaks LiteLLM proxying to Anthropic
 	if toolChoice == nil || len(openAiTools) == 0 {
+		slog.Debug("Returning without setting tool_choice", "tool_choice_nil", toolChoice == nil, "tools_count", len(openAiTools))
 		return openAiTools, openAiToolChoice, warnings
 	}
 
+	slog.Debug("Setting tool_choice", "choice", *toolChoice)
 	switch *toolChoice {
 	case genai.ToolChoiceAuto:
 		openAiToolChoice = &openai.ChatCompletionToolChoiceOptionUnionParam{
