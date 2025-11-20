@@ -583,10 +583,13 @@ func (c *editorCmp) HasAttachments() bool {
 func normalPromptFunc(info textarea.PromptInfo) string {
 	t := styles.CurrentTheme()
 	if info.LineNumber == 0 {
-		return "  > "
+		if info.Focused {
+			return t.S().Base.Foreground(t.FgMuted).Render("  > ")
+		}
+		return t.S().Muted.Render("  > ")
 	}
 	if info.Focused {
-		return t.S().Base.Foreground(t.GreenDark).Render("::: ")
+		return t.S().Base.Foreground(t.FgMuted).Render("::: ")
 	}
 	return t.S().Muted.Render("::: ")
 }
@@ -609,7 +612,10 @@ func yoloPromptFunc(info textarea.PromptInfo) string {
 func thinkingPromptFunc(info textarea.PromptInfo) string {
 	t := styles.CurrentTheme()
 	if info.LineNumber == 0 {
-		return "  > "
+		if info.Focused {
+			return t.S().Base.Foreground(t.BlueDark).Render("  > ")
+		}
+		return t.S().Muted.Render("  > ")
 	}
 	if info.Focused {
 		return t.S().Base.Foreground(t.BlueDark).Render("::: ")
