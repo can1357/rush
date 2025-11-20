@@ -47,6 +47,7 @@ type SelectedModelType string
 const (
 	SelectedModelTypeLarge SelectedModelType = "large"
 	SelectedModelTypeSmall SelectedModelType = "small"
+	SelectedModelTypeExtra SelectedModelType = "extra"
 )
 
 const (
@@ -251,7 +252,7 @@ type Agent struct {
 	// This is the id of the system prompt used by the agent
 	Disabled bool `json:"disabled,omitempty"`
 
-	Model SelectedModelType `json:"model" jsonschema:"required,description=The model type to use for this agent,enum=large,enum=small,default=large"`
+	Model SelectedModelType `json:"model" jsonschema:"required,description=The model type to use for this agent,enum=large,enum=small,enum=extra,default=large"`
 
 	// The available tools for the agent
 	//  if this is nil, all tools are available
@@ -371,6 +372,14 @@ func (c *Config) LargeModel() *catwalk.Model {
 
 func (c *Config) SmallModel() *catwalk.Model {
 	model, ok := c.Models[SelectedModelTypeSmall]
+	if !ok {
+		return nil
+	}
+	return c.GetModel(model.Provider, model.Model)
+}
+
+func (c *Config) ExtraModel() *catwalk.Model {
+	model, ok := c.Models[SelectedModelTypeExtra]
 	if !ok {
 		return nil
 	}

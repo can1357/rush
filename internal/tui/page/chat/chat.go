@@ -338,6 +338,31 @@ func (p *chatPage) Update(msg tea.Msg) (util.Model, tea.Cmd) {
 				_, err = p.app.Sessions.Save(context.Background(), sess)
 				if err == nil {
 					p.session.PlanMode = sess.PlanMode
+
+					// Switch model and enable thinking for plan mode
+					cfg := config.Get()
+					agentCfg := cfg.Agents[config.AgentRoot]
+
+					if msg.Enable {
+						// Entering plan mode: use extra model if configured, enable thinking
+						if extraModel := cfg.ExtraModel(); extraModel != nil {
+							// Switch to extra model
+							selectedModel := cfg.Models[config.SelectedModelTypeExtra]
+							selectedModel.Think = true // Force thinking on
+							cfg.Models[agentCfg.Model] = selectedModel
+						} else {
+							// No extra model, just enable thinking on current model
+							currentModel := cfg.Models[agentCfg.Model]
+							currentModel.Think = true
+							cfg.Models[agentCfg.Model] = currentModel
+						}
+					}
+					// Note: When exiting plan mode, thinking/model settings remain
+					// User can manually adjust if needed
+
+					// Update agent with new model settings
+					p.app.UpdateAgentModel(context.Background())
+
 					// Update sidebar to show plan mode indicator
 					cmd := p.sidebar.SetSession(sess)
 					modeStr := "disabled"
@@ -1289,6 +1314,21 @@ func (p *chatPage) togglePlanMode() tea.Cmd {
 		if err != nil {
 			return util.ReportError(err)
 		}
+
+		// Switch to extra model and enable thinking for plan mode
+		cfg := config.Get()
+		agentCfg := cfg.Agents[config.AgentRoot]
+		if extraModel := cfg.ExtraModel(); extraModel != nil {
+			selectedModel := cfg.Models[config.SelectedModelTypeExtra]
+			selectedModel.Think = true
+			cfg.Models[agentCfg.Model] = selectedModel
+		} else {
+			currentModel := cfg.Models[agentCfg.Model]
+			currentModel.Think = true
+			cfg.Models[agentCfg.Model] = currentModel
+		}
+		p.app.UpdateAgentModel(context.Background())
+
 		return tea.Batch(
 			util.CmdHandler(chat.SessionSelectedMsg(newSession)),
 			util.ReportInfo("Plan mode enabled"),
