@@ -43,6 +43,8 @@ type Editor interface {
 	SetSession(session session.Session) tea.Cmd
 	IsCompletionsOpen() bool
 	HasAttachments() bool
+	HasContent() bool
+	Clear()
 	Cursor() *tea.Cursor
 }
 
@@ -270,7 +272,7 @@ func (m *editorCmp) Update(msg tea.Msg) (util.Model, tea.Cmd) {
 		msgStr := msg.String()
 		keyMsg := tea.Key(msg)
 		if msgStr == "\x1b\r" || msgStr == "\\r" || msgStr == "\\r\n" ||
-		   (msgStr == "\r" && (keyMsg.Mod&tea.ModShift != 0 || keyMsg.Mod&tea.ModAlt != 0)) {
+			(msgStr == "\r" && (keyMsg.Mod&tea.ModShift != 0 || keyMsg.Mod&tea.ModAlt != 0)) {
 			m.textarea.InsertRune('\n')
 			cmds = append(cmds, util.CmdHandler(completions.CloseCompletionsMsg{}))
 			return m, tea.Batch(cmds...)
@@ -587,6 +589,15 @@ func (c *editorCmp) IsCompletionsOpen() bool {
 
 func (c *editorCmp) HasAttachments() bool {
 	return len(c.attachments) > 0
+}
+
+func (c *editorCmp) HasContent() bool {
+	return strings.TrimSpace(c.textarea.Value()) != "" || c.HasAttachments()
+}
+
+func (c *editorCmp) Clear() {
+	c.textarea.Reset()
+	c.attachments = nil
 }
 
 func normalPromptFunc(info textarea.PromptInfo) string {

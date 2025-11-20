@@ -83,6 +83,8 @@ type ChatPage interface {
 	util.Model
 	layout.Help
 	IsChatFocused() bool
+	EditorHasContent() bool
+	ClearEditor()
 }
 
 // cancelTimerCmd creates a command that expires the cancel timer
@@ -1180,6 +1182,14 @@ func (p *chatPage) Help() help.KeyMap {
 
 func (p *chatPage) IsChatFocused() bool {
 	return p.focusedPane == PanelTypeChat
+}
+
+func (p *chatPage) EditorHasContent() bool {
+	return p.editor.HasContent()
+}
+
+func (p *chatPage) ClearEditor() {
+	p.editor.Clear()
 }
 
 // isMouseOverChat checks if the given mouse coordinates are within the chat area bounds.

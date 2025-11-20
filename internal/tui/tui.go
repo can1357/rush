@@ -455,6 +455,17 @@ func (a *appModel) handleKeyPressMsg(msg tea.KeyPressMsg) tea.Cmd {
 		if a.dialog.ActiveDialogID() == quit.QuitDialogID {
 			return tea.Quit
 		}
+
+		// If we're on the chat page and the editor has content, clear it instead of quitting
+		if a.currentPage == chat.ChatPageID {
+			if chatPageModel, ok := a.pages[chat.ChatPageID].(chat.ChatPage); ok {
+				if chatPageModel.EditorHasContent() {
+					chatPageModel.ClearEditor()
+					return nil
+				}
+			}
+		}
+
 		return util.CmdHandler(dialogs.OpenDialogMsg{
 			Model: quit.NewQuitDialog(),
 		})
