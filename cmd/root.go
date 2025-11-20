@@ -16,6 +16,7 @@ import (
 	"github.com/can1357/rush/app"
 	"github.com/can1357/rush/config"
 	"github.com/can1357/rush/db"
+	"github.com/can1357/rush/genai"
 	termutil "github.com/can1357/rush/term"
 	"github.com/can1357/rush/tui"
 	"github.com/can1357/rush/version"
@@ -169,6 +170,9 @@ func setupApp(cmd *cobra.Command) (*app.App, error) {
 	if err != nil {
 		return nil, err
 	}
+
+	// Enable debug request dumping if -d flag is set
+	genai.SetDebugDumpEnabled(debug)
 
 	if cfg.Permissions == nil {
 		cfg.Permissions = &config.Permissions{}

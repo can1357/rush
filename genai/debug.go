@@ -14,9 +14,22 @@ import (
 	"time"
 )
 
+var debugDumpEnabled bool
+
+// SetDebugDumpEnabled sets whether debug request dumps should be written.
+// This should be called during app initialization when the -d flag is set.
+func SetDebugDumpEnabled(enabled bool) {
+	debugDumpEnabled = enabled
+}
+
 // DebugDumpRequest writes LLM request/response to a markdown file for debugging.
 func DebugDumpRequest(call Call, resp *Response, modelID string) {
-	debugDir := "debug-msgs"
+	// Only dump if debug mode is enabled via -d flag
+	if !debugDumpEnabled {
+		return
+	}
+
+	debugDir := ".rush/history-debug"
 	if err := os.MkdirAll(debugDir, 0o755); err != nil {
 		return // silently fail
 	}
@@ -28,7 +41,7 @@ func DebugDumpRequest(call Call, resp *Response, modelID string) {
 	var content strings.Builder
 
 	// Header with timestamp
-	content.WriteString(fmt.Sprintf("# LLM Request Debug Dump\n\n"))
+	content.WriteString("# LLM Request Debug Dump\n\n")
 	content.WriteString(fmt.Sprintf("**Timestamp:** %s\n\n", now.Format("2006-01-02 15:04:05.000")))
 
 	// Write messages grouped by role

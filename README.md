@@ -1,18 +1,5 @@
 # Rush
 
-<p align="center">
-    <a href="https://stuff.charm.sh/rush/charm-rush.png"><img width="450" alt="Charm Rush Logo" src="https://github.com/user-attachments/assets/adc1a6f4-b284-4603-836c-59038caa2e8b" /></a><br />
-    <a href="https://github.com/can1357/rush/releases"><img src="https://img.shields.io/github/release/can1357/rush" alt="Latest Release"></a>
-    <a href="https://github.com/can1357/rush/actions"><img src="https://github.com/can1357/rush/actions/workflows/build.yml/badge.svg" alt="Build Status"></a>
-</p>
-
-<p align="center">Your new coding bestie, now available in your favourite terminal.<br />Your tools, your code, and your workflows, wired into your LLM of choice.</p>
-<p align="center">你的新编程伙伴，现在就在你最爱的终端中。<br />你的工具、代码和工作流，都与您选择的 LLM 模型紧密相连。</p>
-
-<p align="center"><img width="800" alt="Rush Demo" src="https://github.com/user-attachments/assets/58280caf-851b-470a-b6f7-d5c4ea8a1968" /></p>
-
----
-
 > This is a fork of [Charm's Crush](https://github.com/charmbracelet/crush) - an AI coding assistant for the terminal.
 >
 > All credit for the original project goes to [Charm](https://charm.land) and the Crush contributors.
@@ -74,14 +61,6 @@ That said, you can also set environment variables for preferred providers.
 | `AZURE_OPENAI_API_ENDPOINT` | Azure OpenAI models                                |
 | `AZURE_OPENAI_API_KEY`      | Azure OpenAI models (optional when using Entra ID) |
 | `AZURE_OPENAI_API_VERSION`  | Azure OpenAI models                                |
-
-### By the Way
-
-Is there a provider you’d like to see in Rush? Is there an existing model that needs an update?
-
-Rush’s default model listing is managed in [Catwalk](https://github.com/charmbracelet/catwalk), a community-supported, open source repository of Rush-compatible models, and you’re welcome to contribute.
-
-<a href="https://github.com/charmbracelet/catwalk"><img width="174" height="174" alt="Catwalk Badge" src="https://github.com/user-attachments/assets/95b49515-fe82-4409-b10d-5beb0873787d" /></a>
 
 ## Configuration
 
@@ -554,12 +533,3 @@ rush update-providers --help
 ## License
 
 This fork maintains the original [FSL-1.1-MIT](https://github.com/can1357/rush/raw/main/LICENSE.md) license from Charm's Crush project.
-
----
-
-Original project by [Charm](https://charm.land).
-
-<a href="https://charm.land/"><img alt="The Charm logo" width="400" src="https://stuff.charm.sh/charm-banner-next.jpg" /></a>
-
-<!--prettier-ignore-->
-Charm热爱开源 • Charm loves open source
