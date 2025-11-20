@@ -690,17 +690,23 @@ func (p *chatPage) toggleThinking() tea.Cmd {
 	if currentEffort.IsThinkingEnabled() {
 		newEffort = genaiopts.ReasoningEffortOff
 		state = "off"
+		// Clear provider options when disabling thinking
+		currentModel.ProviderOptions = nil
 	} else {
 		newEffort = genaiopts.ReasoningEffortHigh
 		state = "on"
+		// Update ProviderOptions with new effort
+		currentModel.ProviderOptions = newEffort.ApplyToMap(currentModel.ProviderOptions)
 	}
-
-	// Update ProviderOptions with new effort
-	currentModel.ProviderOptions = newEffort.ApplyToMap(currentModel.ProviderOptions)
 
 	// Save updated model selection
 	if err := cfg.UpdatePreferredModel(agentCfg.Model, currentModel); err != nil {
 		return util.ReportError(fmt.Errorf("failed to toggle thinking mode: %w", err))
+	}
+
+	// Update the agent coordinator with the new model
+	if err := p.app.SelectModel(context.Background(), currentModel); err != nil {
+		return util.ReportError(fmt.Errorf("failed to update agent model: %w", err))
 	}
 
 	return util.ReportInfo(fmt.Sprintf("Thinking mode %s", state))

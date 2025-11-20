@@ -185,23 +185,14 @@ func (e ReasoningEffort) OpenRouterReasoningEffort() *openrouter.ReasoningEffort
 // ApplyToMap returns a copy of ProviderOptions map with reasoning effort set.
 // This is a convenience wrapper for ModelSelection.ProviderOptions which is stored as map[string]any.
 func (e ReasoningEffort) ApplyToMap(optsMap map[string]any) map[string]any {
-	// Convert map to genai.ProviderOptions
-	opts := make(genai.ProviderOptions)
-	for k, v := range optsMap {
-		if data, ok := v.(genai.ProviderOptionsData); ok {
-			opts[k] = data
-		}
+	var clone map[string]any
+	if optsMap != nil {
+		clone = maps.Clone(optsMap)
+	} else {
+		clone = make(map[string]any)
 	}
-
-	// Apply reasoning effort
-	opts = e.Apply(opts)
-
-	// Convert back to map[string]any
-	result := make(map[string]any)
-	for k, v := range opts {
-		result[k] = v
-	}
-	return result
+	applyInplace(e, untypedMap(clone))
+	return clone
 }
 
 // Apply returns a copy of ProviderOptions with reasoning effort and optional max tokens set.
@@ -212,31 +203,68 @@ func (e ReasoningEffort) Apply(opts genai.ProviderOptions) genai.ProviderOptions
 	} else {
 		clone = make(genai.ProviderOptions)
 	}
+	applyInplace(e, typedMap(clone))
+	return clone
+}
 
+type providerMap interface {
+	getProviderOptions(name string) (any, bool)
+	setProviderOptions(name string, data genai.ProviderOptionsData)
+}
+
+var (
+	_ providerMap = typedMap{}
+	_ providerMap = untypedMap{}
+)
+
+type typedMap map[string]genai.ProviderOptionsData
+
+func (m typedMap) getProviderOptions(name string) (any, bool) {
+	data, ok := m[name]
+	return data, ok
+}
+
+func (m typedMap) setProviderOptions(name string, data genai.ProviderOptionsData) {
+	m[name] = data
+}
+
+type untypedMap map[string]any
+
+func (m untypedMap) getProviderOptions(name string) (any, bool) {
+	data, ok := m[name]
+	return data, ok
+}
+
+func (m untypedMap) setProviderOptions(name string, data genai.ProviderOptionsData) {
+	m[name] = data
+}
+
+// applyInplace applies the reasoning effort to the ProviderOptions in place.
+func applyInplace[T providerMap](e ReasoningEffort, opts T) {
 	// OpenAI (native)
-	if v, ok := clone[openai.Name]; ok {
-		if po, ok := v.(*openai.ProviderOptions); ok {
+	if v, ok := opts.getProviderOptions(openai.Name); ok {
+		if po, ok := any(v).(*openai.ProviderOptions); ok {
 			po.ReasoningEffort = e.OpenAIReasoningEffort()
 		}
 	} else {
-		clone[openai.Name] = &openai.ProviderOptions{
+		opts.setProviderOptions(openai.Name, &openai.ProviderOptions{
 			ReasoningEffort: e.OpenAIReasoningEffort(),
-		}
+		})
 	}
 
 	// OpenAI-compatible (openaicompat)
-	if v, ok := clone[openaicompat.Name]; ok {
+	if v, ok := opts.getProviderOptions(openaicompat.Name); ok {
 		if po, ok := v.(*openaicompat.ProviderOptions); ok {
 			po.ReasoningEffort = e.OpenAIReasoningEffort()
 		}
 	} else {
-		clone[openaicompat.Name] = &openaicompat.ProviderOptions{
+		opts.setProviderOptions(openaicompat.Name, &openaicompat.ProviderOptions{
 			ReasoningEffort: e.OpenAIReasoningEffort(),
-		}
+		})
 	}
 
 	// OpenRouter (supports effort + max_tokens)
-	if v, ok := clone[openrouter.Name]; ok {
+	if v, ok := opts.getProviderOptions(openrouter.Name); ok {
 		if po, ok := v.(*openrouter.ProviderOptions); ok {
 			if po.Reasoning == nil {
 				po.Reasoning = &openrouter.ReasoningOptions{}
@@ -253,16 +281,16 @@ func (e ReasoningEffort) Apply(opts genai.ProviderOptions) genai.ProviderOptions
 			mtPtr = &mt
 		}
 
-		clone[openrouter.Name] = &openrouter.ProviderOptions{
+		opts.setProviderOptions(openrouter.Name, &openrouter.ProviderOptions{
 			Reasoning: &openrouter.ReasoningOptions{
 				Effort:    e.OpenRouterReasoningEffort(),
 				MaxTokens: mtPtr,
 			},
-		}
+		})
 	}
 
 	// Anthropic (uses thinking.budget_tokens)
-	if v, ok := clone[anthropic.Name]; ok {
+	if v, ok := opts.getProviderOptions(anthropic.Name); ok {
 		if po, ok := v.(*anthropic.ProviderOptions); ok {
 			if e.IsThinkingEnabled() {
 				po.Thinking = &anthropic.ThinkingProviderOption{
@@ -273,14 +301,12 @@ func (e ReasoningEffort) Apply(opts genai.ProviderOptions) genai.ProviderOptions
 			}
 		}
 	} else if e.IsThinkingEnabled() {
-		clone[anthropic.Name] = &anthropic.ProviderOptions{
+		opts.setProviderOptions(anthropic.Name, &anthropic.ProviderOptions{
 			Thinking: &anthropic.ThinkingProviderOption{
 				BudgetTokens: e.Budget(),
 			},
-		}
+		})
 	} else {
-		clone[anthropic.Name] = &anthropic.ProviderOptions{}
+		opts.setProviderOptions(anthropic.Name, &anthropic.ProviderOptions{})
 	}
-
-	return clone
 }
