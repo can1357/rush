@@ -8,8 +8,8 @@ import (
 	"strings"
 
 	"charm.land/fantasy"
-	"github.com/charmbracelet/crush/internal/session"
-	"github.com/charmbracelet/crush/internal/todo"
+	"github.com/can1357/rush/internal/session"
+	"github.com/can1357/rush/internal/todo"
 )
 
 //go:embed todo.md

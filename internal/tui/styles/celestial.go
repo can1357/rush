@@ -19,11 +19,11 @@ func NewCelestialTheme() *Theme {
 		BgOverlay:     ParseHex("#2E303E"), // Overlay/selection
 
 		// Foregrounds
-		FgBase:      ParseHex("#D5D8DA"), // Main text
-		FgMuted:     ParseHex("#6C6F93"), // Muted text
-		FgHalfMuted: ParseHex("#BBBBBB"), // Half muted
+		FgBase:      ParseHex("#D5D8DA"),   // Main text
+		FgMuted:     ParseHex("#6C6F93"),   // Muted text
+		FgHalfMuted: ParseHex("#BBBBBB"),   // Half muted
 		FgSubtle:    ParseHex("#D5D8DA80"), // Subtle (with transparency)
-		FgSelected:  ParseHex("#FFFFFF"), // Selected text
+		FgSelected:  ParseHex("#FFFFFF"),   // Selected text
 
 		// Borders
 		Border:      ParseHex("#22252e"),

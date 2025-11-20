@@ -7,7 +7,7 @@ import (
 	"strings"
 
 	"charm.land/fantasy"
-	"github.com/charmbracelet/crush/internal/question"
+	"github.com/can1357/rush/internal/question"
 )
 
 //go:embed ask_user_question.md

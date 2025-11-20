@@ -10,9 +10,9 @@ import (
 	"strings"
 	"sync"
 
+	"github.com/can1357/rush/internal/home"
 	"github.com/charmbracelet/catwalk/pkg/catwalk"
 	"github.com/charmbracelet/catwalk/pkg/embedded"
-	"github.com/charmbracelet/crush/internal/home"
 )
 
 type ProviderClient interface {
@@ -31,7 +31,7 @@ func providerCacheFileData() string {
 	if xdgDataHome != "" {
 		return filepath.Join(xdgDataHome, appName, "providers.json")
 	}
-	return filepath.Join(home.Dir(), ".crush", "providers.json")
+	return filepath.Join(home.Dir(), ".rush", "providers.json")
 }
 
 func saveProvidersInCache(path string, providers []catwalk.Provider) error {
@@ -148,7 +148,7 @@ func loadProviders(autoUpdateDisabled bool, client ProviderClient, path string) 
 		providers, err := catwalkGetAndSave()
 		if err != nil {
 			catwalkUrl := fmt.Sprintf("%s/v2/providers", cmp.Or(os.Getenv("CATWALK_URL"), defaultCatwalkURL))
-			return nil, fmt.Errorf("Crush was unable to fetch an updated list of providers from %s. Consider setting CRUSH_DISABLE_PROVIDER_AUTO_UPDATE=1 to use the embedded providers bundled at the time of this Crush release. You can also update providers manually. For more info see crush update-providers --help. %w", catwalkUrl, err) //nolint:staticcheck
+			return nil, fmt.Errorf("Rush was unable to fetch an updated list of providers from %s. Consider setting RUSH_DISABLE_PROVIDER_AUTO_UPDATE=1 to use the embedded providers bundled at the time of this Rush release. You can also update providers manually. For more info see rush update-providers --help. %w", catwalkUrl, err) //nolint:staticcheck
 		}
 		return providers, nil
 	}

@@ -9,9 +9,9 @@ import (
 
 	"charm.land/fantasy"
 
-	"github.com/charmbracelet/crush/internal/agent/prompt"
-	"github.com/charmbracelet/crush/internal/agent/tools"
-	"github.com/charmbracelet/crush/internal/config"
+	"github.com/can1357/rush/internal/agent/prompt"
+	"github.com/can1357/rush/internal/agent/tools"
+	"github.com/can1357/rush/internal/config"
 )
 
 //go:embed templates/agent_tool.md
@@ -107,9 +107,9 @@ func generateAgentToolDescription(agents map[string]config.Agent) string {
 }
 
 type AgentParams struct {
-	Description   string `json:"description" description:"A short (3-5 word) description of the task"`
-	Prompt        string `json:"prompt" description:"The task for the agent to perform"`
-	SubagentType  string `json:"subagent_type" description:"The type of specialized agent to use for this task"`
+	Description  string `json:"description" description:"A short (3-5 word) description of the task"`
+	Prompt       string `json:"prompt" description:"The task for the agent to perform"`
+	SubagentType string `json:"subagent_type" description:"The type of specialized agent to use for this task"`
 }
 
 const (

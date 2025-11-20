@@ -6,9 +6,9 @@ import (
 	"charm.land/bubbles/v2/key"
 	tea "charm.land/bubbletea/v2"
 	"charm.land/lipgloss/v2"
-	"github.com/charmbracelet/crush/internal/tui/exp/list"
-	"github.com/charmbracelet/crush/internal/tui/styles"
-	"github.com/charmbracelet/crush/internal/tui/util"
+	"github.com/can1357/rush/internal/tui/exp/list"
+	"github.com/can1357/rush/internal/tui/styles"
+	"github.com/can1357/rush/internal/tui/util"
 )
 
 const maxCompletionsHeight = 10

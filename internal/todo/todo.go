@@ -4,8 +4,8 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/charmbracelet/crush/internal/db"
-	"github.com/charmbracelet/crush/internal/pubsub"
+	"github.com/can1357/rush/internal/db"
+	"github.com/can1357/rush/internal/pubsub"
 	"github.com/google/uuid"
 )
 

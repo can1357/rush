@@ -18,7 +18,7 @@ func Connect(ctx context.Context, dataDir string) (*sql.DB, error) {
 	if dataDir == "" {
 		return nil, fmt.Errorf("data.dir is not set")
 	}
-	dbPath := filepath.Join(dataDir, "crush.db")
+	dbPath := filepath.Join(dataDir, "rush.db")
 
 	// Set pragmas for better performance
 	pragmas := []string{

@@ -9,10 +9,10 @@ import (
 	"testing"
 
 	tea "charm.land/bubbletea/v2"
+	"github.com/can1357/rush/internal/config"
+	"github.com/can1357/rush/internal/log"
+	"github.com/can1357/rush/internal/tui/exp/list"
 	"github.com/charmbracelet/catwalk/pkg/catwalk"
-	"github.com/charmbracelet/crush/internal/config"
-	"github.com/charmbracelet/crush/internal/log"
-	"github.com/charmbracelet/crush/internal/tui/exp/list"
 	"github.com/stretchr/testify/require"
 )
 
@@ -59,7 +59,7 @@ func TestModelList_RecentlyUsedSectionAndPrunesInvalid(t *testing.T) {
 	t.Setenv("XDG_DATA_HOME", dataDir)
 
 	// Pre-seed config so provider auto-update is disabled and we have recents
-	confPath := filepath.Join(cfgDir, "crush", "crush.json")
+	confPath := filepath.Join(cfgDir, "rush", "rush.json")
 	require.NoError(t, os.MkdirAll(filepath.Dir(confPath), 0o755))
 	initial := map[string]any{
 		"options": map[string]any{
@@ -83,7 +83,7 @@ func TestModelList_RecentlyUsedSectionAndPrunesInvalid(t *testing.T) {
 	require.NoError(t, os.WriteFile(confPath, bts, 0o644))
 
 	// Also create empty providers.json to prevent loading real providers
-	dataConfDir := filepath.Join(dataDir, "crush")
+	dataConfDir := filepath.Join(dataDir, "rush")
 	require.NoError(t, os.MkdirAll(dataConfDir, 0o755))
 	emptyProviders := []byte("[]")
 	require.NoError(t, os.WriteFile(filepath.Join(dataConfDir, "providers.json"), emptyProviders, 0o644))
@@ -131,7 +131,7 @@ func TestModelList_RecentlyUsedSectionAndPrunesInvalid(t *testing.T) {
 	require.True(t, foundValid, "expected valid recent not found")
 
 	// Verify original config in cfgDir remains unchanged
-	origConfPath := filepath.Join(cfgDir, "crush", "crush.json")
+	origConfPath := filepath.Join(cfgDir, "rush", "rush.json")
 	afterOrig, err := fs.ReadFile(os.DirFS(filepath.Dir(origConfPath)), filepath.Base(origConfPath))
 	require.NoError(t, err)
 	var origParsed map[string]any
@@ -141,7 +141,7 @@ func TestModelList_RecentlyUsedSectionAndPrunesInvalid(t *testing.T) {
 	require.Len(t, origLarge, 2, "original config should be unchanged")
 
 	// Config should be rewritten with pruned recents in dataDir
-	dataConf := filepath.Join(dataDir, "crush", "crush.json")
+	dataConf := filepath.Join(dataDir, "rush", "rush.json")
 	rm := readRecentModels(t, dataConf)
 	largeAny, ok := rm["large"].([]any)
 	require.True(t, ok)
@@ -168,7 +168,7 @@ func TestModelList_PrunesInvalidModelWithinValidProvider(t *testing.T) {
 	t.Setenv("XDG_DATA_HOME", dataDir)
 
 	// Pre-seed config with valid provider but one invalid model
-	confPath := filepath.Join(cfgDir, "crush", "crush.json")
+	confPath := filepath.Join(cfgDir, "rush", "rush.json")
 	require.NoError(t, os.MkdirAll(filepath.Dir(confPath), 0o755))
 	initial := map[string]any{
 		"options": map[string]any{
@@ -192,7 +192,7 @@ func TestModelList_PrunesInvalidModelWithinValidProvider(t *testing.T) {
 	require.NoError(t, os.WriteFile(confPath, bts, 0o644))
 
 	// Create empty providers.json
-	dataConfDir := filepath.Join(dataDir, "crush")
+	dataConfDir := filepath.Join(dataDir, "rush")
 	require.NoError(t, os.MkdirAll(dataConfDir, 0o755))
 	emptyProviders := []byte("[]")
 	require.NoError(t, os.WriteFile(filepath.Join(dataConfDir, "providers.json"), emptyProviders, 0o644))
@@ -240,7 +240,7 @@ func TestModelList_PrunesInvalidModelWithinValidProvider(t *testing.T) {
 	require.True(t, foundValid, "valid recent p1:m1 should be present")
 
 	// Verify original config in cfgDir remains unchanged
-	origConfPath := filepath.Join(cfgDir, "crush", "crush.json")
+	origConfPath := filepath.Join(cfgDir, "rush", "rush.json")
 	afterOrig, err := fs.ReadFile(os.DirFS(filepath.Dir(origConfPath)), filepath.Base(origConfPath))
 	require.NoError(t, err)
 	var origParsed map[string]any
@@ -250,7 +250,7 @@ func TestModelList_PrunesInvalidModelWithinValidProvider(t *testing.T) {
 	require.Len(t, origLarge, 2, "original config should be unchanged")
 
 	// Config should be rewritten with pruned recents in dataDir
-	dataConf := filepath.Join(dataDir, "crush", "crush.json")
+	dataConf := filepath.Join(dataDir, "rush", "rush.json")
 	rm := readRecentModels(t, dataConf)
 	largeAny, ok := rm["large"].([]any)
 	require.True(t, ok)
@@ -283,7 +283,7 @@ func TestModelList_AllRecentsInvalid(t *testing.T) {
 	t.Setenv("XDG_DATA_HOME", dataDir)
 
 	// Pre-seed config with only invalid recents
-	confPath := filepath.Join(cfgDir, "crush", "crush.json")
+	confPath := filepath.Join(cfgDir, "rush", "rush.json")
 	require.NoError(t, os.MkdirAll(filepath.Dir(confPath), 0o755))
 	initial := map[string]any{
 		"options": map[string]any{
@@ -307,7 +307,7 @@ func TestModelList_AllRecentsInvalid(t *testing.T) {
 	require.NoError(t, os.WriteFile(confPath, bts, 0o644))
 
 	// Also create empty providers.json and data config
-	dataConfDir := filepath.Join(dataDir, "crush")
+	dataConfDir := filepath.Join(dataDir, "rush")
 	require.NoError(t, os.MkdirAll(dataConfDir, 0o755))
 	emptyProviders := []byte("[]")
 	require.NoError(t, os.WriteFile(filepath.Join(dataConfDir, "providers.json"), emptyProviders, 0o644))
@@ -345,7 +345,7 @@ func TestModelList_AllRecentsInvalid(t *testing.T) {
 	require.Empty(t, recentItems, "all invalid recents should be pruned, resulting in no recent section")
 
 	// Verify original config in cfgDir remains unchanged
-	origConfPath := filepath.Join(cfgDir, "crush", "crush.json")
+	origConfPath := filepath.Join(cfgDir, "rush", "rush.json")
 	afterOrig, err := fs.ReadFile(os.DirFS(filepath.Dir(origConfPath)), filepath.Base(origConfPath))
 	require.NoError(t, err)
 	var origParsed map[string]any
@@ -355,7 +355,7 @@ func TestModelList_AllRecentsInvalid(t *testing.T) {
 	require.Len(t, origLarge, 2, "original config should be unchanged")
 
 	// Config should be rewritten with empty recents in dataDir
-	dataConf := filepath.Join(dataDir, "crush", "crush.json")
+	dataConf := filepath.Join(dataDir, "rush", "rush.json")
 	rm := readRecentModels(t, dataConf)
 	// When all recents are pruned, the value may be nil or an empty array
 	largeVal := rm["large"]

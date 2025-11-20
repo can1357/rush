@@ -1,34 +1,8 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://github.com/charmbracelet/crush/internal/config/config",
+  "$id": "https://github.com/can1357/rush/internal/config/config",
   "$ref": "#/$defs/Config",
   "$defs": {
-    "Attribution": {
-      "properties": {
-        "trailer_style": {
-          "type": "string",
-          "enum": [
-            "none",
-            "co-authored-by",
-            "assisted-by"
-          ],
-          "description": "Style of attribution trailer to add to commits",
-          "default": "assisted-by"
-        },
-        "co_authored_by": {
-          "type": "boolean",
-          "description": "Deprecated: use trailer_style instead",
-          "deprecated": true
-        },
-        "generated_with": {
-          "type": "boolean",
-          "description": "Add Generated with Crush line to commit messages and issues and PRs",
-          "default": true
-        }
-      },
-      "additionalProperties": false,
-      "type": "object"
-    },
     "Completions": {
       "properties": {
         "max_depth": {
@@ -351,7 +325,7 @@
             "type": "string",
             "examples": [
               ".cursorrules",
-              "CRUSH.md"
+              "RUSH.md"
             ]
           },
           "type": "array",
@@ -379,9 +353,9 @@
         "data_directory": {
           "type": "string",
           "description": "Directory for storing application data (relative to working directory)",
-          "default": ".crush",
+          "default": ".rush",
           "examples": [
-            ".crush"
+            ".rush"
           ]
         },
         "disabled_tools": {
@@ -396,10 +370,6 @@
           "description": "Disable providers auto-update",
           "default": false
         },
-        "attribution": {
-          "$ref": "#/$defs/Attribution",
-          "description": "Attribution settings for generated content"
-        },
         "disable_metrics": {
           "type": "boolean",
           "description": "Disable sending metrics",
@@ -411,7 +381,7 @@
           "default": "AGENTS.md",
           "examples": [
             "AGENTS.md",
-            "CRUSH.md",
+            "RUSH.md",
             "CLAUDE.md",
             "docs/LLMs.md"
           ]

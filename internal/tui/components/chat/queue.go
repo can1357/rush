@@ -5,7 +5,7 @@ import (
 	"strings"
 
 	"charm.land/lipgloss/v2"
-	"github.com/charmbracelet/crush/internal/tui/styles"
+	"github.com/can1357/rush/internal/tui/styles"
 )
 
 func queuePill(queue int, t *styles.Theme) string {

@@ -1,4 +1,4 @@
-Please analyze this codebase and create a {{.Config.Options.InitializeAs}} file, which will be given to future instances of Crush to operate in this repository.
+Please analyze this codebase and create a {{.Config.Options.InitializeAs}} file, which will be given to future instances of Rush to operate in this repository.
 
 What to add:
 1. Commands that will be commonly used, such as how to build, lint, and run tests. Include the necessary commands to develop in this codebase, such as how to run a single test.

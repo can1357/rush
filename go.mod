@@ -1,4 +1,4 @@
-module github.com/charmbracelet/crush
+module github.com/can1357/rush
 
 go 1.25.0
 

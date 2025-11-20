@@ -20,16 +20,16 @@ func SupportsProgressBar() bool {
 type TerminalType string
 
 const (
-	TerminalVSCode     TerminalType = "vscode"
-	TerminalCursor     TerminalType = "cursor"
-	TerminalWindsurf   TerminalType = "windsurf"
-	TerminalGhostty    TerminalType = "ghostty"
-	TerminalWezTerm    TerminalType = "wezterm"
-	TerminalITerm2     TerminalType = "iterm2"
-	TerminalApple      TerminalType = "apple_terminal"
-	TerminalKitty      TerminalType = "kitty"
-	TerminalAlacritty  TerminalType = "alacritty"
-	TerminalUnknown    TerminalType = "unknown"
+	TerminalVSCode    TerminalType = "vscode"
+	TerminalCursor    TerminalType = "cursor"
+	TerminalWindsurf  TerminalType = "windsurf"
+	TerminalGhostty   TerminalType = "ghostty"
+	TerminalWezTerm   TerminalType = "wezterm"
+	TerminalITerm2    TerminalType = "iterm2"
+	TerminalApple     TerminalType = "apple_terminal"
+	TerminalKitty     TerminalType = "kitty"
+	TerminalAlacritty TerminalType = "alacritty"
+	TerminalUnknown   TerminalType = "unknown"
 )
 
 // DetectTerminal attempts to detect the current terminal emulator
@@ -65,19 +65,19 @@ func DetectTerminal() TerminalType {
 
 	// Check for WezTerm
 	if strings.Contains(strings.ToLower(os.Getenv("TERM")), "wezterm") ||
-	   os.Getenv("WEZTERM_EXECUTABLE") != "" {
+		os.Getenv("WEZTERM_EXECUTABLE") != "" {
 		return TerminalWezTerm
 	}
 
 	// Check for Kitty
 	if strings.Contains(strings.ToLower(os.Getenv("TERM")), "kitty") ||
-	   os.Getenv("KITTY_WINDOW_ID") != "" {
+		os.Getenv("KITTY_WINDOW_ID") != "" {
 		return TerminalKitty
 	}
 
 	// Check for Alacritty
 	if strings.Contains(terminalEmulator, "alacritty") ||
-	   os.Getenv("ALACRITTY_SOCKET") != "" {
+		os.Getenv("ALACRITTY_SOCKET") != "" {
 		return TerminalAlacritty
 	}
 
@@ -106,7 +106,7 @@ Add this to your keybindings file:
   "when": "terminalFocus"
 }
 
-After saving, restart VSCode. Shift+Enter will now insert newlines in Crush.`, configPath)
+After saving, restart VSCode. Shift+Enter will now insert newlines in Rush.`, configPath)
 
 	case TerminalCursor:
 		configPath := filepath.Join(homeDir, ".config", "Cursor", "User", "keybindings.json")
@@ -124,7 +124,7 @@ Add this to your keybindings file:
   "when": "terminalFocus"
 }
 
-After saving, restart Cursor. Shift+Enter will now insert newlines in Crush.`, configPath)
+After saving, restart Cursor. Shift+Enter will now insert newlines in Rush.`, configPath)
 
 	case TerminalWindsurf:
 		configPath := filepath.Join(homeDir, ".config", "Windsurf", "User", "keybindings.json")
@@ -142,7 +142,7 @@ Add this to your keybindings file:
   "when": "terminalFocus"
 }
 
-After saving, restart Windsurf. Shift+Enter will now insert newlines in Crush.`, configPath)
+After saving, restart Windsurf. Shift+Enter will now insert newlines in Rush.`, configPath)
 
 	case TerminalGhostty:
 		configPath := filepath.Join(homeDir, ".config", "ghostty", "config")
@@ -153,7 +153,7 @@ Add this line to your config file:
 
 keybind = shift+enter=text:\x1b\r
 
-After saving, restart Ghostty. Shift+Enter will now insert newlines in Crush.`, configPath)
+After saving, restart Ghostty. Shift+Enter will now insert newlines in Rush.`, configPath)
 
 	case TerminalWezTerm:
 		configPath := filepath.Join(homeDir, ".wezterm.lua")
@@ -169,7 +169,7 @@ table.insert(config.keys, {
   action = wezterm.action{SendString="\\x1b\\r"}
 })
 
-After saving, restart WezTerm. Shift+Enter will now insert newlines in Crush.`, configPath)
+After saving, restart WezTerm. Shift+Enter will now insert newlines in Rush.`, configPath)
 
 	case TerminalITerm2:
 		return `# iTerm2 Terminal Setup
@@ -182,7 +182,7 @@ After saving, restart WezTerm. Shift+Enter will now insert newlines in Crush.`, 
    - Action: Send Escape Sequence
    - Esc+: \r
 
-After applying, Shift+Enter will insert newlines in Crush.`
+After applying, Shift+Enter will insert newlines in Rush.`
 
 	case TerminalApple:
 		return `# Apple Terminal Setup
@@ -190,8 +190,8 @@ After applying, Shift+Enter will insert newlines in Crush.`
 Apple Terminal doesn't support custom Shift+Enter bindings.
 
 Alternative options:
-1. Use Option+Enter instead (already works in Crush)
-2. Use Ctrl+J for newlines (already works in Crush)
+1. Use Option+Enter instead (already works in Rush)
+2. Use Ctrl+J for newlines (already works in Rush)
 3. Switch to a more feature-rich terminal like iTerm2, Ghostty, or WezTerm`
 
 	case TerminalKitty:
@@ -203,7 +203,7 @@ Add this line to your config file:
 
 map shift+enter send_text all \x1b\r
 
-After saving, restart Kitty. Shift+Enter will now insert newlines in Crush.`, configPath)
+After saving, restart Kitty. Shift+Enter will now insert newlines in Rush.`, configPath)
 
 	case TerminalAlacritty:
 		configPath := filepath.Join(homeDir, ".config", "alacritty", "alacritty.toml")
@@ -217,14 +217,14 @@ key = "Return"
 mods = "Shift"
 chars = "\x1b\r"
 
-After saving, restart Alacritty. Shift+Enter will now insert newlines in Crush.`, configPath)
+After saving, restart Alacritty. Shift+Enter will now insert newlines in Rush.`, configPath)
 
 	default:
 		return `# Terminal Setup - Unknown Terminal
 
 Could not detect your terminal type.
 
-Crush supports Shift+Enter for newlines when your terminal is configured to send
+Rush supports Shift+Enter for newlines when your terminal is configured to send
 the escape sequence \x1b\r (ESC + Carriage Return) for Shift+Enter.
 
 Alternative options that already work:

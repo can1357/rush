@@ -14,12 +14,12 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/can1357/rush/internal/csync"
+	"github.com/can1357/rush/internal/env"
+	"github.com/can1357/rush/internal/fsext"
+	"github.com/can1357/rush/internal/home"
+	"github.com/can1357/rush/internal/log"
 	"github.com/charmbracelet/catwalk/pkg/catwalk"
-	"github.com/charmbracelet/crush/internal/csync"
-	"github.com/charmbracelet/crush/internal/env"
-	"github.com/charmbracelet/crush/internal/fsext"
-	"github.com/charmbracelet/crush/internal/home"
-	"github.com/charmbracelet/crush/internal/log"
 	powernapConfig "github.com/charmbracelet/x/powernap/pkg/config"
 )
 
@@ -100,15 +100,15 @@ func Load(workingDir, dataDir string, debug bool) (*Config, error) {
 	return cfg, nil
 }
 
-func PushPopCrushEnv() func() {
+func PushPopRushEnv() func() {
 	found := []string{}
 	for _, ev := range os.Environ() {
-		if strings.HasPrefix(ev, "CRUSH_") {
+		if strings.HasPrefix(ev, "RUSH_") {
 			pair := strings.SplitN(ev, "=", 2)
 			if len(pair) != 2 {
 				continue
 			}
-			found = append(found, strings.TrimPrefix(pair[0], "CRUSH_"))
+			found = append(found, strings.TrimPrefix(pair[0], "RUSH_"))
 		}
 	}
 	backups := make(map[string]string)
@@ -117,7 +117,7 @@ func PushPopCrushEnv() func() {
 	}
 
 	for _, ev := range found {
-		os.Setenv(ev, os.Getenv("CRUSH_"+ev))
+		os.Setenv(ev, os.Getenv("RUSH_"+ev))
 	}
 
 	restore := func() {
@@ -130,7 +130,7 @@ func PushPopCrushEnv() func() {
 
 func (c *Config) configureProviders(env env.Env, resolver VariableResolver, knownProviders []catwalk.Provider) error {
 	knownProviderNames := make(map[string]bool)
-	restore := PushPopCrushEnv()
+	restore := PushPopRushEnv()
 	defer restore()
 	for _, p := range knownProviders {
 		knownProviderNames[string(p.ID)] = true
@@ -346,7 +346,7 @@ func (c *Config) setDefaults(workingDir, dataDir string) {
 	slices.Sort(c.Options.ContextPaths)
 	c.Options.ContextPaths = slices.Compact(c.Options.ContextPaths)
 
-	if str, ok := os.LookupEnv("CRUSH_DISABLE_PROVIDER_AUTO_UPDATE"); ok {
+	if str, ok := os.LookupEnv("RUSH_DISABLE_PROVIDER_AUTO_UPDATE"); ok {
 		c.Options.DisableProviderAutoUpdate, _ = strconv.ParseBool(str)
 	}
 
@@ -660,7 +660,7 @@ func GlobalConfig() string {
 	if xdgConfigHome != "" {
 		return filepath.Join(xdgConfigHome, appName, "config.json")
 	}
-	return filepath.Join(home.Dir(), ".crush", "config.json")
+	return filepath.Join(home.Dir(), ".rush", "config.json")
 }
 
 // GlobalConfigData returns the path to the main data directory for the application.
@@ -670,7 +670,7 @@ func GlobalConfigData() string {
 	if xdgDataHome != "" {
 		return filepath.Join(xdgDataHome, appName, "config.json")
 	}
-	return filepath.Join(home.Dir(), ".crush", "config.json")
+	return filepath.Join(home.Dir(), ".rush", "config.json")
 }
 
 func assignIfNil[T any](ptr **T, val T) {

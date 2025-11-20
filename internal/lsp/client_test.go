@@ -4,8 +4,8 @@ import (
 	"context"
 	"testing"
 
-	"github.com/charmbracelet/crush/internal/config"
-	"github.com/charmbracelet/crush/internal/env"
+	"github.com/can1357/rush/internal/config"
+	"github.com/can1357/rush/internal/env"
 )
 
 func TestClient(t *testing.T) {

@@ -9,13 +9,13 @@ import (
 	"charm.land/bubbles/v2/spinner"
 	tea "charm.land/bubbletea/v2"
 	"charm.land/lipgloss/v2"
+	"github.com/can1357/rush/internal/config"
+	"github.com/can1357/rush/internal/tui/components/core"
+	"github.com/can1357/rush/internal/tui/components/dialogs"
+	"github.com/can1357/rush/internal/tui/exp/list"
+	"github.com/can1357/rush/internal/tui/styles"
+	"github.com/can1357/rush/internal/tui/util"
 	"github.com/charmbracelet/catwalk/pkg/catwalk"
-	"github.com/charmbracelet/crush/internal/config"
-	"github.com/charmbracelet/crush/internal/tui/components/core"
-	"github.com/charmbracelet/crush/internal/tui/components/dialogs"
-	"github.com/charmbracelet/crush/internal/tui/exp/list"
-	"github.com/charmbracelet/crush/internal/tui/styles"
-	"github.com/charmbracelet/crush/internal/tui/util"
 )
 
 const (

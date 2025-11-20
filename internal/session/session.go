@@ -6,9 +6,9 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/charmbracelet/crush/internal/db"
-	"github.com/charmbracelet/crush/internal/event"
-	"github.com/charmbracelet/crush/internal/pubsub"
+	"github.com/can1357/rush/internal/db"
+	"github.com/can1357/rush/internal/event"
+	"github.com/can1357/rush/internal/pubsub"
 	"github.com/google/uuid"
 )
 

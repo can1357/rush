@@ -2,21 +2,16 @@
 # vim: set ts=2 sw=2 tw=0 fo=jcroql
 version: 2
 
-project_name: crush
-
-includes:
-  - from_url:
-      url: charmbracelet/meta/main/notarize.yaml
+project_name: rush
 
 metadata:
   mod_timestamp: "{{ .CommitTimestamp }}"
   license: "FSL-1.1-MIT"
-  homepage: "https://charm.sh/crush"
+  homepage: "https://github.com/can1357/rush"
   description: "A powerful terminal-based AI assistant for developers, providing intelligent coding assistance directly in your terminal."
   full_description: "A powerful terminal-based AI assistant for developers, providing intelligent coding assistance directly in your terminal."
   maintainers:
-    - "kujtimiihoxha <kujtim@charm.sh>"
-    - "caarlos0 <carlos@charm.sh>" # for aur
+    - "Can Bölük <me@can.ac>"
 
 nightly:
   publish_release: true
@@ -33,13 +28,10 @@ before:
     - mkdir completions
     - rm -rf manpages
     - mkdir manpages
-    - sh -c 'go run . completion bash >./completions/crush.bash'
-    - sh -c 'go run . completion zsh >./completions/crush.zsh'
-    - sh -c 'go run . completion fish >./completions/crush.fish'
-    - sh -c 'go run . man | gzip -c >./manpages/crush.1.gz'
-
-# gomod:
-#   proxy: true
+    - sh -c 'go run . completion bash >./completions/rush.bash'
+    - sh -c 'go run . completion zsh >./completions/rush.zsh'
+    - sh -c 'go run . completion fish >./completions/rush.fish'
+    - sh -c 'go run . man | gzip -c >./manpages/rush.1.gz'
 
 builds:
   - env:
@@ -70,13 +62,13 @@ builds:
       - goos: windows
         goarch: arm
     ldflags:
-      - -s -w -X github.com/charmbracelet/crush/internal/version.Version={{.Version}}
+      - -s -w -X github.com/can1357/rush/internal/version.Version={{.Version}}
     flags:
       - -trimpath
 
 archives:
   - name_template: >-
-      crush_
+      rush_
       {{- .Version }}_
       {{- title .Os }}_
       {{- if eq .Arch "amd64" }}x86_64
@@ -96,119 +88,6 @@ archives:
 checksum:
   name_template: "checksums.txt"
 
-aur_sources:
-  - private_key: "{{ .Env.AUR_KEY }}"
-    disable: "{{ with .Prerelease }}true{{ end }}"
-    git_url: "ssh://aur@aur.archlinux.org/crush.git"
-    commit_author:
-      name: "Charm"
-      email: "charmcli@users.noreply.github.com"
-    makedepends:
-      - go
-      - git
-    prepare: |-
-      go mod download
-    build: |-
-      mkdir completions
-      mkdir manpages
-      export CGO_CPPFLAGS="${CPPFLAGS}"
-      export CGO_CFLAGS="${CFLAGS}"
-      export CGO_CXXFLAGS="${CXXFLAGS}"
-      export CGO_LDFLAGS="${LDFLAGS}"
-      export GOFLAGS="-buildmode=pie -trimpath -mod=readonly -modcacherw"
-      go build -ldflags="-w -s -buildid='' -linkmode=external -X main.version=v${pkgver}" .
-      ./crush completion bash >./completions/crush.bash
-      ./crush completion zsh >./completions/crush.zsh
-      ./crush completion fish >./completions/crush.fish
-      ./crush man | gzip -c >./manpages/crush.1.gz
-    package: |-
-      # bin
-      install -Dm755 "./crush" "${pkgdir}/usr/bin/crush"
-      # license
-      mkdir -p "${pkgdir}/usr/share/licenses/crush/"
-      install -Dm644 ./LICENSE* "${pkgdir}/usr/share/licenses/crush/"
-      # completions
-      mkdir -p "${pkgdir}/usr/share/bash-completion/completions/"
-      mkdir -p "${pkgdir}/usr/share/zsh/site-functions/"
-      mkdir -p "${pkgdir}/usr/share/fish/vendor_completions.d/"
-      install -Dm644 "./completions/crush.bash" "${pkgdir}/usr/share/bash-completion/completions/crush"
-      install -Dm644 "./completions/crush.zsh" "${pkgdir}/usr/share/zsh/site-functions/_crush"
-      install -Dm644 "./completions/crush.fish" "${pkgdir}/usr/share/fish/vendor_completions.d/crush.fish"
-      # man pages
-      install -Dm644 "./manpages/crush.1.gz" "${pkgdir}/usr/share/man/man1/crush.1.gz"
-      # readme
-      mkdir -pv "${pkgdir}/usr/share/doc/crush/"
-      install -Dm644 README* "${pkgdir}/usr/share/doc/crush/"
-
-aurs:
-  - private_key: "{{ .Env.AUR_KEY }}"
-    disable: "{{ with .Prerelease }}true{{ end }}"
-    git_url: "ssh://aur@aur.archlinux.org/crush-bin.git"
-    commit_author:
-      name: "Charm"
-      email: "charmcli@users.noreply.github.com"
-    provides:
-      - crush
-    conflicts:
-      - crush
-    package: |-
-      cd "${srcdir}/crush_${pkgver}_Linux_${CARCH}"
-      # bin
-      install -Dm755 "./crush" "${pkgdir}/usr/bin/crush"
-      # license
-      mkdir -p "${pkgdir}/usr/share/licenses/crush/"
-      install -Dm644 ./LICENSE* "${pkgdir}/usr/share/licenses/crush/"
-      # completions
-      mkdir -p "${pkgdir}/usr/share/bash-completion/completions/"
-      mkdir -p "${pkgdir}/usr/share/zsh/site-functions/"
-      mkdir -p "${pkgdir}/usr/share/fish/vendor_completions.d/"
-      install -Dm644 "./completions/crush.bash" "${pkgdir}/usr/share/bash-completion/completions/crush"
-      install -Dm644 "./completions/crush.zsh" "${pkgdir}/usr/share/zsh/site-functions/_crush"
-      install -Dm644 "./completions/crush.fish" "${pkgdir}/usr/share/fish/vendor_completions.d/crush.fish"
-      # man pages
-      install -Dm644 "./manpages/crush.1.gz" "${pkgdir}/usr/share/man/man1/crush.1.gz"
-      # readme
-      mkdir -pv "${pkgdir}/usr/share/doc/crush/"
-      install -Dm644 README* "${pkgdir}/usr/share/doc/crush/"
-
-furies:
-  - disable: "{{ if (or .Prerelease .IsNightly) }}true{{ end }}"
-    account: "{{ with .Env.FURY_TOKEN }}charmcli{{ else }}{{ end }}"
-    secret_name: FURY_TOKEN
-
-brews:
-  - repository:
-      owner: charmbracelet
-      name: homebrew-tap
-      token: "{{ .Env.HOMEBREW_TAP_GITHUB_TOKEN }}"
-    skip_upload: "{{ with .Prerelease }}true{{ end }}"
-    commit_author:
-      name: "Charm"
-      email: "charmcli@users.noreply.github.com"
-    goarm: 7
-    extra_install: |-
-      bash_completion.install "completions/{{ .ProjectName }}.bash" => "{{ .ProjectName }}"
-      zsh_completion.install "completions/{{ .ProjectName }}.zsh" => "_{{ .ProjectName }}"
-      fish_completion.install "completions/{{ .ProjectName }}.fish"
-      man1.install "manpages/{{ .ProjectName }}.1.gz"
-
-scoops:
-  - repository:
-      owner: charmbracelet
-      name: scoop-bucket
-      token: "{{ .Env.HOMEBREW_TAP_GITHUB_TOKEN }}"
-    skip_upload: "{{ with .Prerelease }}true{{ end }}"
-    commit_author:
-      name: "Charm"
-      email: "charmcli@users.noreply.github.com"
-
-npms:
-  - name: "@charmland/crush"
-    repository: "git+https://github.com/charmbracelet/crush.git"
-    bugs: https://github.com/charmbracelet/crush/issues
-    access: public
-    disable: "{{ with .Prerelease }}true{{ end }}"
-
 nfpms:
   - formats:
       - apk
@@ -218,32 +97,14 @@ nfpms:
       - termux.deb
     file_name_template: "{{ .ConventionalFileName }}"
     contents:
-      - src: ./completions/crush.bash
-        dst: '{{ if eq .Format "termux.deb" }}/data/data/com.termux/files/usr{{ end }}/etc/bash_completion.d/crush'
-      - src: ./completions/crush.fish
-        dst: '{{ if eq .Format "termux.deb" }}/data/data/com.termux/files{{ end }}/usr/share/fish/vendor_completions.d/crush.fish'
-      - src: ./completions/crush.zsh
-        dst: '{{ if eq .Format "termux.deb" }}/data/data/com.termux/files{{ end }}/usr/share/zsh/site-functions/_crush'
-      - src: ./manpages/crush.1.gz
-        dst: '{{ if eq .Format "termux.deb" }}/data/data/com.termux/files{{ end }}/usr/share/man/man1/crush.1.gz'
-    rpm:
-      signature:
-        key_file: '{{ if ne (index .Env "GPG_KEY_PATH") "" }}{{ .Env.GPG_KEY_PATH }}{{ else }}{{ end }}'
-    deb:
-      signature:
-        key_file: '{{ if ne (index .Env "GPG_KEY_PATH") "" }}{{ .Env.GPG_KEY_PATH }}{{ else }}{{ end }}'
-
-signs:
-  - cmd: cosign
-    certificate: "${artifact}.pem"
-    args:
-      - sign-blob
-      - "--output-certificate=${certificate}"
-      - "--output-signature=${signature}"
-      - "${artifact}"
-      - "--yes"
-    artifacts: checksum
-    output: true
+      - src: ./completions/rush.bash
+        dst: '{{ if eq .Format "termux.deb" }}/data/data/com.termux/files/usr{{ end }}/etc/bash_completion.d/rush'
+      - src: ./completions/rush.fish
+        dst: '{{ if eq .Format "termux.deb" }}/data/data/com.termux/files{{ end }}/usr/share/fish/vendor_completions.d/rush.fish'
+      - src: ./completions/rush.zsh
+        dst: '{{ if eq .Format "termux.deb" }}/data/data/com.termux/files{{ end }}/usr/share/zsh/site-functions/_rush'
+      - src: ./manpages/rush.1.gz
+        dst: '{{ if eq .Format "termux.deb" }}/data/data/com.termux/files{{ end }}/usr/share/man/man1/rush.1.gz'
 
 source:
   enabled: true
@@ -252,44 +113,6 @@ sboms:
   - artifacts: archive
   - id: source
     artifacts: source
-
-nix:
-  - repository:
-      owner: "charmbracelet"
-      name: nur
-      token: "{{ .Env.HOMEBREW_TAP_GITHUB_TOKEN }}"
-    commit_author:
-      name: "Charm"
-      email: "charmcli@users.noreply.github.com"
-    license: fsl11Mit
-    skip_upload: "{{ with .Prerelease }}true{{ end }}"
-    extra_install: |-
-      installManPage ./manpages/crush.1.gz
-      installShellCompletion ./completions/*
-
-winget:
-  - publisher: charmbracelet
-    copyright: Charmbracelet, Inc
-    publisher_url: https://charm.land
-    release_notes_url: "https://github.com/charmbracelet/crush/releases/tag/{{.Tag}}"
-    license_url: https://github.com/charmbracelet/crush/blob/main/LICENSE.md
-    skip_upload: "{{ with .Prerelease }}true{{ end }}"
-    commit_author:
-      name: "Charm"
-      email: "charmcli@users.noreply.github.com"
-    repository:
-      owner: "charmbracelet"
-      name: winget-pkgs
-      token: "{{ .Env.HOMEBREW_TAP_GITHUB_TOKEN }}"
-      branch: "crush-{{.Version}}"
-      pull_request:
-        enabled: true
-        draft: false
-        check_boxes: true
-        base:
-          owner: microsoft
-          name: winget-pkgs
-          branch: master
 
 changelog:
   sort: asc
@@ -311,7 +134,6 @@ changelog:
       - "^test:"
       - "^test\\("
       - "^v\\d.*"
-      - "merge conflict"
       - "merge conflict"
       - Merge branch
       - Merge pull request
@@ -337,6 +159,3 @@ changelog:
 
 release:
   prerelease: auto
-  footer:
-    from_url:
-      url: https://raw.githubusercontent.com/charmbracelet/meta/main/footer.md

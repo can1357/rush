@@ -10,11 +10,11 @@ import (
 	"charm.land/lipgloss/v2"
 	"github.com/charmbracelet/x/ansi"
 
-	"github.com/charmbracelet/crush/internal/config"
-	"github.com/charmbracelet/crush/internal/fsext"
-	"github.com/charmbracelet/crush/internal/history"
-	"github.com/charmbracelet/crush/internal/tui/components/core"
-	"github.com/charmbracelet/crush/internal/tui/styles"
+	"github.com/can1357/rush/internal/config"
+	"github.com/can1357/rush/internal/fsext"
+	"github.com/can1357/rush/internal/history"
+	"github.com/can1357/rush/internal/tui/components/core"
+	"github.com/can1357/rush/internal/tui/styles"
 )
 
 // FileHistory represents a file history with initial and latest versions.

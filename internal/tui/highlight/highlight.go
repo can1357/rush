@@ -8,7 +8,7 @@ import (
 	"github.com/alecthomas/chroma/v2/formatters"
 	"github.com/alecthomas/chroma/v2/lexers"
 	chromaStyles "github.com/alecthomas/chroma/v2/styles"
-	"github.com/charmbracelet/crush/internal/tui/styles"
+	"github.com/can1357/rush/internal/tui/styles"
 )
 
 func SyntaxHighlight(source, fileName string, bg color.Color) (string, error) {
@@ -28,7 +28,7 @@ func SyntaxHighlight(source, fileName string, bg color.Color) (string, error) {
 		f = formatters.Fallback
 	}
 
-	style := chroma.MustNewStyle("crush", styles.GetChromaTheme())
+	style := chroma.MustNewStyle("rush", styles.GetChromaTheme())
 
 	// Modify the style to use the provided background
 	s, err := style.Builder().Transform(

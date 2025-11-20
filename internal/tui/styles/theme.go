@@ -11,7 +11,7 @@ import (
 	"charm.land/bubbles/v2/textinput"
 	tea "charm.land/bubbletea/v2"
 	"charm.land/lipgloss/v2"
-	"github.com/charmbracelet/crush/internal/tui/exp/diffview"
+	"github.com/can1357/rush/internal/tui/exp/diffview"
 	"github.com/charmbracelet/glamour/v2/ansi"
 	"github.com/charmbracelet/x/exp/charmtone"
 	"github.com/lucasb-eyer/go-colorful"

@@ -11,29 +11,29 @@ import (
 	"charm.land/bubbles/v2/key"
 	tea "charm.land/bubbletea/v2"
 	"charm.land/lipgloss/v2"
-	"github.com/charmbracelet/crush/internal/agent/tools/mcp"
-	"github.com/charmbracelet/crush/internal/app"
-	"github.com/charmbracelet/crush/internal/config"
-	"github.com/charmbracelet/crush/internal/event"
-	"github.com/charmbracelet/crush/internal/permission"
-	"github.com/charmbracelet/crush/internal/pubsub"
-	cmpChat "github.com/charmbracelet/crush/internal/tui/components/chat"
-	"github.com/charmbracelet/crush/internal/tui/components/chat/splash"
-	"github.com/charmbracelet/crush/internal/tui/components/completions"
-	"github.com/charmbracelet/crush/internal/tui/components/core"
-	"github.com/charmbracelet/crush/internal/tui/components/core/layout"
-	"github.com/charmbracelet/crush/internal/tui/components/core/status"
-	"github.com/charmbracelet/crush/internal/tui/components/dialogs"
-	"github.com/charmbracelet/crush/internal/tui/components/dialogs/commands"
-	"github.com/charmbracelet/crush/internal/tui/components/dialogs/filepicker"
-	"github.com/charmbracelet/crush/internal/tui/components/dialogs/models"
-	"github.com/charmbracelet/crush/internal/tui/components/dialogs/permissions"
-	"github.com/charmbracelet/crush/internal/tui/components/dialogs/quit"
-	"github.com/charmbracelet/crush/internal/tui/components/dialogs/sessions"
-	"github.com/charmbracelet/crush/internal/tui/page"
-	"github.com/charmbracelet/crush/internal/tui/page/chat"
-	"github.com/charmbracelet/crush/internal/tui/styles"
-	"github.com/charmbracelet/crush/internal/tui/util"
+	"github.com/can1357/rush/internal/agent/tools/mcp"
+	"github.com/can1357/rush/internal/app"
+	"github.com/can1357/rush/internal/config"
+	"github.com/can1357/rush/internal/event"
+	"github.com/can1357/rush/internal/permission"
+	"github.com/can1357/rush/internal/pubsub"
+	cmpChat "github.com/can1357/rush/internal/tui/components/chat"
+	"github.com/can1357/rush/internal/tui/components/chat/splash"
+	"github.com/can1357/rush/internal/tui/components/completions"
+	"github.com/can1357/rush/internal/tui/components/core"
+	"github.com/can1357/rush/internal/tui/components/core/layout"
+	"github.com/can1357/rush/internal/tui/components/core/status"
+	"github.com/can1357/rush/internal/tui/components/dialogs"
+	"github.com/can1357/rush/internal/tui/components/dialogs/commands"
+	"github.com/can1357/rush/internal/tui/components/dialogs/filepicker"
+	"github.com/can1357/rush/internal/tui/components/dialogs/models"
+	"github.com/can1357/rush/internal/tui/components/dialogs/permissions"
+	"github.com/can1357/rush/internal/tui/components/dialogs/quit"
+	"github.com/can1357/rush/internal/tui/components/dialogs/sessions"
+	"github.com/can1357/rush/internal/tui/page"
+	"github.com/can1357/rush/internal/tui/page/chat"
+	"github.com/can1357/rush/internal/tui/styles"
+	"github.com/can1357/rush/internal/tui/util"
 	"golang.org/x/text/cases"
 	"golang.org/x/text/language"
 )
@@ -375,9 +375,9 @@ func (a *appModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	// Update Available
 	case pubsub.UpdateAvailableMsg:
 		// Show update notification in status bar
-		statusMsg := fmt.Sprintf("Crush update available: v%s → v%s.", msg.CurrentVersion, msg.LatestVersion)
+		statusMsg := fmt.Sprintf("Rush update available: v%s → v%s.", msg.CurrentVersion, msg.LatestVersion)
 		if msg.IsDevelopment {
-			statusMsg = fmt.Sprintf("This is a development version of Crush. The latest version is v%s.", msg.LatestVersion)
+			statusMsg = fmt.Sprintf("This is a development version of Rush. The latest version is v%s.", msg.LatestVersion)
 		}
 		s, statusCmd := a.status.Update(util.InfoMsg{
 			Type: util.InfoTypeInfo,

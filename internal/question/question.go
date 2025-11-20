@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"sync"
 
-	"github.com/charmbracelet/crush/internal/csync"
-	"github.com/charmbracelet/crush/internal/pubsub"
+	"github.com/can1357/rush/internal/csync"
+	"github.com/can1357/rush/internal/pubsub"
 	"github.com/google/uuid"
 )
 
@@ -33,9 +33,9 @@ type QuestionRequest struct {
 
 // QuestionResponse contains user's answers
 type QuestionResponse struct {
-	ID      string            `json:"id"`
-	Answers map[string]string `json:"answers"` // question index -> selected value(s)
-	Canceled bool             `json:"canceled"`
+	ID       string            `json:"id"`
+	Answers  map[string]string `json:"answers"` // question index -> selected value(s)
+	Canceled bool              `json:"canceled"`
 }
 
 // Service manages question/answer interactions

@@ -1,4 +1,4 @@
-# Crush Development Guide
+# Rush Development Guide
 
 ## Build/Test/Lint Commands
 
@@ -53,12 +53,7 @@ func TestYourFunction(t *testing.T) {
 
 ## Formatting
 
-- ALWAYS format any Go code you write.
-  - First, try `gofumpt -w .`.
-  - If `gofumpt` is not available, use `goimports`.
-  - If `goimports` is not available, use `gofmt`.
-  - You can also use `task fmt` to run `gofumpt -w .` on the entire project,
-    as long as `gofumpt` is on the `PATH`.
+- ALWAYS format any Go code you write with `gofumpt -w .`.
 
 ## Comments
 

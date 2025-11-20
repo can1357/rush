@@ -5,7 +5,7 @@ import (
 	_ "embed"
 
 	"charm.land/fantasy"
-	"github.com/charmbracelet/crush/internal/session"
+	"github.com/can1357/rush/internal/session"
 )
 
 //go:embed exit_plan_mode.md

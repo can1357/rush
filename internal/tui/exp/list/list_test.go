@@ -7,8 +7,8 @@ import (
 
 	tea "charm.land/bubbletea/v2"
 	"charm.land/lipgloss/v2"
-	"github.com/charmbracelet/crush/internal/tui/components/core/layout"
-	"github.com/charmbracelet/crush/internal/tui/util"
+	"github.com/can1357/rush/internal/tui/components/core/layout"
+	"github.com/can1357/rush/internal/tui/util"
 	"github.com/charmbracelet/x/exp/golden"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"

@@ -9,27 +9,27 @@ import (
 
 	tea "charm.land/bubbletea/v2"
 	"charm.land/lipgloss/v2"
+	"github.com/can1357/rush/internal/config"
+	"github.com/can1357/rush/internal/csync"
+	"github.com/can1357/rush/internal/diff"
+	"github.com/can1357/rush/internal/fsext"
+	"github.com/can1357/rush/internal/history"
+	"github.com/can1357/rush/internal/home"
+	"github.com/can1357/rush/internal/lsp"
+	"github.com/can1357/rush/internal/pubsub"
+	"github.com/can1357/rush/internal/session"
+	"github.com/can1357/rush/internal/todo"
+	"github.com/can1357/rush/internal/tui/components/chat"
+	"github.com/can1357/rush/internal/tui/components/core"
+	"github.com/can1357/rush/internal/tui/components/core/layout"
+	"github.com/can1357/rush/internal/tui/components/files"
+	"github.com/can1357/rush/internal/tui/components/logo"
+	lspcomponent "github.com/can1357/rush/internal/tui/components/lsp"
+	"github.com/can1357/rush/internal/tui/components/mcp"
+	"github.com/can1357/rush/internal/tui/styles"
+	"github.com/can1357/rush/internal/tui/util"
+	"github.com/can1357/rush/internal/version"
 	"github.com/charmbracelet/catwalk/pkg/catwalk"
-	"github.com/charmbracelet/crush/internal/config"
-	"github.com/charmbracelet/crush/internal/csync"
-	"github.com/charmbracelet/crush/internal/diff"
-	"github.com/charmbracelet/crush/internal/fsext"
-	"github.com/charmbracelet/crush/internal/history"
-	"github.com/charmbracelet/crush/internal/home"
-	"github.com/charmbracelet/crush/internal/lsp"
-	"github.com/charmbracelet/crush/internal/todo"
-	"github.com/charmbracelet/crush/internal/pubsub"
-	"github.com/charmbracelet/crush/internal/session"
-	"github.com/charmbracelet/crush/internal/tui/components/chat"
-	"github.com/charmbracelet/crush/internal/tui/components/core"
-	"github.com/charmbracelet/crush/internal/tui/components/core/layout"
-	"github.com/charmbracelet/crush/internal/tui/components/files"
-	"github.com/charmbracelet/crush/internal/tui/components/logo"
-	lspcomponent "github.com/charmbracelet/crush/internal/tui/components/lsp"
-	"github.com/charmbracelet/crush/internal/tui/components/mcp"
-	"github.com/charmbracelet/crush/internal/tui/styles"
-	"github.com/charmbracelet/crush/internal/tui/util"
-	"github.com/charmbracelet/crush/internal/version"
 	"golang.org/x/text/cases"
 	"golang.org/x/text/language"
 )
@@ -564,7 +564,7 @@ func (m *sidebarCmp) todoBlock() string {
 			startIdx = len(m.todos) - maxTodos
 		}
 
-		endIdx = min(len(m.todos), startIdx + maxTodos)
+		endIdx = min(len(m.todos), startIdx+maxTodos)
 	}
 
 	var lines []string

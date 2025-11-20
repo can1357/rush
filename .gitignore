@@ -42,9 +42,9 @@ Thumbs.db
 .env
 .env.local
 
-**/.crush/**
+**/.rush/**
 
-/crush
+/rush
 /tmp/
 
 manpages/

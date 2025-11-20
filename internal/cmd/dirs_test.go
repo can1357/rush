@@ -20,8 +20,8 @@ func TestDirs(t *testing.T) {
 	dirsCmd.SetErr(&b)
 	dirsCmd.SetIn(bytes.NewReader(nil))
 	dirsCmd.Run(dirsCmd, nil)
-	expected := filepath.FromSlash("/tmp/fakeconfig/crush") + "\n" +
-		filepath.FromSlash("/tmp/fakedata/crush") + "\n"
+	expected := filepath.FromSlash("/tmp/fakeconfig/rush") + "\n" +
+		filepath.FromSlash("/tmp/fakedata/rush") + "\n"
 	require.Equal(t, expected, b.String())
 }
 
@@ -31,7 +31,7 @@ func TestConfigDir(t *testing.T) {
 	configDirCmd.SetErr(&b)
 	configDirCmd.SetIn(bytes.NewReader(nil))
 	configDirCmd.Run(configDirCmd, nil)
-	expected := filepath.FromSlash("/tmp/fakeconfig/crush") + "\n"
+	expected := filepath.FromSlash("/tmp/fakeconfig/rush") + "\n"
 	require.Equal(t, expected, b.String())
 }
 
@@ -41,6 +41,6 @@ func TestDataDir(t *testing.T) {
 	dataDirCmd.SetErr(&b)
 	dataDirCmd.SetIn(bytes.NewReader(nil))
 	dataDirCmd.Run(dataDirCmd, nil)
-	expected := filepath.FromSlash("/tmp/fakedata/crush") + "\n"
+	expected := filepath.FromSlash("/tmp/fakedata/rush") + "\n"
 	require.Equal(t, expected, b.String())
 }

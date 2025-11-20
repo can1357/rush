@@ -4,8 +4,8 @@ import (
 	"context"
 	_ "embed"
 
-	"github.com/charmbracelet/crush/internal/agent/prompt"
-	"github.com/charmbracelet/crush/internal/config"
+	"github.com/can1357/rush/internal/agent/prompt"
+	"github.com/can1357/rush/internal/config"
 )
 
 //go:embed templates/root.md.tpl
