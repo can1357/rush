@@ -532,10 +532,39 @@ func (m *sidebarCmp) todoBlock() string {
 	usedHeight := maxFiles + maxLSPs + maxMCPs + 6 // +6 for section headers
 	maxTodos := max(3, availableHeight-usedHeight)
 
-	// Determine how many items to show
-	itemsToShow := len(m.todos)
-	if maxTodos > 0 && maxTodos < len(m.todos) {
-		itemsToShow = maxTodos
+	// Calculate display window with smart truncation
+	startIdx := 0
+	endIdx := len(m.todos)
+
+	if maxTodos > 0 && len(m.todos) > maxTodos {
+		// Find first non-completed task
+		firstActiveIdx := -1
+		for i, item := range m.todos {
+			if item.Status != "completed" {
+				firstActiveIdx = i
+				break
+			}
+		}
+
+		if firstActiveIdx >= 0 {
+			// Calculate how many tasks from first active to end
+			tasksFromActive := len(m.todos) - firstActiveIdx
+
+			if tasksFromActive >= maxTodos {
+				// All remaining tasks (from first active) fill or exceed the display
+				// Start from first active task, truncating completed from beginning
+				startIdx = firstActiveIdx
+			} else {
+				// Remaining tasks fit, so we can include some completed before
+				// Show the last maxTodos tasks (which includes all active + some completed)
+				startIdx = len(m.todos) - maxTodos
+			}
+		} else {
+			// All tasks are completed, show the last maxTodos
+			startIdx = len(m.todos) - maxTodos
+		}
+
+		endIdx = min(len(m.todos), startIdx + maxTodos)
 	}
 
 	var lines []string
@@ -543,8 +572,18 @@ func (m *sidebarCmp) todoBlock() string {
 	// Header with section styling
 	lines = append(lines, core.Section("Tasks", maxWidth))
 
+	// Show indicator for skipped completed tasks at the top
+	if startIdx > 0 {
+		skipped := startIdx
+		if skipped == 1 {
+			lines = append(lines, t.S().Base.Foreground(t.FgMuted).Render("  ↑ 1 completed"))
+		} else {
+			lines = append(lines, t.S().Base.Foreground(t.FgMuted).Render(fmt.Sprintf("  ↑ %d completed", skipped)))
+		}
+	}
+
 	// Render each todo
-	for i := 0; i < itemsToShow; i++ {
+	for i := startIdx; i < endIdx; i++ {
 		item := m.todos[i]
 		var statusIcon string
 		var statusColor color.Color
@@ -578,9 +617,9 @@ func (m *sidebarCmp) todoBlock() string {
 		lines = append(lines, line)
 	}
 
-	// Add truncation indicator if needed
-	if maxTodos > 0 && len(m.todos) > maxTodos {
-		remaining := len(m.todos) - maxTodos
+	// Add truncation indicator for hidden tasks at the bottom
+	if endIdx < len(m.todos) {
+		remaining := len(m.todos) - endIdx
 		if remaining == 1 {
 			lines = append(lines, t.S().Base.Foreground(t.FgMuted).Render("  …"))
 		} else {
