@@ -845,16 +845,16 @@ func (p *chatPage) Bindings() []key.Binding {
 	case PanelTypeChat:
 		bindings = append([]key.Binding{
 			key.NewBinding(
-				key.WithKeys("tab"),
-				key.WithHelp("tab", "focus editor"),
+				key.WithKeys("ctrl+w"),
+				key.WithHelp("ctrl+w", "focus editor"),
 			),
 		}, bindings...)
 		bindings = append(bindings, p.chat.Bindings()...)
 	case PanelTypeEditor:
 		bindings = append([]key.Binding{
 			key.NewBinding(
-				key.WithKeys("tab"),
-				key.WithHelp("tab", "focus chat"),
+				key.WithKeys("ctrl+w"),
+				key.WithHelp("ctrl+w", "focus chat"),
 			),
 		}, bindings...)
 		bindings = append(bindings, p.editor.Bindings()...)
@@ -979,13 +979,13 @@ func (p *chatPage) Help() help.KeyMap {
 		// we are in a session
 		if p.session.ID != "" {
 			tabKey := key.NewBinding(
-				key.WithKeys("tab"),
-				key.WithHelp("tab", "focus chat"),
+				key.WithKeys("ctrl+w"),
+				key.WithHelp("ctrl+w", "focus chat"),
 			)
 			if p.focusedPane == PanelTypeChat {
 				tabKey = key.NewBinding(
-					key.WithKeys("tab"),
-					key.WithHelp("tab", "focus editor"),
+					key.WithKeys("ctrl+w"),
+					key.WithHelp("ctrl+w", "focus editor"),
 				)
 			}
 			shortList = append(shortList, tabKey)

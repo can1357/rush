@@ -27,8 +27,8 @@ func DefaultKeyMap() KeyMap {
 			key.WithHelp("esc", "cancel"),
 		),
 		Tab: key.NewBinding(
-			key.WithKeys("tab"),
-			key.WithHelp("tab", "change focus"),
+			key.WithKeys("ctrl+w"),
+			key.WithHelp("ctrl+w", "change focus"),
 		),
 		Details: key.NewBinding(
 			key.WithKeys("ctrl+d"),

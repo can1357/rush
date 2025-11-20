@@ -5,10 +5,11 @@ import (
 )
 
 type EditorKeyMap struct {
-	AddFile     key.Binding
-	SendMessage key.Binding
-	OpenEditor  key.Binding
-	Newline     key.Binding
+	AddFile        key.Binding
+	SendMessage    key.Binding
+	OpenEditor     key.Binding
+	Newline        key.Binding
+	ToggleThinking key.Binding
 }
 
 func DefaultEditorKeyMap() EditorKeyMap {
@@ -32,6 +33,9 @@ func DefaultEditorKeyMap() EditorKeyMap {
 			// "shift+enter" works when terminal is configured (via terminal-setup).
 			key.WithHelp("shift+enter/ctrl+j", "newline"),
 		),
+		ToggleThinking: key.NewBinding(
+			key.WithKeys("tab"),
+			key.WithHelp("tab", "toggle thinking"),
 		),
 	}
 }
@@ -43,6 +47,7 @@ func (k EditorKeyMap) KeyBindings() []key.Binding {
 		k.SendMessage,
 		k.OpenEditor,
 		k.Newline,
+		k.ToggleThinking,
 		AttachmentsKeyMaps.AttachmentDeleteMode,
 		AttachmentsKeyMaps.DeleteAllAttachments,
 		AttachmentsKeyMaps.Escape,
