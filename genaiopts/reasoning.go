@@ -187,11 +187,9 @@ func (e ReasoningEffort) OpenRouterReasoningEffort() *openrouter.ReasoningEffort
 func (e ReasoningEffort) ApplyToMap(optsMap map[string]any) map[string]any {
 	// Convert map to genai.ProviderOptions
 	opts := make(genai.ProviderOptions)
-	if optsMap != nil {
-		for k, v := range optsMap {
-			if data, ok := v.(genai.ProviderOptionsData); ok {
-				opts[k] = data
-			}
+	for k, v := range optsMap {
+		if data, ok := v.(genai.ProviderOptionsData); ok {
+			opts[k] = data
 		}
 	}
 
@@ -208,7 +206,12 @@ func (e ReasoningEffort) ApplyToMap(optsMap map[string]any) map[string]any {
 
 // Apply returns a copy of ProviderOptions with reasoning effort and optional max tokens set.
 func (e ReasoningEffort) Apply(opts genai.ProviderOptions) genai.ProviderOptions {
-	clone := maps.Clone(opts)
+	var clone genai.ProviderOptions
+	if opts != nil {
+		clone = maps.Clone(opts)
+	} else {
+		clone = make(genai.ProviderOptions)
+	}
 
 	// OpenAI (native)
 	if v, ok := clone[openai.Name]; ok {

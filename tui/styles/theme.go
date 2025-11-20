@@ -590,11 +590,26 @@ func (m *Manager) List() []string {
 	return names
 }
 
-// ParseHex converts hex string to color
+// ParseHex converts hex string to color. Supports both #RRGGBB and #RRGGBBAA
+// formats.
 func ParseHex(hex string) color.Color {
-	var r, g, b uint8
-	fmt.Sscanf(hex, "#%02x%02x%02x", &r, &g, &b)
-	return color.RGBA{R: r, G: g, B: b, A: 255}
+	hex = strings.TrimPrefix(hex, "#")
+	
+	switch len(hex) {
+	case 6:
+		// #RRGGBB format
+		var r, g, b uint8
+		fmt.Sscanf(hex, "%02x%02x%02x", &r, &g, &b)
+		return color.RGBA{R: r, G: g, B: b, A: 255}
+	case 8:
+		// #RRGGBBAA format
+		var r, g, b, a uint8
+		fmt.Sscanf(hex, "%02x%02x%02x%02x", &r, &g, &b, &a)
+		return color.RGBA{R: r, G: g, B: b, A: a}
+	default:
+		// Default to white if invalid format
+		return color.RGBA{R: 255, G: 255, B: 255, A: 255}
+	}
 }
 
 // Alpha returns a color with transparency

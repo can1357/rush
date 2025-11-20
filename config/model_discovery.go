@@ -330,8 +330,8 @@ func discoverOpenRouterModels(cfg ProviderConfig, resolver VariableResolver) ([]
 		Timeout: 30 * time.Second,
 	}
 
-	// Call OpenRouter-specific discovery
-	models, err := openrouter.DiscoverModels(apiKey, client)
+	// Call OpenRouter-specific discovery with the resolved baseURL
+	models, err := openrouter.DiscoverModelsWithURL(baseURL, apiKey, client)
 	if err != nil {
 		return nil, fmt.Errorf("OpenRouter model discovery failed: %w", err)
 	}

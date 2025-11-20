@@ -153,8 +153,8 @@ func TestConvertToCarwalkModel(t *testing.T) {
 			want: catwalk.Model{
 				ID:               "openai/gpt-4",
 				Name:             "openai/gpt-4",
-				ContextWindow:    8192,
-				DefaultMaxTokens: 4096,
+				ContextWindow:    200000,
+				DefaultMaxTokens: 8192,
 			},
 		},
 		{
@@ -166,8 +166,8 @@ func TestConvertToCarwalkModel(t *testing.T) {
 			want: catwalk.Model{
 				ID:               "claude-3-opus-20240229",
 				Name:             "claude-3-opus-20240229",
-				ContextWindow:    8192,
-				DefaultMaxTokens: 4096,
+				ContextWindow:    200000,
+				DefaultMaxTokens: 8192,
 			},
 		},
 		{

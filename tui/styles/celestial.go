@@ -7,107 +7,123 @@ func NewCelestialTheme() *Theme {
 		Name:   "celestial",
 		IsDark: true,
 
-		Primary:   ParseHex("#E95378"), // Celestial red
-		Secondary: ParseHex("#FAB795"), // Warm orange/peach
-		Tertiary:  ParseHex("#25B0BC"), // Cyan
-		Accent:    ParseHex("#B877DB"), // Purple
+		Primary:   ParseHex("#E95378"), // activeBorder/progressBar.background
+		Secondary: ParseHex("#FAB795"), // strings/terminal yellow
+		Tertiary:  ParseHex("#25B0BC"), // terminal blue (from ansiBlue)
+		Accent:    ParseHex("#B877DB"), // keywords/storage
 
-		// Backgrounds
-		BgBase:        ParseHex("#0b0c0f"), // Darkest
-		BgBaseLighter: ParseHex("#0E0F13"), // Activity bar
-		BgSubtle:      ParseHex("#1b1c25"), // Widget/dropdown
-		BgOverlay:     ParseHex("#2E303E"), // Overlay/selection
+		// Backgrounds - mapped from VSCode theme
+		BgBase:        ParseHex("#0b0c0f"), // editor.background
+		BgBaseLighter: ParseHex("#0E0F13"), // activityBar.background
+		BgSubtle:      ParseHex("#1b1c25"), // editorWidget.background
+		BgOverlay:     ParseHex("#2E303E"), // button.background
 
-		// Foregrounds
-		FgBase:      ParseHex("#D5D8DA"),   // Main text
-		FgMuted:     ParseHex("#6C6F93"),   // Muted text
-		FgHalfMuted: ParseHex("#BBBBBB"),   // Half muted
-		FgSubtle:    ParseHex("#D5D8DA80"), // Subtle (with transparency)
-		FgSelected:  ParseHex("#FFFFFF"),   // Selected text
+		// Foregrounds - from VSCode theme
+		FgBase:      ParseHex("#D5D8DA"),   // foreground
+		FgMuted:     ParseHex("#6C6F93"),   // comments (from tokenColors)
+		FgHalfMuted: ParseHex("#BBBBBB"),   // CSS properties
+		FgSubtle:    ParseHex("#D5D8DA80"), // sideBar.foreground
+		FgSelected:  ParseHex("#D5D8DA"),   // list.activeSelectionForeground
 
 		// Borders
-		Border:      ParseHex("#22252e"),
-		BorderFocus: ParseHex("#E95378"), // Primary red
+		Border:      ParseHex("#22252e"), // focusBorder
+		BorderFocus: ParseHex("#E95378"), // tab.activeBorder
 
-		// Status
-		Success: ParseHex("#27D797"), // Green
-		Error:   ParseHex("#F43E5C"), // Error red
-		Warning: ParseHex("#FAB795"), // Orange
-		Info:    ParseHex("#25B0BC"), // Cyan
+		// Status colors
+		Success: ParseHex("#27D797"), // gitDecoration.untrackedResourceForeground
+		Error:   ParseHex("#F43E5C"), // errorForeground
+		Warning: ParseHex("#FAB795"), // terminal.ansiYellow
+		Info:    ParseHex("#25B0BC"), // from terminal blues
 
 		// Colors
 		White: ParseHex("#FFFFFF"),
 
-		BlueLight: ParseHex("#3FC4DE"),
-		BlueDark:  ParseHex("#26BBD9"),
-		Blue:      ParseHex("#25B0BC"),
+		// Blues - from terminal colors
+		BlueLight: ParseHex("#3FC4DE"), // terminal.ansiBrightBlue
+		BlueDark:  ParseHex("#26BBD9"), // terminal.ansiBlue
+		Blue:      ParseHex("#25B0BC"), // similar to ansiBlue
 
-		Yellow: ParseHex("#FBC3A7"),
-		Citron: ParseHex("#FAC29A"),
+		// Yellows - from terminal colors
+		Yellow: ParseHex("#FBC3A7"), // terminal.ansiBrightYellow
+		Citron: ParseHex("#FAC29A"), // entity.name
 
-		Green:      ParseHex("#29D398"),
-		GreenDark:  ParseHex("#27D797"),
-		GreenLight: ParseHex("#3FDAA4"),
+		// Greens - from terminal colors
+		Green:      ParseHex("#29D398"), // terminal.ansiGreen
+		GreenDark:  ParseHex("#27D797"), // list.warningForeground (green tint)
+		GreenLight: ParseHex("#3FDAA4"), // terminal.ansiBrightGreen
 
-		Red:      ParseHex("#E95678"),
-		RedDark:  ParseHex("#F43E5C"),
-		RedLight: ParseHex("#EC6A88"),
-		Cherry:   ParseHex("#E95378"),
+		// Reds - from terminal colors
+		Red:      ParseHex("#E95678"), // terminal.ansiRed
+		RedDark:  ParseHex("#F43E5C"), // errorForeground
+		RedLight: ParseHex("#EC6A88"), // terminal.ansiBrightRed
+		Cherry:   ParseHex("#E95378"), // primary red
 
-		// Editor-specific colors
-		EditorLineNumber:         ParseHex("#D5D8DA1A"), // Line numbers
-		EditorLineNumberActive:   ParseHex("#D5D8DA80"), // Active line number
-		EditorCursor:             ParseHex("#E95378"),   // Cursor color
-		EditorSelection:          ParseHex("#2E303EB3"), // Selection background
-		EditorSelectionHighlight: ParseHex("#6C6F934D"), // Selection highlight
-		EditorWordHighlight:      ParseHex("#6C6F9380"), // Word highlight
-		EditorFindMatch:          ParseHex("#6C6F9380"), // Find match
-		EditorFindMatchHighlight: ParseHex("#6C6F934D"), // Find match highlight
-		EditorLineHighlight:      ParseHex("#2E303E4D"), // Current line
+		// Editor-specific colors - directly from VSCode theme
+		EditorLineNumber:         ParseHex("#D5D8DA1A"), // editorLineNumber.foreground
+		EditorLineNumberActive:   ParseHex("#D5D8DA80"), // editorLineNumber.activeForeground
+		EditorCursor:             ParseHex("#E95378"),   // editorCursor.foreground
+		EditorSelection:          ParseHex("#2E303EB3"), // editor.selectionBackground
+		EditorSelectionHighlight: ParseHex("#6C6F934D"), // editor.selectionHighlightBackground
+		EditorWordHighlight:      ParseHex("#6C6F9380"), // editor.wordHighlightBackground
+		EditorFindMatch:          ParseHex("#6C6F9380"), // editor.findMatchBackground
+		EditorFindMatchHighlight: ParseHex("#6C6F934D"), // editor.findMatchHighlightBackground
+		EditorLineHighlight:      ParseHex("#2E303E4D"), // editor.lineHighlightBackground
 
-		// Diff colors
-		DiffInsertedTextBg:  ParseHex("#09F7A01A"), // Inserted text background
-		DiffRemovedTextBg:   ParseHex("#F43E5C1A"), // Removed text background
-		DiffInsertLineBg:    ParseHex("#09F7A01A"), // Insert line background
-		DiffDeleteLineBg:    ParseHex("#F43E5C1A"), // Delete line background
-		DiffInsertLineNumBg: ParseHex("#09F7A0B3"), // Insert line number background
-		DiffDeleteLineNumBg: ParseHex("#F43E5CB3"), // Delete line number background
+		// Diff colors - from VSCode theme
+		DiffInsertedTextBg:  ParseHex("#09F7A01A"), // diffEditor.insertedTextBackground
+		DiffRemovedTextBg:   ParseHex("#F43E5C1A"), // diffEditor.removedTextBackground
+		DiffInsertLineBg:    ParseHex("#09F7A01A"), // Same as inserted text
+		DiffDeleteLineBg:    ParseHex("#F43E5C1A"), // Same as removed text
+		DiffInsertLineNumBg: ParseHex("#09F7A0B3"), // editorGutter.addedBackground
+		DiffDeleteLineNumBg: ParseHex("#F43E5CB3"), // editorGutter.deletedBackground
 
-		// Terminal ANSI colors
-		AnsiBlue:          ParseHex("#26BBD9"),
-		AnsiBrightBlue:    ParseHex("#3FC4DE"),
-		AnsiCyan:          ParseHex("#59E1E3"),
-		AnsiBrightCyan:    ParseHex("#6BE4E6"),
-		AnsiGreen:         ParseHex("#29D398"),
-		AnsiBrightGreen:   ParseHex("#3FDAA4"),
-		AnsiMagenta:       ParseHex("#EE64AC"),
-		AnsiBrightMagenta: ParseHex("#F075B5"),
-		AnsiRed:           ParseHex("#E95678"),
-		AnsiBrightRed:     ParseHex("#EC6A88"),
-		AnsiYellow:        ParseHex("#FAB795"),
-		AnsiBrightYellow:  ParseHex("#FBC3A7"),
+		// Terminal ANSI colors - directly from VSCode theme
+		AnsiBlue:          ParseHex("#26BBD9"), // terminal.ansiBlue
+		AnsiBrightBlue:    ParseHex("#3FC4DE"), // terminal.ansiBrightBlue
+		AnsiCyan:          ParseHex("#59E1E3"), // terminal.ansiCyan
+		AnsiBrightCyan:    ParseHex("#6BE4E6"), // terminal.ansiBrightCyan
+		AnsiGreen:         ParseHex("#29D398"), // terminal.ansiGreen
+		AnsiBrightGreen:   ParseHex("#3FDAA4"), // terminal.ansiBrightGreen
+		AnsiMagenta:       ParseHex("#EE64AC"), // terminal.ansiMagenta
+		AnsiBrightMagenta: ParseHex("#F075B5"), // terminal.ansiBrightMagenta
+		AnsiRed:           ParseHex("#E95678"), // terminal.ansiRed
+		AnsiBrightRed:     ParseHex("#EC6A88"), // terminal.ansiBrightRed
+		AnsiYellow:        ParseHex("#FAB795"), // terminal.ansiYellow
+		AnsiBrightYellow:  ParseHex("#FBC3A7"), // terminal.ansiBrightYellow
 
-		// Git decoration colors
-		GitAdded:     ParseHex("#27D797B3"),
-		GitModified:  ParseHex("#E07267"),
-		GitDeleted:   ParseHex("#F43E5C"),
-		GitUntracked: ParseHex("#27D797"),
-		GitIgnored:   ParseHex("#D5D8DA4D"),
+		// Git decoration colors - from VSCode theme
+		GitAdded:     ParseHex("#27D797B3"), // gitDecoration.addedResourceForeground
+		GitModified:  ParseHex("#E07267"),   // gitDecoration.modifiedResourceForeground
+		GitDeleted:   ParseHex("#F43E5C"),   // gitDecoration.deletedResourceForeground
+		GitUntracked: ParseHex("#27D797"),   // gitDecoration.untrackedResourceForeground
+		GitIgnored:   ParseHex("#D5D8DA4D"), // gitDecoration.ignoredResourceForeground
 	}
 
-	// Text selection.
-	t.TextSelection = lipgloss.NewStyle().Foreground(ParseHex("#FFFFFF")).Background(ParseHex("#E95378"))
+	// Text selection - from VSCode theme
+	t.TextSelection = lipgloss.NewStyle().
+		Foreground(ParseHex("#D5D8DA")). // list.activeSelectionForeground
+		Background(ParseHex("#2E303E80")) // list.activeSelectionBackground
 
-	// LSP and MCP status.
+	// LSP and MCP status indicators
 	t.ItemOfflineIcon = lipgloss.NewStyle().Foreground(ParseHex("#6C6F93")).SetString("●")
-	t.ItemBusyIcon = t.ItemOfflineIcon.Foreground(ParseHex("#FAB795"))
-	t.ItemErrorIcon = t.ItemOfflineIcon.Foreground(ParseHex("#F43E5C"))
-	t.ItemOnlineIcon = t.ItemOfflineIcon.Foreground(ParseHex("#27D797"))
+	t.ItemBusyIcon = t.ItemOfflineIcon.Foreground(ParseHex("#FAB795")) // warning/yellow
+	t.ItemErrorIcon = t.ItemOfflineIcon.Foreground(ParseHex("#F43E5C")) // error
+	t.ItemOnlineIcon = t.ItemOfflineIcon.Foreground(ParseHex("#27D797")) // success
 
-	t.YoloIconFocused = lipgloss.NewStyle().Foreground(ParseHex("#0b0c0f")).Background(ParseHex("#FAB795")).Bold(true).SetString(" ! ")
-	t.YoloIconBlurred = t.YoloIconFocused.Foreground(ParseHex("#6C6F93")).Background(ParseHex("#2E303E"))
-	t.YoloDotsFocused = lipgloss.NewStyle().Foreground(ParseHex("#E95378")).SetString(":::")
-	t.YoloDotsBlurred = t.YoloDotsFocused.Foreground(ParseHex("#6C6F93"))
+	// Yolo mode indicators - using theme accent colors
+	t.YoloIconFocused = lipgloss.NewStyle().
+		Foreground(ParseHex("#0b0c0f")).  // editor.background
+		Background(ParseHex("#FAB795")).  // secondary/warning
+		Bold(true).
+		SetString(" ! ")
+	t.YoloIconBlurred = t.YoloIconFocused.
+		Foreground(ParseHex("#6C6F93")).  // muted
+		Background(ParseHex("#2E303E"))   // overlay
+	t.YoloDotsFocused = lipgloss.NewStyle().
+		Foreground(ParseHex("#E95378")).  // primary
+		SetString(":::")
+	t.YoloDotsBlurred = t.YoloDotsFocused.
+		Foreground(ParseHex("#6C6F93"))   // muted
 
 	return t
 }
