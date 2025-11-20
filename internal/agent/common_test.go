@@ -171,26 +171,13 @@ func coderAgent(r *vcr.Recorder, env fakeEnv, large, small fantasy.LanguageModel
 		return nil, err
 	}
 
-	// NOTE(@andreynering): Set a fixed config to ensure cassettes match
-	// independently of user config on `$HOME/.config/crush/crush.json`.
-	cfg.Options.Attribution = &config.Attribution{
-		TrailerStyle:  "co-authored-by",
-		GeneratedWith: true,
-	}
-
 	systemPrompt, err := prompt.Build(context.TODO(), large.Provider(), large.Model(), *cfg)
 	if err != nil {
 		return nil, err
 	}
 
-	// Get the model name for the bash tool
-	modelName := large.Model() // fallback to ID if Name not available
-	if model := cfg.GetModel(large.Provider(), large.Model()); model != nil {
-		modelName = model.Name
-	}
-
 	allTools := []fantasy.AgentTool{
-		tools.NewBashTool(env.permissions, env.workingDir, cfg.Options.Attribution, modelName),
+		tools.NewBashTool(env.permissions, env.workingDir),
 		tools.NewDownloadTool(env.permissions, env.workingDir, r.GetDefaultClient()),
 		tools.NewEditTool(env.lspClients, env.permissions, env.history, env.workingDir),
 		tools.NewMultiEditTool(env.lspClients, env.permissions, env.history, env.workingDir),
