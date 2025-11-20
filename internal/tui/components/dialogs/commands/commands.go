@@ -17,6 +17,7 @@ import (
 	"github.com/charmbracelet/crush/internal/config"
 	"github.com/charmbracelet/crush/internal/csync"
 	"github.com/charmbracelet/crush/internal/pubsub"
+	"github.com/charmbracelet/crush/internal/term"
 	"github.com/charmbracelet/crush/internal/tui/components/chat"
 	"github.com/charmbracelet/crush/internal/tui/components/core"
 	"github.com/charmbracelet/crush/internal/tui/components/dialogs"
@@ -464,6 +465,15 @@ func (c *commandDialogCmp) defaultCommands() []Command {
 				return util.CmdHandler(chat.SendMsg{
 					Text: initPrompt,
 				})
+			},
+		},
+		{
+			ID:          "terminal_setup",
+			Title:       "Terminal Setup",
+			Description: "Configure terminal for Shift+Enter newlines",
+			Handler: func(cmd Command) tea.Cmd {
+				instructions := term.GetTerminalSetupInstructions()
+				return util.ReportInfo(instructions)
 			},
 		},
 		{
