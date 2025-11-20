@@ -285,7 +285,14 @@ func mergeCallOptions(model Model, cfg config.ProviderConfig) (genai.ProviderOpt
 }
 
 func (c *coordinator) buildAgent(ctx context.Context, prompt *prompt.Prompt, agent config.Agent) (SessionAgent, error) {
-	model := c.Model()
+	// Build model from agent config, not c.Model() which requires currentAgent to exist
+	// This avoids circular dependency during initialization
+	modelSelection := c.cfg.Models[agent.Model]
+	model, err := c.buildAgentModel(ctx, modelSelection)
+	if err != nil {
+		return nil, fmt.Errorf("error building model: %w", err)
+	}
+
 	systemPrompt, err := prompt.Build(ctx, model.Model.Provider(), model.Model.Model(), *c.cfg)
 	if err != nil {
 		return nil, err
