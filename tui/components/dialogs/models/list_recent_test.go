@@ -66,13 +66,13 @@ func TestModelList_RecentlyUsedSectionAndPrunesInvalid(t *testing.T) {
 			"disable_provider_auto_update": true,
 		},
 		"models": map[string]any{
-			"large": map[string]any{
+			"balanced": map[string]any{
 				"model":    "m1",
 				"provider": "p1",
 			},
 		},
 		"recent_models": map[string]any{
-			"large": []any{
+			"balanced": []any{
 				map[string]any{"model": "m2", "provider": "p1"},              // valid
 				map[string]any{"model": "x", "provider": "unknown-provider"}, // invalid -> pruned
 			},
@@ -137,14 +137,13 @@ func TestModelList_RecentlyUsedSectionAndPrunesInvalid(t *testing.T) {
 	var origParsed map[string]any
 	require.NoError(t, json.Unmarshal(afterOrig, &origParsed))
 	origRM := origParsed["recent_models"].(map[string]any)
-	origLarge := origRM["large"].([]any)
+	origLarge := origRM["balanced"].([]any)
 	require.Len(t, origLarge, 2, "original config should be unchanged")
 
 	// Config should be rewritten with pruned recents in dataDir
 	dataConf := filepath.Join(dataDir, "rush", "config.json")
 	rm := readRecentModels(t, dataConf)
-	// After marshaling, "large" is normalized to "def" (DefaultAI)
-	largeAny, ok := rm["def"].([]any)
+	largeAny, ok := rm["balanced"].([]any)
 	require.True(t, ok)
 	// Ensure that only valid recent(s) remain and the invalid one is removed
 	found := false
@@ -176,13 +175,13 @@ func TestModelList_PrunesInvalidModelWithinValidProvider(t *testing.T) {
 			"disable_provider_auto_update": true,
 		},
 		"models": map[string]any{
-			"large": map[string]any{
+			"balanced": map[string]any{
 				"model":    "m1",
 				"provider": "p1",
 			},
 		},
 		"recent_models": map[string]any{
-			"large": []any{
+			"balanced": []any{
 				map[string]any{"model": "m1", "provider": "p1"},      // valid
 				map[string]any{"model": "missing", "provider": "p1"}, // invalid model
 			},
@@ -247,14 +246,13 @@ func TestModelList_PrunesInvalidModelWithinValidProvider(t *testing.T) {
 	var origParsed map[string]any
 	require.NoError(t, json.Unmarshal(afterOrig, &origParsed))
 	origRM := origParsed["recent_models"].(map[string]any)
-	origLarge := origRM["large"].([]any)
+	origLarge := origRM["balanced"].([]any)
 	require.Len(t, origLarge, 2, "original config should be unchanged")
 
 	// Config should be rewritten with pruned recents in dataDir
 	dataConf := filepath.Join(dataDir, "rush", "config.json")
 	rm := readRecentModels(t, dataConf)
-	// After marshaling, "large" is normalized to "def" (DefaultAI)
-	largeAny, ok := rm["def"].([]any)
+	largeAny, ok := rm["balanced"].([]any)
 	require.True(t, ok)
 	require.Len(t, largeAny, 1, "should only have one valid model")
 	// Verify only p1:m1 remains
@@ -292,13 +290,13 @@ func TestModelList_AllRecentsInvalid(t *testing.T) {
 			"disable_provider_auto_update": true,
 		},
 		"models": map[string]any{
-			"large": map[string]any{
+			"balanced": map[string]any{
 				"model":    "m1",
 				"provider": "p1",
 			},
 		},
 		"recent_models": map[string]any{
-			"large": []any{
+			"balanced": []any{
 				map[string]any{"model": "x", "provider": "unknown1"},
 				map[string]any{"model": "y", "provider": "unknown2"},
 			},
@@ -353,14 +351,14 @@ func TestModelList_AllRecentsInvalid(t *testing.T) {
 	var origParsed map[string]any
 	require.NoError(t, json.Unmarshal(afterOrig, &origParsed))
 	origRM := origParsed["recent_models"].(map[string]any)
-	origLarge := origRM["large"].([]any)
+	origLarge := origRM["balanced"].([]any)
 	require.Len(t, origLarge, 2, "original config should be unchanged")
 
 	// Config should be rewritten with empty recents in dataDir
 	dataConf := filepath.Join(dataDir, "rush", "config.json")
 	rm := readRecentModels(t, dataConf)
 	// When all recents are pruned, the value may be nil or an empty array
-	largeVal := rm["large"]
+	largeVal := rm["balanced"]
 	if largeVal == nil {
 		// nil is acceptable - means empty
 		return

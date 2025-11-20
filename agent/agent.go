@@ -59,6 +59,7 @@ type SessionAgentCall struct {
 type SessionAgent interface {
 	Run(context.Context, SessionAgentCall) (*genai.AgentResult, error)
 	SetModel(model Model)
+	SetSmallModel(model Model)
 	SetTools(tools []genai.AgentTool)
 	Cancel(sessionID string)
 	CancelAll()
@@ -941,6 +942,10 @@ func (a *sessionAgent) QueuedPrompts(sessionID string) int {
 
 func (a *sessionAgent) SetModel(model Model) {
 	a.model = model
+}
+
+func (a *sessionAgent) SetSmallModel(model Model) {
+	a.smallModel = model
 }
 
 func (a *sessionAgent) SetTools(tools []genai.AgentTool) {

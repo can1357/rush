@@ -2,6 +2,7 @@ package models
 
 import (
 	"fmt"
+	"strings"
 	"time"
 
 	"charm.land/bubbles/v2/help"
@@ -22,14 +23,6 @@ const (
 	ModelsDialogID dialogs.DialogID = "models"
 
 	defaultWidth = 60
-)
-
-const (
-	LargeModelType int = iota
-	SmallModelType
-
-	largeModelInputPlaceholder = "Choose a model for large, complex tasks"
-	smallModelInputPlaceholder = "Choose a model for small, simple tasks"
 )
 
 // ModelSelectedMsg is sent when a model is selected
@@ -79,7 +72,7 @@ func NewModelDialogCmp() ModelDialog {
 	listKeyMap.UpOneItem = keyMap.Previous
 
 	t := styles.CurrentTheme()
-	modelList := NewModelListComponent(listKeyMap, largeModelInputPlaceholder, true)
+	modelList := NewModelListComponent(listKeyMap, config.BalancedAI.PlaceholderText(), true)
 	apiKeyInput := NewAPIKeyInput()
 	apiKeyInput.SetShowTitle(false)
 	help := help.New()
@@ -156,13 +149,7 @@ func (m *modelDialogCmp) Update(msg tea.Msg) (util.Model, tea.Cmd) {
 			}
 			// Normal model selection
 			selectedItem := m.modelList.SelectedModel()
-
-			var modelType config.ModelType
-			if m.modelList.GetModelType() == LargeModelType {
-				modelType = config.DefaultAI
-			} else {
-				modelType = config.SmallAI
-			}
+			modelType := m.modelList.GetModelType()
 
 			// Check if provider is configured
 			if m.isProviderConfigured(string(selectedItem.Provider.ID)) {
@@ -192,13 +179,10 @@ func (m *modelDialogCmp) Update(msg tea.Msg) (util.Model, tea.Cmd) {
 				m.apiKeyInput = u.(*APIKeyInput)
 				return m, cmd
 			}
-			if m.modelList.GetModelType() == LargeModelType {
-				m.modelList.SetInputPlaceholder(smallModelInputPlaceholder)
-				return m, m.modelList.SetModelType(SmallModelType)
-			} else {
-				m.modelList.SetInputPlaceholder(largeModelInputPlaceholder)
-				return m, m.modelList.SetModelType(LargeModelType)
-			}
+
+			modelType := m.modelList.GetModelType()
+			m.modelList.SetInputPlaceholder(modelType.PlaceholderText())
+			return m, m.modelList.SetModelType(modelType)
 		case key.Matches(msg, m.keyMap.Close):
 			if m.needsAPIKey {
 				if m.isAPIKeyValid {
@@ -334,13 +318,19 @@ func (m *modelDialogCmp) ID() dialogs.DialogID {
 
 func (m *modelDialogCmp) modelTypeRadio() string {
 	t := styles.CurrentTheme()
-	choices := []string{"Large Task", "Small Task"}
 	iconSelected := "◉"
 	iconUnselected := "○"
-	if m.modelList.GetModelType() == LargeModelType {
-		return t.S().Base.Foreground(t.FgHalfMuted).Render(iconSelected + " " + choices[0] + "  " + iconUnselected + " " + choices[1])
+	wr := strings.Builder{}
+
+	for _, choice := range []config.ModelType{config.ProAI, config.BalancedAI, config.LiteAI} {
+		selected := choice == m.modelList.GetModelType()
+		if selected {
+			wr.WriteString(t.S().Base.Foreground(t.FgSelected).Render(iconSelected + " " + choice.LabelText()))
+		} else {
+			wr.WriteString(t.S().Base.Foreground(t.FgHalfMuted).Render(iconUnselected + " " + choice.LabelText()))
+		}
 	}
-	return t.S().Base.Foreground(t.FgHalfMuted).Render(iconUnselected + " " + choices[0] + "  " + iconSelected + " " + choices[1])
+	return wr.String()
 }
 
 func (m *modelDialogCmp) isProviderConfigured(providerID string) bool {

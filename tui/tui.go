@@ -271,7 +271,7 @@ func (a *appModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return a, util.ReportError(err)
 		}
 
-		if msg.ModelType == config.DefaultAI {
+		if msg.ModelType == config.BalancedAI {
 			go a.app.SelectModel(context.TODO(), msg.Model)
 		}
 		return a, util.ReportInfo(fmt.Sprintf("%s model changed to %s", msg.ModelType.Name(), msg.Model.Model))

@@ -347,8 +347,8 @@ func (p *chatPage) Update(msg tea.Msg) (util.Model, tea.Cmd) {
 					selectedModel := p.app.AgentCoordinator.Model().Selection
 					if msg.Enable {
 						cfg := config.Get()
-						if largeModel := cfg.ModelByClass(config.LargeAI); largeModel != nil {
-							selectedModel = cfg.Models[config.LargeAI]
+						if largeModel := cfg.ModelByClass(config.ProAI); largeModel != nil {
+							selectedModel = cfg.Models[config.ProAI]
 							selectedModel.Think = true // Force thinking on
 						} else {
 							selectedModel.Think = true
@@ -640,7 +640,7 @@ func (p *chatPage) toggleThinking() tea.Cmd {
 		// Toggle the thinking mode
 		model := p.app.AgentCoordinator.Model().Selection
 		model.Think = !model.Think
-		if err := cfg.UpdatePreferredModel(config.DefaultAI, model); err != nil {
+		if err := cfg.UpdatePreferredModel(config.BalancedAI, model); err != nil {
 			return util.InfoMsg{
 				Type: util.InfoTypeError,
 				Msg:  "Failed to update thinking mode: " + err.Error(),
@@ -1325,8 +1325,8 @@ func (p *chatPage) togglePlanMode() tea.Cmd {
 		p.previousModel = &currentModel
 
 		selectedModel := currentModel
-		if extraModel := cfg.ModelByClass(config.LargeAI); extraModel != nil {
-			selectedModel = cfg.Models[config.LargeAI]
+		if extraModel := cfg.ModelByClass(config.ProAI); extraModel != nil {
+			selectedModel = cfg.Models[config.ProAI]
 			selectedModel.Think = true
 		} else {
 			selectedModel.Think = true

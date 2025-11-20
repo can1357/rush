@@ -18,7 +18,7 @@ type listModel = list.FilterableGroupList[list.CompletionItem[ModelOption]]
 
 type ModelListComponent struct {
 	list      listModel
-	modelType int
+	modelType config.ModelType
 	providers []catwalk.Provider
 }
 
@@ -50,7 +50,7 @@ func NewModelListComponent(keyMap list.KeyMap, inputPlaceholder string, shouldRe
 
 	return &ModelListComponent{
 		list:      modelList,
-		modelType: LargeModelType,
+		modelType: config.BalancedAI,
 	}
 }
 
@@ -104,7 +104,7 @@ func (m *ModelListComponent) SelectedModel() *ModelOption {
 	return &model
 }
 
-func (m *ModelListComponent) SetModelType(modelType int) tea.Cmd {
+func (m *ModelListComponent) SetModelType(modelType config.ModelType) tea.Cmd {
 	t := styles.CurrentTheme()
 	m.modelType = modelType
 
@@ -114,16 +114,8 @@ func (m *ModelListComponent) SetModelType(modelType int) tea.Cmd {
 	itemsByKey := make(map[string]list.CompletionItem[ModelOption])
 
 	cfg := config.Get()
-	var currentModel config.ModelSelection
-	selectedType := config.DefaultAI
-	if m.modelType == LargeModelType {
-		currentModel = cfg.Models[config.DefaultAI]
-		selectedType = config.DefaultAI
-	} else {
-		currentModel = cfg.Models[config.SmallAI]
-		selectedType = config.SmallAI
-	}
-	recentItems := cfg.RecentModels[selectedType]
+	recentItems := cfg.RecentModels[modelType]
+	currentModel := cfg.Models[modelType]
 
 	configuredIcon := t.S().Base.Foreground(t.Success).Render(styles.CheckIcon)
 	configured := fmt.Sprintf("%s %s", configuredIcon, t.S().Subtle.Render("Configured"))
@@ -305,7 +297,7 @@ func (m *ModelListComponent) SetModelType(modelType int) tea.Cmd {
 		}
 
 		if len(validRecentItems) != len(recentItems) {
-			if err := cfg.SetConfigField(fmt.Sprintf("recent_models.%s", selectedType), validRecentItems); err != nil {
+			if err := cfg.SetConfigField(fmt.Sprintf("recent_models.%s", modelType), validRecentItems); err != nil {
 				return util.ReportError(err)
 			}
 		}
@@ -331,7 +323,7 @@ func (m *ModelListComponent) SetModelType(modelType int) tea.Cmd {
 }
 
 // GetModelType returns the current model type
-func (m *ModelListComponent) GetModelType() int {
+func (m *ModelListComponent) GetModelType() config.ModelType {
 	return m.modelType
 }
 

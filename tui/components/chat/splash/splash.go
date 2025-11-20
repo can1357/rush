@@ -359,7 +359,7 @@ func (s *splashCmp) setPreferredModel(selectedItem models.ModelOption) tea.Cmd {
 		MaxTokens:       model.DefaultMaxTokens,
 	}
 
-	err := cfg.UpdatePreferredModel(config.DefaultAI, selectedModel)
+	err := cfg.UpdatePreferredModel(config.BalancedAI, selectedModel)
 	if err != nil {
 		return util.ReportError(err)
 	}
@@ -371,7 +371,7 @@ func (s *splashCmp) setPreferredModel(selectedItem models.ModelOption) tea.Cmd {
 	}
 	if knownProvider == nil {
 		// for local provider we just use the same model
-		err = cfg.UpdatePreferredModel(config.SmallAI, selectedModel)
+		err = cfg.UpdatePreferredModel(config.LiteAI, selectedModel)
 		if err != nil {
 			return util.ReportError(err)
 		}
@@ -380,7 +380,7 @@ func (s *splashCmp) setPreferredModel(selectedItem models.ModelOption) tea.Cmd {
 		model := cfg.GetModel(string(selectedItem.Provider.ID), smallModel)
 		// should never happen
 		if model == nil {
-			err = cfg.UpdatePreferredModel(config.SmallAI, selectedModel)
+			err = cfg.UpdatePreferredModel(config.LiteAI, selectedModel)
 			if err != nil {
 				return util.ReportError(err)
 			}
@@ -392,7 +392,7 @@ func (s *splashCmp) setPreferredModel(selectedItem models.ModelOption) tea.Cmd {
 			ReasoningEffort: model.DefaultReasoningEffort,
 			MaxTokens:       model.DefaultMaxTokens,
 		}
-		err = cfg.UpdatePreferredModel(config.SmallAI, smallSelectedModel)
+		err = cfg.UpdatePreferredModel(config.LiteAI, smallSelectedModel)
 		if err != nil {
 			return util.ReportError(err)
 		}

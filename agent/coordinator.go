@@ -291,7 +291,7 @@ func (c *coordinator) buildAgent(ctx context.Context, prompt *prompt.Prompt, age
 		return nil, err
 	}
 
-	smallModel, err := c.buildAgentModel(ctx, c.cfg.Models[config.SmallAI])
+	smallModel, err := c.buildAgentModel(ctx, c.cfg.Models[config.LiteAI])
 	if err != nil {
 		return nil, fmt.Errorf("error building small model: %w", err)
 	}
@@ -657,17 +657,6 @@ func (c *coordinator) buildProvider(providerCfg config.ProviderConfig, model con
 	}
 }
 
-func isExactoSupported(modelID string) bool {
-	supportedModels := []string{
-		"moonshotai/kimi-k2-0905",
-		"deepseek/deepseek-v3.1-terminus",
-		"z-ai/glm-4.6",
-		"openai/gpt-oss-120b",
-		"qwen/qwen3-coder",
-	}
-	return slices.Contains(supportedModels, modelID)
-}
-
 func (c *coordinator) Cancel(sessionID string) {
 	c.currentAgent.Cancel(sessionID)
 }
@@ -699,7 +688,15 @@ func (c *coordinator) UpdateMaestroModel(ctx context.Context, model config.Model
 		return fmt.Errorf("failed to build model: %w", err)
 	}
 
+	// Also rebuild small model from config to keep it in sync with current configuration
+	// This ensures title generation and summarization use the correct small model
+	newSmallModel, err := c.buildAgentModel(ctx, c.cfg.Models[config.LiteAI])
+	if err != nil {
+		return fmt.Errorf("failed to build small model: %w", err)
+	}
+
 	c.currentAgent.SetModel(newModel)
+	c.currentAgent.SetSmallModel(newSmallModel)
 
 	agentCfg, ok := c.cfg.Agents[config.AgentMaestro]
 	if !ok {

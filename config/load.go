@@ -567,7 +567,7 @@ func (c *Config) configureSelectedModels(knownProviders []catwalk.Provider) erro
 	}
 	large, small := defaultLarge, defaultSmall
 
-	largeModelSelected, largeModelConfigured := c.Models[DefaultAI]
+	largeModelSelected, largeModelConfigured := c.Models[BalancedAI]
 	if largeModelConfigured {
 		if largeModelSelected.Model != "" {
 			large.Model = largeModelSelected.Model
@@ -579,7 +579,7 @@ func (c *Config) configureSelectedModels(knownProviders []catwalk.Provider) erro
 		if model == nil {
 			large = defaultLarge
 			// override the model type to large
-			err := c.UpdatePreferredModel(DefaultAI, large)
+			err := c.UpdatePreferredModel(BalancedAI, large)
 			if err != nil {
 				return fmt.Errorf("failed to update preferred large model: %w", err)
 			}
@@ -610,7 +610,7 @@ func (c *Config) configureSelectedModels(knownProviders []catwalk.Provider) erro
 			}
 		}
 	}
-	smallModelSelected, smallModelConfigured := c.Models[SmallAI]
+	smallModelSelected, smallModelConfigured := c.Models[LiteAI]
 	if smallModelConfigured {
 		if smallModelSelected.Model != "" {
 			small.Model = smallModelSelected.Model
@@ -623,7 +623,7 @@ func (c *Config) configureSelectedModels(knownProviders []catwalk.Provider) erro
 		if model == nil {
 			small = defaultSmall
 			// override the model type to small
-			err := c.UpdatePreferredModel(SmallAI, small)
+			err := c.UpdatePreferredModel(LiteAI, small)
 			if err != nil {
 				return fmt.Errorf("failed to update preferred small model: %w", err)
 			}
@@ -654,8 +654,8 @@ func (c *Config) configureSelectedModels(knownProviders []catwalk.Provider) erro
 			small.Think = smallModelSelected.Think
 		}
 	}
-	c.Models[DefaultAI] = large
-	c.Models[SmallAI] = small
+	c.Models[BalancedAI] = large
+	c.Models[LiteAI] = small
 	return nil
 }
 

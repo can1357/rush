@@ -265,7 +265,7 @@ func (app *App) RunNonInteractive(ctx context.Context, output io.Writer, prompt 
 }
 
 func (app *App) SelectModel(ctx context.Context, model config.ModelSelection) error {
-	app.config.Models[config.DefaultAI] = model
+	app.config.Models[config.BalancedAI] = model
 	return app.AgentCoordinator.UpdateMaestroModel(ctx, model)
 }
 

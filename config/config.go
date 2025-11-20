@@ -47,12 +47,12 @@ type ModelType uint8
 
 func (m ModelType) Name() string {
 	switch m {
-	case SmallAI:
-		return "small"
-	case DefaultAI:
-		return "default"
-	case LargeAI:
-		return "large"
+	case LiteAI:
+		return "lite"
+	case BalancedAI:
+		return "balanced"
+	case ProAI:
+		return "pro"
 	default:
 		return "unknown"
 	}
@@ -60,14 +60,40 @@ func (m ModelType) Name() string {
 
 func (m ModelType) String() string {
 	switch m {
-	case SmallAI:
-		return "sm"
-	case DefaultAI:
-		return "def"
-	case LargeAI:
-		return "lg"
+	case LiteAI:
+		return "lite"
+	case BalancedAI:
+		return "balanced"
+	case ProAI:
+		return "pro"
 	default:
 		return "unknown"
+	}
+}
+
+func (m ModelType) PlaceholderText() string {
+	switch m {
+	case LiteAI:
+		return "Choose a fast model for simple tasks"
+	case BalancedAI:
+		return "Choose a balanced model for day to day tasks"
+	case ProAI:
+		return "Choose a powerful model for complex tasks"
+	default:
+		panic(fmt.Sprintf("unknown model type: %s", m))
+	}
+}
+
+func (m ModelType) LabelText() string {
+	switch m {
+	case LiteAI:
+		return "Lite"
+	case BalancedAI:
+		return "Balanced"
+	case ProAI:
+		return "Pro"
+	default:
+		panic(fmt.Sprintf("unknown model type: %s", m))
 	}
 }
 
@@ -82,16 +108,12 @@ func (m *ModelType) UnmarshalJSON(data []byte) error {
 	}
 
 	switch s {
-	case "small", "sm":
-		*m = SmallAI
-	case "default", "def", "large", "lg":
-		// "large" was the old name for what is now "default"
-		*m = DefaultAI
-	// Legacy types - map to closest equivalent
-	case "xlarge", "xl", "extra":
-		*m = LargeAI
-	case "inherit":
-		*m = DefaultAI
+	case "lite":
+		*m = LiteAI
+	case "balanced":
+		*m = BalancedAI
+	case "pro":
+		*m = ProAI
 	default:
 		return fmt.Errorf("unknown model type: %s", s)
 	}
@@ -107,16 +129,14 @@ func (m ModelType) MarshalText() ([]byte, error) {
 func (m *ModelType) UnmarshalText(data []byte) error {
 	s := string(data)
 	switch s {
-	case "small", "sm":
-		*m = SmallAI
-	case "default", "def", "large", "lg":
-		// "large" was the old name for what is now "default"
-		*m = DefaultAI
-	// Legacy types - map to closest equivalent
-	case "xlarge", "xl", "extra":
-		*m = LargeAI
+	case "lite":
+		*m = LiteAI
+	case "balanced":
+		*m = BalancedAI
+	case "pro":
+		*m = ProAI
 	case "inherit":
-		*m = DefaultAI
+		*m = BalancedAI
 	default:
 		return fmt.Errorf("unknown model type: %s", s)
 	}
@@ -124,9 +144,9 @@ func (m *ModelType) UnmarshalText(data []byte) error {
 }
 
 const (
-	SmallAI ModelType = iota
-	DefaultAI
-	LargeAI
+	LiteAI ModelType = iota
+	BalancedAI
+	ProAI
 )
 
 const (
@@ -659,7 +679,7 @@ func (c *Config) SetupAgents() {
 			ID:           AgentMaestro,
 			Name:         "Maestro",
 			Description:  "Main agent for coding tasks, software engineering, and general assistance.",
-			Model:        DefaultAI,
+			Model:        BalancedAI,
 			ContextPaths: c.Options.ContextPaths,
 			AllowedTools: allowedTools,
 			MaxTurns:     50, // Main agent gets more turns for complex tasks
@@ -669,7 +689,7 @@ func (c *Config) SetupAgents() {
 			ID:           AgentTask,
 			Name:         "Task",
 			Description:  "General-purpose agent for researching complex questions, searching for code, and executing multi-step tasks. When you are searching for a keyword or file and are not confident that you will find the right match in the first few tries use this agent to perform the search for you.",
-			Model:        DefaultAI,
+			Model:        BalancedAI,
 			ContextPaths: c.Options.ContextPaths,
 			AllowedTools: resolveReadOnlyTools(allowedTools),
 			// NO MCPs or LSPs by default
@@ -681,7 +701,7 @@ func (c *Config) SetupAgents() {
 			ID:           AgentExplore,
 			Name:         "Explore",
 			Description:  "Fast agent specialized for exploring codebases. Use this when you need to quickly find files by patterns (eg. \"src/components/**/*.tsx\"), search code for keywords (eg. \"API endpoints\"), or answer questions about the codebase (eg. \"how do API endpoints work?\").",
-			Model:        SmallAI,
+			Model:        LiteAI,
 			ContextPaths: c.Options.ContextPaths,
 			AllowedTools: resolveReadOnlyTools(allowedTools),
 			// NO MCPs or LSPs by default

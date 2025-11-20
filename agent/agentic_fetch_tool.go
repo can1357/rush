@@ -132,7 +132,7 @@ func (c *coordinator) agenticFetchTool(_ context.Context, client *http.Client) (
 				return genai.ToolResponse{}, fmt.Errorf("error creating prompt: %s", err)
 			}
 
-			smallSelection := c.cfg.Models[config.SmallAI]
+			smallSelection := c.cfg.Models[config.LiteAI]
 			small, err := c.buildAgentModel(ctx, smallSelection)
 			if err != nil {
 				return genai.ToolResponse{}, fmt.Errorf("error building small model: %s", err)
