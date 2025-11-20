@@ -158,6 +158,7 @@ func (c *coordinator) agenticFetchTool(_ context.Context, client *http.Client) (
 
 			agent := NewSessionAgent(SessionAgentOptions{
 				Model:                small,
+				SmallModel:           small,
 				SystemPromptPrefix:   smallProviderCfg.SystemPromptPrefix,
 				SystemPrompt:         systemPrompt,
 				DisableAutoSummarize: c.cfg.Options.DisableAutoSummarize,
