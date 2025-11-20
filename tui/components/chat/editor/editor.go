@@ -443,11 +443,12 @@ func (m *editorCmp) View() string {
 	t := styles.CurrentTheme()
 
 	// Check if extended thinking mode is enabled
+	// TODO: Re-implement thinking detection from ProviderOptions
 	cfg := m.app.Config()
 	agentCfg := cfg.Agents[config.AgentMaestro]
-	currentModel := cfg.Models[agentCfg.Model]
-	thinkingEnabled := currentModel.Think
-	reasoningEffort := currentModel.ReasoningEffort
+	_ = cfg.Models[agentCfg.Model]
+	thinkingEnabled := false
+	reasoningEffort := ""
 
 	// Check for ultrathink trigger in input
 	inputText := strings.ToLower(m.textarea.Value())

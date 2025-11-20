@@ -21,6 +21,7 @@ import (
 	"github.com/can1357/rush/genai"
 	"github.com/charmbracelet/catwalk/pkg/catwalk"
 	"github.com/openai/openai-go/v2/packages/param"
+	"github.com/openai/openai-go/v2/shared"
 	"github.com/stretchr/testify/require"
 )
 
@@ -1127,7 +1128,7 @@ func TestDoGenerate(t *testing.T) {
 			Prompt: testPrompt,
 			ProviderOptions: NewProviderOptions(
 				&ProviderOptions{
-					ReasoningEffort: ReasoningEffortOption(ReasoningEffortLow),
+					ReasoningEffort: genai.Opt(shared.ReasoningEffortLow),
 				},
 			),
 		})

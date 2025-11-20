@@ -29,9 +29,6 @@ import (
 	"github.com/can1357/rush/tui/styles"
 	"github.com/can1357/rush/tui/util"
 	"github.com/can1357/rush/version"
-	"github.com/charmbracelet/catwalk/pkg/catwalk"
-	"golang.org/x/text/cases"
-	"golang.org/x/text/language"
 )
 
 type FileHistory struct {
@@ -685,24 +682,12 @@ func (s *sidebarCmp) currentModelBlock() string {
 	parts := []string{
 		modelInfo,
 	}
+	_ = selectedModel
 	if model.CanReason {
-		reasoningInfoStyle := t.S().Subtle.PaddingLeft(2)
-		switch modelProvider.Type {
-		case catwalk.TypeAnthropic:
-			formatter := cases.Title(language.English, cases.NoLower)
-			if selectedModel.Think {
-				parts = append(parts, reasoningInfoStyle.Render(formatter.String("Thinking on")))
-			} else {
-				parts = append(parts, reasoningInfoStyle.Render(formatter.String("Thinking off")))
-			}
-		default:
-			reasoningEffort := model.DefaultReasoningEffort
-			if selectedModel.ReasoningEffort != "" {
-				reasoningEffort = selectedModel.ReasoningEffort
-			}
-			formatter := cases.Title(language.English, cases.NoLower)
-			parts = append(parts, reasoningInfoStyle.Render(formatter.String(fmt.Sprintf("Reasoning %s", reasoningEffort))))
-		}
+		// Reasoning configuration is now handled via ProviderOptions
+		// TODO: Add display of reasoning settings from ProviderOptions if needed
+		_ = modelProvider.Type
+		_ = model.DefaultReasoningEffort
 	}
 	// Add plan mode indicator
 	if s.session.PlanMode {

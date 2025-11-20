@@ -30,6 +30,7 @@ import (
 	"github.com/can1357/rush/genai/providers/google"
 	"github.com/can1357/rush/genai/providers/openai"
 	"github.com/can1357/rush/genai/providers/openrouter"
+	"github.com/can1357/rush/genaiopts"
 	"github.com/can1357/rush/message"
 	"github.com/can1357/rush/permission"
 	"github.com/can1357/rush/session"
@@ -54,6 +55,10 @@ type SessionAgentCall struct {
 	TopK             *int64
 	FrequencyPenalty *float64
 	PresencePenalty  *float64
+
+	// Reasoning controls (provider-agnostic)
+	ReasoningEffort    *genaiopts.ReasoningEffort
+	ReasoningMaxTokens *int64
 }
 
 type SessionAgent interface {
@@ -149,6 +154,13 @@ func (a *sessionAgent) Run(ctx context.Context, call SessionAgentCall) (*genai.A
 		a.tools[len(a.tools)-1].SetProviderOptions(a.getCacheControlOptions())
 	}
 
+	// Resolve reasoning effort for this call.
+	effort := genaiopts.ReasoningEffortOff
+	if call.ReasoningEffort != nil {
+		effort = *call.ReasoningEffort
+	}
+	call.ProviderOptions = effort.Apply(call.ProviderOptions)
+
 	// Dynamic token limit based on context window with a safety buffer
 	maxTokens := int64(a.model.Props.ContextWindow)
 	if maxTokens == 0 {
@@ -182,18 +194,21 @@ func (a *sessionAgent) Run(ctx context.Context, call SessionAgentCall) (*genai.A
 	cw := int64(a.model.Props.ContextWindow)
 	var maxBudgetReached bool
 
-	// Ensure correct model is used based on PlanMode state
-	// This handles the case where PlanMode was disabled (e.g. by exit_plan_mode)
-	// but the agent instance hasn't updated its model reference yet.
-	if currentSession.PlanMode {
-		// If in plan mode, ensure we are using the "smart" model (usually the default/large one)
-		// This is the default behavior, but explicit check helps clarity
-	} else {
-		// If NOT in plan mode, we should be using the selected model.
-		// If the previous run was in plan mode, a.model might be set to the planner model.
-		// In the current architecture, a.model is the "main" model.
-		// TODO: If we implement separate Planner/Executor models dynamically, switch here.
-		// For now, we assume a.model is the correct one to use for the session.
+	// Runtime validation: warn if model doesn't match PlanMode state.
+	// The UI layer (chat.go) should handle model switching via pubsub,
+	// but we validate here to catch mismatches during development.
+	expectedLargeModel := currentSession.PlanMode
+	actualLargeModel := a.model.Props.ContextWindow >= 200_000
+
+	if expectedLargeModel != actualLargeModel {
+		slog.Warn("model/PlanMode mismatch detected",
+			"plan_mode", currentSession.PlanMode,
+			"model", a.model.Model.Model().ID,
+			"context_window", a.model.Props.ContextWindow,
+			"session_id", call.SessionID,
+		)
+		// This indicates a bug in the UI layer's model restoration logic.
+		// The agent will continue with its current model, but results may be suboptimal.
 	}
 
 	msgs, err := a.getSessionMessages(ctx, currentSession)
@@ -609,7 +624,7 @@ Plan mode is active. The user indicated that they do not want you to execute yet
 			existing = []SessionAgentCall{}
 		}
 		// Preserve the original intent but indicate this is a continuation
-		call.Prompt = fmt.Sprintf("Continue the task: %s\nUse the summary above for context and avoid repeating questions.", origPrompt)
+		call.Prompt = fmt.Sprintf("Context was automatically summarized to manage token limits.\n\nORIGINAL REQUEST:\n%s\n\nINSTRUCTION:\nContinue executing the request above. Check the active Todo list (in the system reminder) to see what remains to be done.", origPrompt)
 		existing = append(existing, call)
 		a.messageQueue.Set(call.SessionID, existing)
 	}
@@ -670,10 +685,13 @@ func (a *sessionAgent) Summarize(ctx context.Context, sessionID string, opts gen
 		return err
 	}
 
+	// Force reasoning effort off/minimal for summarization to avoid burning thinking budget.
+	summaryProviderOpts := genaiopts.ReasoningEffortOff.Apply(opts)
+
 	resp, err := agent.Stream(genCtx, genai.AgentStreamCall{
 		Prompt:          string(summaryPrompt),
 		Messages:        aiMsgs,
-		ProviderOptions: opts,
+		ProviderOptions: summaryProviderOpts,
 		PrepareStep: func(callContext context.Context, options genai.PrepareStepFunctionOptions) (_ context.Context, prepared genai.PrepareStepResult, err error) {
 			prepared.Messages = options.Messages
 			prepared.DisableAllTools = true
@@ -726,7 +744,23 @@ func (a *sessionAgent) Summarize(ctx context.Context, sessionID string, opts gen
 	if err != nil {
 		return err
 	}
-	continuationMsg.AppendContent("<system-reminder>This session is being continued from a previous conversation that ran out of context. The conversation is summarized above. Please continue the conversation from where we left it off without asking the user any further questions. Continue with the last task that you were asked to work on.</system-reminder>")
+
+	// Build continuation prompt with context restoration
+	var continuationPrompt strings.Builder
+	continuationPrompt.WriteString("<system-reminder>\nThis session is being continued from a previous conversation that ran out of context. The conversation is summarized above.")
+
+	// Inject active todos if available to restore state
+	if a.reminders != nil {
+		todos, err := a.reminders.ListTodos(ctx, sessionID)
+		if err == nil && len(todos) > 0 {
+			continuationPrompt.WriteString("\n\nHere is the current status of the task list:\n")
+			continuationPrompt.WriteString(a.reminders.FormatTodos(todos))
+		}
+	}
+
+	continuationPrompt.WriteString("\n\nPlease continue the conversation from where we left it off without asking the user any further questions. Continue with the last task that you were asked to work on.\n</system-reminder>")
+
+	continuationMsg.AppendContent(continuationPrompt.String())
 	continuationMsg.AddFinish(message.FinishReasonEndTurn, "", "")
 	err = a.messages.Update(ctx, continuationMsg)
 	if err != nil {
@@ -750,8 +784,8 @@ func (a *sessionAgent) Summarize(ctx context.Context, sessionID string, opts gen
 	// Just in case, get just the last usage info.
 	usage := resp.Response.Usage
 	currentSession.SummaryMessageID = summaryMessage.ID
-	currentSession.CompletionTokens += usage.OutputTokens + usage.CacheReadTokens
-	currentSession.PromptTokens += usage.InputTokens + usage.CacheCreationTokens
+	currentSession.CompletionTokens = usage.OutputTokens
+	currentSession.PromptTokens = 0
 	_, err = a.sessions.Save(genCtx, currentSession)
 	return err
 }
@@ -854,8 +888,12 @@ func (a *sessionAgent) generateTitle(ctx context.Context, session *session.Sessi
 		),
 	)
 
+	// Cap reasoning for title generation to a small budget (1k-equivalent).
+	titleOpts := genaiopts.ReasoningEffortLow.Apply(genai.ProviderOptions{})
+
 	resp, err := agent.Stream(ctx, genai.AgentStreamCall{
-		Prompt: fmt.Sprintf("Generate a concise title for the following content:\n\n%s\n <think>\n\n</think>", prompt),
+		Prompt:          fmt.Sprintf("Generate a concise title for the following content:\n\n%s\n <think>\n\n</think>", prompt),
+		ProviderOptions: titleOpts,
 		PrepareStep: func(callContext context.Context, options genai.PrepareStepFunctionOptions) (_ context.Context, prepared genai.PrepareStepResult, err error) {
 			prepared.Messages = options.Messages
 			prepared.DisableAllTools = true

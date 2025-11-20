@@ -14,20 +14,7 @@ import (
 
 	"github.com/can1357/rush/genai"
 	"github.com/openai/openai-go/v2"
-)
-
-// ReasoningEffort represents the reasoning effort level for OpenAI models.
-type ReasoningEffort string
-
-const (
-	// ReasoningEffortMinimal represents minimal reasoning effort.
-	ReasoningEffortMinimal ReasoningEffort = "minimal"
-	// ReasoningEffortLow represents low reasoning effort.
-	ReasoningEffortLow ReasoningEffort = "low"
-	// ReasoningEffortMedium represents medium reasoning effort.
-	ReasoningEffortMedium ReasoningEffort = "medium"
-	// ReasoningEffortHigh represents high reasoning effort.
-	ReasoningEffortHigh ReasoningEffort = "high"
+	"github.com/openai/openai-go/v2/shared"
 )
 
 // Global type identifiers for OpenAI-specific provider data.
@@ -91,21 +78,21 @@ func (m *ProviderMetadata) UnmarshalJSON(data []byte) error {
 
 // ProviderOptions represents additional options for OpenAI provider.
 type ProviderOptions struct {
-	LogitBias           map[string]int64 `json:"logit_bias"`
-	LogProbs            *bool            `json:"log_probs"`
-	TopLogProbs         *int64           `json:"top_log_probs"`
-	ParallelToolCalls   *bool            `json:"parallel_tool_calls"`
-	User                *string          `json:"user"`
-	ReasoningEffort     *ReasoningEffort `json:"reasoning_effort"`
-	MaxCompletionTokens *int64           `json:"max_completion_tokens"`
-	TextVerbosity       *string          `json:"text_verbosity"`
-	Prediction          map[string]any   `json:"prediction"`
-	Store               *bool            `json:"store"`
-	Metadata            map[string]any   `json:"metadata"`
-	PromptCacheKey      *string          `json:"prompt_cache_key"`
-	SafetyIdentifier    *string          `json:"safety_identifier"`
-	ServiceTier         *string          `json:"service_tier"`
-	StructuredOutputs   *bool            `json:"structured_outputs"`
+	LogitBias           map[string]int64        `json:"logit_bias"`
+	LogProbs            *bool                   `json:"log_probs"`
+	TopLogProbs         *int64                  `json:"top_log_probs"`
+	ParallelToolCalls   *bool                   `json:"parallel_tool_calls"`
+	User                *string                 `json:"user"`
+	ReasoningEffort     *shared.ReasoningEffort `json:"reasoning_effort"`
+	MaxCompletionTokens *int64                  `json:"max_completion_tokens"`
+	TextVerbosity       *string                 `json:"text_verbosity"`
+	Prediction          map[string]any          `json:"prediction"`
+	Store               *bool                   `json:"store"`
+	Metadata            map[string]any          `json:"metadata"`
+	PromptCacheKey      *string                 `json:"prompt_cache_key"`
+	SafetyIdentifier    *string                 `json:"safety_identifier"`
+	ServiceTier         *string                 `json:"service_tier"`
+	StructuredOutputs   *bool                   `json:"structured_outputs"`
 }
 
 // Options implements the ProviderOptions interface.
@@ -151,11 +138,6 @@ func (o *ProviderFileOptions) UnmarshalJSON(data []byte) error {
 	}
 	*o = ProviderFileOptions(p)
 	return nil
-}
-
-// ReasoningEffortOption creates a pointer to a ReasoningEffort value.
-func ReasoningEffortOption(e ReasoningEffort) *ReasoningEffort {
-	return &e
 }
 
 // NewProviderOptions creates new provider options for OpenAI.

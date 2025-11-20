@@ -368,14 +368,18 @@ func (c *commandDialogCmp) defaultCommands() []Command {
 			selectedModel := cfg.Models[agentCfg.Model]
 
 			// Anthropic models: thinking toggle
+			// TODO: Re-implement thinking toggle using ProviderOptions
 			if providerCfg.Type == catwalk.TypeAnthropic {
+				_ = selectedModel
+				/*
 				status := "Enable"
 				if selectedModel.Think {
 					status = "Disable"
 				}
+				*/
 				commands = append(commands, Command{
 					ID:          "toggle_thinking",
-					Title:       status + " Thinking Mode",
+					Title:       "Toggle Thinking Mode",
 					Description: "Toggle model thinking for reasoning-capable models",
 					Handler: func(cmd Command) tea.Cmd {
 						return util.CmdHandler(ToggleThinkingMsg{})

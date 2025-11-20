@@ -26,6 +26,11 @@ func NewService(todos todo.Service, sessions session.Service) *Service {
 	}
 }
 
+// ListTodos returns the todos for the given session
+func (r *Service) ListTodos(ctx context.Context, sessionID string) ([]todo.Todo, error) {
+	return r.todos.List(ctx, sessionID)
+}
+
 // BuildReminders generates reminder text based on current session state
 func (r *Service) BuildReminders(ctx context.Context, sessionID string) (string, error) {
 	sess, err := r.sessions.Get(ctx, sessionID)
@@ -93,17 +98,48 @@ func (r *Service) staleReminderText(todos []todo.Todo) (string, error) {
 	b.WriteString(`The TodoWrite tool hasn't been used recently. If you're working on tasks that would benefit from tracking progress, consider using the TodoWrite tool to track progress. Also consider cleaning up the todo list if has become stale and no longer matches what you are working on. Only use it if it's relevant to the current work. This is just a gentle reminder - ignore if not applicable. Make sure that you NEVER mention this reminder to the user`)
 
 	if len(todos) > 0 {
-		b.WriteString("\n\n\nHere are the existing contents of your todo list:\n\n[")
-		for i, t := range todos {
-			if i > 0 {
-				b.WriteString("\n")
-			}
-			b.WriteString(fmt.Sprintf("%d. [%s] %s", i+1, t.Status, t.Content))
-		}
-		b.WriteString("]")
+		b.WriteString("\n\n\nHere are the existing contents of your todo list:\n\n")
+		b.WriteString(r.FormatTodos(todos))
 	}
 
 	return b.String(), nil
+}
+
+// FormatTodos formats a list of todos for display in the context,
+// filtering out old completed tasks to save tokens.
+func (r *Service) FormatTodos(todos []todo.Todo) string {
+	var b strings.Builder
+	b.WriteString("[")
+
+	// Filter logic: keep all pending/in_progress, keep only last 5 completed/cancelled
+	var active []string
+	var completed []string
+
+	for i, t := range todos {
+		line := fmt.Sprintf("%d. [%s] %s", i+1, t.Status, t.Content)
+		if t.Status == "completed" || t.Status == "cancelled" {
+			completed = append(completed, line)
+		} else {
+			active = append(active, line)
+		}
+	}
+
+	// Keep only last 5 completed
+	if len(completed) > 5 {
+		completed = completed[len(completed)-5:]
+	}
+
+	// Combine: completed first (as history), then active (as focus)
+	all := append(completed, active...)
+
+	for i, line := range all {
+		if i > 0 {
+			b.WriteString("\n")
+		}
+		b.WriteString(line)
+	}
+	b.WriteString("]")
+	return b.String()
 }
 
 func (r *Service) wrapInSystemReminder(text string) string {

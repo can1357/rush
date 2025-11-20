@@ -13,7 +13,7 @@ import (
 	"encoding/json"
 
 	"github.com/can1357/rush/genai"
-	"github.com/can1357/rush/genai/providers/openai"
+	"github.com/openai/openai-go/v2/shared"
 )
 
 // Global type identifiers for OpenAI-compatible provider data.
@@ -35,7 +35,7 @@ func init() {
 // ProviderOptions represents additional options for the OpenAI-compatible provider.
 type ProviderOptions struct {
 	User            *string                 `json:"user"`
-	ReasoningEffort *openai.ReasoningEffort `json:"reasoning_effort"`
+	ReasoningEffort *shared.ReasoningEffort `json:"reasoning_effort"`
 }
 
 // ReasoningData represents reasoning data for OpenAI-compatible provider.

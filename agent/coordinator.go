@@ -20,6 +20,7 @@ import (
 	"github.com/can1357/rush/config"
 	"github.com/can1357/rush/csync"
 	"github.com/can1357/rush/genai"
+	"github.com/can1357/rush/genaiopts"
 	"github.com/can1357/rush/history"
 	"github.com/can1357/rush/log"
 	"github.com/can1357/rush/lsp"
@@ -45,7 +46,7 @@ import (
 type Coordinator interface {
 	// INFO: (kujtim) this is not used yet we will use this when we have multiple agents
 	// SetMainAgent(string)
-	Run(ctx context.Context, sessionID, prompt string, attachments ...message.Attachment) (*genai.AgentResult, error)
+	Run(ctx context.Context, sessionID, prompt string, opts AgentRunOptions) (*genai.AgentResult, error)
 	Cancel(sessionID string)
 	CancelAll()
 	IsSessionBusy(sessionID string) bool
@@ -72,6 +73,13 @@ type coordinator struct {
 	agents       map[string]SessionAgent
 
 	readyWg errgroup.Group
+}
+
+// AgentRunOptions carries per-request parameters (reasoning, attachments, etc).
+type AgentRunOptions struct {
+	Attachments        []message.Attachment
+	ReasoningEffort    *genaiopts.ReasoningEffort
+	ReasoningMaxTokens *int64
 }
 
 func NewCoordinator(
@@ -118,7 +126,7 @@ func NewCoordinator(
 }
 
 // Run implements Coordinator.
-func (c *coordinator) Run(ctx context.Context, sessionID string, prompt string, attachments ...message.Attachment) (*genai.AgentResult, error) {
+func (c *coordinator) Run(ctx context.Context, sessionID string, prompt string, opts AgentRunOptions) (*genai.AgentResult, error) {
 	if err := c.readyWg.Wait(); err != nil {
 		return nil, err
 	}
@@ -129,8 +137,8 @@ func (c *coordinator) Run(ctx context.Context, sessionID string, prompt string, 
 		maxTokens = model.Selection.MaxTokens
 	}
 
-	if !model.Props.SupportsImages && attachments != nil {
-		attachments = nil
+	if !model.Props.SupportsImages && opts.Attachments != nil {
+		opts.Attachments = nil
 	}
 
 	providerCfg, ok := c.cfg.Providers.Get(model.Selection.Provider)
@@ -141,16 +149,18 @@ func (c *coordinator) Run(ctx context.Context, sessionID string, prompt string, 
 	mergedOptions, temp, topP, topK, freqPenalty, presPenalty := mergeCallOptions(model, providerCfg)
 
 	return c.currentAgent.Run(ctx, SessionAgentCall{
-		SessionID:        sessionID,
-		Prompt:           prompt,
-		Attachments:      attachments,
-		MaxOutputTokens:  maxTokens,
-		ProviderOptions:  mergedOptions,
-		Temperature:      temp,
-		TopP:             topP,
-		TopK:             topK,
-		FrequencyPenalty: freqPenalty,
-		PresencePenalty:  presPenalty,
+		SessionID:          sessionID,
+		Prompt:             prompt,
+		Attachments:        opts.Attachments,
+		MaxOutputTokens:    maxTokens,
+		ProviderOptions:    mergedOptions,
+		Temperature:        temp,
+		TopP:               topP,
+		TopK:               topK,
+		FrequencyPenalty:   freqPenalty,
+		PresencePenalty:    presPenalty,
+		ReasoningEffort:    opts.ReasoningEffort,
+		ReasoningMaxTokens: opts.ReasoningMaxTokens,
 	})
 }
 
@@ -204,10 +214,6 @@ func getProviderOptions(model Model, providerCfg config.ProviderConfig) genai.Pr
 
 	switch providerCfg.Type {
 	case openai.Name, azure.Name:
-		_, hasReasoningEffort := mergedOptions["reasoning_effort"]
-		if !hasReasoningEffort && model.Selection.ReasoningEffort != "" {
-			mergedOptions["reasoning_effort"] = model.Selection.ReasoningEffort
-		}
 		if openai.IsResponsesModel(model.Props.ID) {
 			if openai.IsResponsesReasoningModel(model.Props.ID) {
 				mergedOptions["reasoning_summary"] = "auto"
@@ -224,26 +230,12 @@ func getProviderOptions(model Model, providerCfg config.ProviderConfig) genai.Pr
 			}
 		}
 	case anthropic.Name:
-		_, hasThink := mergedOptions["thinking"]
-		if !hasThink && model.Selection.Think {
-			mergedOptions["thinking"] = map[string]any{
-				// TODO: kujtim see if we need to make this dynamic
-				"budget_tokens": 2000,
-			}
-		}
 		parsed, err := anthropic.ParseOptions(mergedOptions)
 		if err == nil {
 			options[anthropic.Name] = parsed
 		}
 
 	case openrouter.Name:
-		_, hasReasoning := mergedOptions["reasoning"]
-		if !hasReasoning && model.Selection.ReasoningEffort != "" {
-			mergedOptions["reasoning"] = map[string]any{
-				"enabled": true,
-				"effort":  model.Selection.ReasoningEffort,
-			}
-		}
 		parsed, err := openrouter.ParseOptions(mergedOptions)
 		if err == nil {
 			options[openrouter.Name] = parsed
@@ -261,10 +253,6 @@ func getProviderOptions(model Model, providerCfg config.ProviderConfig) genai.Pr
 			options[google.Name] = parsed
 		}
 	case openaicompat.Name:
-		_, hasReasoningEffort := mergedOptions["reasoning_effort"]
-		if !hasReasoningEffort && model.Selection.ReasoningEffort != "" {
-			mergedOptions["reasoning_effort"] = model.Selection.ReasoningEffort
-		}
 		parsed, err := openaicompat.ParseOptions(mergedOptions)
 		if err == nil {
 			options[openaicompat.Name] = parsed
@@ -616,10 +604,6 @@ func (c *coordinator) buildGoogleVertexProvider(models []catwalk.Model, headers 
 }
 
 func (c *coordinator) isAnthropicThinking(model config.ModelSelection) bool {
-	if model.Think {
-		return true
-	}
-
 	if model.ProviderOptions == nil {
 		return false
 	}

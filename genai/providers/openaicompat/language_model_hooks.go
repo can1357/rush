@@ -18,7 +18,6 @@ import (
 	"github.com/can1357/rush/genai/providers/openai"
 	openaisdk "github.com/openai/openai-go/v2"
 	"github.com/openai/openai-go/v2/packages/param"
-	"github.com/openai/openai-go/v2/shared"
 )
 
 const reasoningStartedCtx = "reasoning_started"
@@ -34,18 +33,7 @@ func PrepareCallFunc(_ genai.LanguageModel, params *openaisdk.ChatCompletionNewP
 	}
 
 	if providerOptions.ReasoningEffort != nil {
-		switch *providerOptions.ReasoningEffort {
-		case openai.ReasoningEffortMinimal:
-			params.ReasoningEffort = shared.ReasoningEffortMinimal
-		case openai.ReasoningEffortLow:
-			params.ReasoningEffort = shared.ReasoningEffortLow
-		case openai.ReasoningEffortMedium:
-			params.ReasoningEffort = shared.ReasoningEffortMedium
-		case openai.ReasoningEffortHigh:
-			params.ReasoningEffort = shared.ReasoningEffortHigh
-		default:
-			return nil, fmt.Errorf("reasoning model `%s` not supported", *providerOptions.ReasoningEffort)
-		}
+		params.ReasoningEffort = *providerOptions.ReasoningEffort
 	}
 
 	if providerOptions.User != nil {

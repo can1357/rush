@@ -353,10 +353,9 @@ func (s *splashCmp) setPreferredModel(selectedItem models.ModelOption) tea.Cmd {
 	}
 
 	selectedModel := config.ModelSelection{
-		Model:           selectedItem.Model.ID,
-		Provider:        string(selectedItem.Provider.ID),
-		ReasoningEffort: model.DefaultReasoningEffort,
-		MaxTokens:       model.DefaultMaxTokens,
+		Model:     selectedItem.Model.ID,
+		Provider:  string(selectedItem.Provider.ID),
+		MaxTokens: model.DefaultMaxTokens,
 	}
 
 	err := cfg.UpdatePreferredModel(config.BalancedAI, selectedModel)
@@ -387,10 +386,9 @@ func (s *splashCmp) setPreferredModel(selectedItem models.ModelOption) tea.Cmd {
 			return nil
 		}
 		smallSelectedModel := config.ModelSelection{
-			Model:           smallModel,
-			Provider:        string(selectedItem.Provider.ID),
-			ReasoningEffort: model.DefaultReasoningEffort,
-			MaxTokens:       model.DefaultMaxTokens,
+			Model:     smallModel,
+			Provider:  string(selectedItem.Provider.ID),
+			MaxTokens: model.DefaultMaxTokens,
 		}
 		err = cfg.UpdatePreferredModel(config.LiteAI, smallSelectedModel)
 		if err != nil {

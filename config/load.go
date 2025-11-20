@@ -506,10 +506,9 @@ func (c *Config) defaultModelSelection(knownProviders []catwalk.Provider) (large
 			return largeModel, smallModel, err
 		}
 		largeModel = ModelSelection{
-			Provider:        string(p.ID),
-			Model:           defaultLargeModel.ID,
-			MaxTokens:       defaultLargeModel.DefaultMaxTokens,
-			ReasoningEffort: defaultLargeModel.DefaultReasoningEffort,
+			Provider:  string(p.ID),
+			Model:     defaultLargeModel.ID,
+			MaxTokens: defaultLargeModel.DefaultMaxTokens,
 		}
 
 		defaultSmallModel := c.GetModel(string(p.ID), p.DefaultSmallModelID)
@@ -518,10 +517,9 @@ func (c *Config) defaultModelSelection(knownProviders []catwalk.Provider) (large
 			return largeModel, smallModel, err
 		}
 		smallModel = ModelSelection{
-			Provider:        string(p.ID),
-			Model:           defaultSmallModel.ID,
-			MaxTokens:       defaultSmallModel.DefaultMaxTokens,
-			ReasoningEffort: defaultSmallModel.DefaultReasoningEffort,
+			Provider:  string(p.ID),
+			Model:     defaultSmallModel.ID,
+			MaxTokens: defaultSmallModel.DefaultMaxTokens,
 		}
 		return largeModel, smallModel, err
 	}
@@ -585,10 +583,6 @@ func (c *Config) configureSelectedModels(knownProviders []catwalk.Provider) erro
 			} else {
 				large.MaxTokens = model.DefaultMaxTokens
 			}
-			if largeModelSelected.ReasoningEffort != "" {
-				large.ReasoningEffort = largeModelSelected.ReasoningEffort
-			}
-			large.Think = largeModelSelected.Think
 			if largeModelSelected.Temperature != nil {
 				large.Temperature = largeModelSelected.Temperature
 			}
@@ -629,9 +623,6 @@ func (c *Config) configureSelectedModels(knownProviders []catwalk.Provider) erro
 			} else {
 				small.MaxTokens = model.DefaultMaxTokens
 			}
-			if smallModelSelected.ReasoningEffort != "" {
-				small.ReasoningEffort = smallModelSelected.ReasoningEffort
-			}
 			if smallModelSelected.Temperature != nil {
 				small.Temperature = smallModelSelected.Temperature
 			}
@@ -647,7 +638,6 @@ func (c *Config) configureSelectedModels(knownProviders []catwalk.Provider) erro
 			if smallModelSelected.PresencePenalty != nil {
 				small.PresencePenalty = smallModelSelected.PresencePenalty
 			}
-			small.Think = smallModelSelected.Think
 		}
 	}
 	c.Models[BalancedAI] = large

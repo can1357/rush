@@ -14,6 +14,7 @@ import (
 	"slices"
 
 	"github.com/can1357/rush/genai"
+	"github.com/openai/openai-go/v2/shared"
 )
 
 // Global type identifiers for OpenAI Responses API-specific data.
@@ -112,7 +113,7 @@ type ResponsesProviderOptions struct {
 	Metadata          map[string]any   `json:"metadata"`
 	ParallelToolCalls *bool            `json:"parallel_tool_calls"`
 	PromptCacheKey    *string          `json:"prompt_cache_key"`
-	ReasoningEffort   *ReasoningEffort `json:"reasoning_effort"`
+	ReasoningEffort   *shared.ReasoningEffort `json:"reasoning_effort"`
 	ReasoningSummary  *string          `json:"reasoning_summary"`
 	SafetyIdentifier  *string          `json:"safety_identifier"`
 	ServiceTier       *ServiceTier     `json:"service_tier"`

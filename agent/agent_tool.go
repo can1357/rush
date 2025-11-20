@@ -6,11 +6,13 @@ import (
 	"errors"
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/can1357/rush/agent/prompt"
 	"github.com/can1357/rush/agent/tools"
 	"github.com/can1357/rush/config"
 	"github.com/can1357/rush/genai"
+	"github.com/can1357/rush/genaiopts"
 )
 
 // generateAgentToolDescription creates a dynamic description for the Task tool
@@ -191,16 +193,21 @@ func (c *coordinator) agentTool(ctx context.Context, description string) (genai.
 				return genai.ToolResponse{}, errors.New("model provider not configured")
 			}
 
+			low := genaiopts.ReasoningEffortLow
+			lowBudget := low.Budget()
+
 			result, err := agent.Run(ctx, SessionAgentCall{
-				SessionID:        session.ID,
-				Prompt:           params.Prompt,
-				MaxOutputTokens:  maxTokens,
-				ProviderOptions:  getProviderOptions(model, providerCfg),
-				Temperature:      model.Selection.Temperature,
-				TopP:             model.Selection.TopP,
-				TopK:             model.Selection.TopK,
-				FrequencyPenalty: model.Selection.FrequencyPenalty,
-				PresencePenalty:  model.Selection.PresencePenalty,
+				SessionID:          session.ID,
+				Prompt:             params.Prompt,
+				MaxOutputTokens:    maxTokens,
+				ProviderOptions:    getProviderOptions(model, providerCfg),
+				Temperature:        model.Selection.Temperature,
+				TopP:               model.Selection.TopP,
+				TopK:               model.Selection.TopK,
+				FrequencyPenalty:   model.Selection.FrequencyPenalty,
+				PresencePenalty:    model.Selection.PresencePenalty,
+				ReasoningEffort:    &low,
+				ReasoningMaxTokens: &lowBudget,
 			})
 			if err != nil {
 				return genai.NewTextErrorResponse("error generating response"), nil
@@ -216,14 +223,29 @@ func (c *coordinator) agentTool(ctx context.Context, description string) (genai.
 				return genai.ToolResponse{}, fmt.Errorf("error getting parent session: %s", err)
 			}
 
+			// Roll up sub-agent costs and tokens to parent session
 			parentSession.Cost += updatedSession.Cost
+			parentSession.CompletionTokens += updatedSession.CompletionTokens
+			parentSession.PromptTokens += updatedSession.PromptTokens
 
 			_, err = c.sessions.Save(ctx, parentSession)
 			if err != nil {
 				return genai.ToolResponse{}, fmt.Errorf("error saving parent session: %s", err)
 			}
 
+			// Calculate stats for inline HUD display
+			toolCount := updatedSession.MessageCount
+			totalTokens := updatedSession.CompletionTokens + updatedSession.PromptTokens
+			duration := time.Unix(updatedSession.UpdatedAt, 0).Sub(time.Unix(updatedSession.CreatedAt, 0))
+
+			// Create metadata for UI rendering
+			metadata := map[string]interface{}{
+				"tool_count":  toolCount,
+				"tokens":      totalTokens,
+				"duration_ms": duration.Milliseconds(),
+			}
+
 			response := fmt.Sprintf("%s\n\n<system-reminder>Agent '%s' returned findings. Continue with the actual implementation based on these results.</system-reminder>", result.Response.Content.Text(), params.SubagentType)
-			return genai.NewTextResponse(response), nil
+			return genai.WithResponseMetadata(genai.NewTextResponse(response), metadata), nil
 		}), nil
 }

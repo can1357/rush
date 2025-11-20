@@ -14,8 +14,10 @@ import (
 	"charm.land/bubbles/v2/spinner"
 	tea "charm.land/bubbletea/v2"
 	"charm.land/lipgloss/v2"
+	"github.com/can1357/rush/agent"
 	"github.com/can1357/rush/app"
 	"github.com/can1357/rush/config"
+	"github.com/can1357/rush/genaiopts"
 	"github.com/can1357/rush/history"
 	"github.com/can1357/rush/message"
 	"github.com/can1357/rush/permission"
@@ -126,20 +128,26 @@ type chatPage struct {
 	isOnboarding     bool
 	isProjectInit    bool
 
+	// Thinking preference (per chat session; provider-agnostic reasoning effort toggle)
+	thinkingEnabled bool
+	reasoningEffort *genaiopts.ReasoningEffort
+
 	// Model state for plan mode restoration
 	previousModel *config.ModelSelection
 }
 
 func New(app *app.App) ChatPage {
 	return &chatPage{
-		app:         app,
-		keyMap:      DefaultKeyMap(),
-		header:      header.New(app.LSPClients),
-		sidebar:     sidebar.New(app.History, app.LSPClients, false),
-		chat:        chat.New(app),
-		editor:      editor.New(app),
-		splash:      splash.New(),
-		focusedPane: PanelTypeSplash,
+		app:             app,
+		keyMap:          DefaultKeyMap(),
+		header:          header.New(app.LSPClients),
+		sidebar:         sidebar.New(app.History, app.LSPClients, false),
+		chat:            chat.New(app),
+		editor:          editor.New(app),
+		splash:          splash.New(),
+		focusedPane:     PanelTypeSplash,
+		thinkingEnabled: false,
+		reasoningEffort: nil,
 	}
 }
 
@@ -374,9 +382,9 @@ func (p *chatPage) Update(msg tea.Msg) (util.Model, tea.Cmd) {
 						cfg := config.Get()
 						if largeModel := cfg.ModelByClass(config.ProAI); largeModel != nil {
 							selectedModel = cfg.Models[config.ProAI]
-							selectedModel.Think = true // Force thinking on
+							// TODO: Enable thinking via ProviderOptions
 						} else {
-							selectedModel.Think = true
+							// TODO: Enable thinking via ProviderOptions
 						}
 					} else {
 						// Exiting plan mode: restore previous model if saved
@@ -659,24 +667,12 @@ func (p *chatPage) updateCompactConfig(compact bool) tea.Cmd {
 }
 
 func (p *chatPage) toggleThinking() tea.Cmd {
-	return func() tea.Msg {
-		cfg := config.Get()
-
-		// Toggle the thinking mode
-		model := p.app.AgentCoordinator.Model().Selection
-		model.Think = !model.Think
-		if err := cfg.UpdatePreferredModel(config.BalancedAI, model); err != nil {
-			return util.InfoMsg{
-				Type: util.InfoTypeError,
-				Msg:  "Failed to update thinking mode: " + err.Error(),
-			}
-		}
-
-		// Update the agent with the new configuration
-		go p.app.SelectModel(context.TODO(), model)
-
-		return nil
+	p.thinkingEnabled = !p.thinkingEnabled
+	state := "off"
+	if p.thinkingEnabled {
+		state = "on"
 	}
+	return util.ReportInfo(fmt.Sprintf("Thinking mode %s", state))
 }
 
 func (p *chatPage) openReasoningDialog() tea.Cmd {
@@ -698,27 +694,22 @@ func (p *chatPage) openReasoningDialog() tea.Cmd {
 
 func (p *chatPage) handleReasoningEffortSelected(effort string) tea.Cmd {
 	return func() tea.Msg {
-		cfg := config.Get()
-		agentCfg := cfg.Agents[config.AgentMaestro]
-		currentModel := cfg.Models[agentCfg.Model]
-		currentModel.ReasoningEffort = effort
-
-		if err := cfg.UpdatePreferredModel(agentCfg.Model, currentModel); err != nil {
-			return util.InfoMsg{
-				Type: util.InfoTypeError,
-				Msg:  "Failed to update reasoning effort: " + err.Error(),
-			}
+		var eff genaiopts.ReasoningEffort
+		switch strings.ToLower(effort) {
+		case "low":
+			eff = genaiopts.ReasoningEffortLow
+		case "medium":
+			eff = genaiopts.ReasoningEffortMedium
+		case "high":
+			eff = genaiopts.ReasoningEffortHigh
+		default:
+			eff = genaiopts.ReasoningEffortOff
 		}
-
-		// Update the agent with the new configuration
-		if err := p.app.SelectModel(context.TODO(), currentModel); err != nil {
-			return util.InfoMsg{
-				Type: util.InfoTypeError,
-				Msg:  "Failed to update reasoning effort: " + err.Error(),
-			}
+		p.reasoningEffort = &eff
+		return util.InfoMsg{
+			Type: util.InfoTypeInfo,
+			Msg:  fmt.Sprintf("Reasoning effort set to %s", strings.ToLower(effort)),
 		}
-
-		return nil
 	}
 }
 
@@ -878,61 +869,30 @@ func (p *chatPage) sendMessage(text string, attachments []message.Attachment) te
 
 	cmds = append(cmds, p.chat.GoToBottom())
 	cmds = append(cmds, func() tea.Msg {
-		// Enable ultrathink for this request only
+		// Per-message reasoning settings (no model mutation)
+		var effort genaiopts.ReasoningEffort = genaiopts.ReasoningEffortOff
+		var maxTokens *int64
+
+		// user-initiated per-message overrides
+		if p.reasoningEffort != nil {
+			effort = *p.reasoningEffort
+		}
+		if p.thinkingEnabled {
+			effort = genaiopts.ReasoningEffortHigh
+		}
 		if hasUltrathink {
-			cfg := config.Get()
-			agentCfg := cfg.Agents[config.AgentMaestro]
-			currentModel := cfg.Models[agentCfg.Model]
-
-			// Store original state
-			originalThink := currentModel.Think
-			originalProviderOpts := make(map[string]any)
-			if currentModel.ProviderOptions != nil {
-				for k, v := range currentModel.ProviderOptions {
-					originalProviderOpts[k] = v
-				}
-			}
-
-			// Enable extended thinking with max tokens
-			currentModel.Think = true
-			if currentModel.ProviderOptions == nil {
-				currentModel.ProviderOptions = make(map[string]any)
-			}
-			currentModel.ProviderOptions["thinking"] = map[string]any{
-				"type":          "enabled",
-				"budget_tokens": 32000,
-			}
-
-			// Update config
-			cfg.UpdatePreferredModel(agentCfg.Model, currentModel)
-			p.app.SelectModel(context.TODO(), currentModel)
-
-			// Run the agent
-			_, err := p.app.AgentCoordinator.Run(context.Background(), session.ID, text, attachments...)
-
-			// Restore original settings
-			currentModel.Think = originalThink
-			currentModel.ProviderOptions = originalProviderOpts
-			cfg.UpdatePreferredModel(agentCfg.Model, currentModel)
-			p.app.SelectModel(context.TODO(), currentModel)
-
-			if err != nil {
-				isCancelErr := errors.Is(err, context.Canceled)
-				isPermissionErr := errors.Is(err, permission.ErrorPermissionDenied)
-				if isCancelErr || isPermissionErr {
-					return nil
-				}
-				slog.Error("Agent request failed", "error", err)
-				return util.InfoMsg{
-					Type: util.InfoTypeError,
-					Msg:  err.Error(),
-				}
-			}
-			return nil
+			effort = genaiopts.ReasoningEffortHigh
+			mt := int64(32_000)
+			maxTokens = &mt
 		}
 
-		// Normal request
-		_, err := p.app.AgentCoordinator.Run(context.Background(), session.ID, text, attachments...)
+		runOpts := agent.AgentRunOptions{
+			Attachments:        attachments,
+			ReasoningEffort:    &effort,
+			ReasoningMaxTokens: maxTokens,
+		}
+
+		_, err := p.app.AgentCoordinator.Run(context.Background(), session.ID, text, runOpts)
 		if err != nil {
 			isCancelErr := errors.Is(err, context.Canceled)
 			isPermissionErr := errors.Is(err, permission.ErrorPermissionDenied)
@@ -1351,10 +1311,10 @@ func (p *chatPage) togglePlanMode() tea.Cmd {
 
 		selectedModel := currentModel
 		if extraModel := cfg.ModelByClass(config.ProAI); extraModel != nil {
-			selectedModel = cfg.Models[config.ProAI]
-			selectedModel.Think = true
-		} else {
-			selectedModel.Think = true
+			// TODO: Enable thinking via ProviderOptions
+			// TODO: Enable thinking via ProviderOptions
+			// TODO: Enable thinking via ProviderOptions
+			// TODO: Enable thinking via ProviderOptions
 		}
 		p.app.SelectModel(context.Background(), selectedModel)
 

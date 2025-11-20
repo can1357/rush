@@ -1105,6 +1105,27 @@ func (tr agentRenderer) Render(v *toolCallCmp) string {
 		childTools.Enumerator(RoundedEnumeratorWithWidth(2, lipgloss.Width(taskTag)-5)).String(),
 	}
 
+	// Display metadata stats if available (after agent completes)
+	if v.result.ToolCallID != "" && !v.result.IsError && v.result.Metadata != "" {
+		var metadata map[string]interface{}
+		if err := json.Unmarshal([]byte(v.result.Metadata), &metadata); err == nil {
+			if toolCount, hasCount := metadata["tool_count"].(float64); hasCount {
+				if tokens, hasTokens := metadata["tokens"].(float64); hasTokens {
+					if durationMs, hasDuration := metadata["duration_ms"].(float64); hasDuration {
+						// Format stats similar to Claude Code
+						statsText := fmt.Sprintf("Done (%d interactions · %s · %s)",
+							int(toolCount),
+							formatTokensCompact(int64(tokens)),
+							formatDurationCompact(int64(durationMs)),
+						)
+						statsDisplay := t.S().Subtle.Render("  ⎿  " + statsText)
+						parts = append(parts, statsDisplay)
+					}
+				}
+			}
+		}
+	}
+
 	if v.result.ToolCallID == "" {
 		v.spinning = true
 		parts = append(parts, "", v.anim.View())
@@ -1199,6 +1220,32 @@ func joinHeaderBody(header, body string) string {
 	}
 	body = t.S().Base.PaddingLeft(2).Render(body)
 	return lipgloss.JoinVertical(lipgloss.Left, header, "", body)
+}
+
+// formatTokensCompact formats token count for HUD display (e.g., "79.6k tokens")
+func formatTokensCompact(tokens int64) string {
+	switch {
+	case tokens >= 1_000_000:
+		return fmt.Sprintf("%.1fM tokens", float64(tokens)/1_000_000)
+	case tokens >= 1_000:
+		return fmt.Sprintf("%.1fk tokens", float64(tokens)/1_000)
+	default:
+		return fmt.Sprintf("%d tokens", tokens)
+	}
+}
+
+// formatDurationCompact formats duration for HUD display (e.g., "1m 52s")
+func formatDurationCompact(durationMs int64) string {
+	seconds := durationMs / 1000
+	if seconds < 60 {
+		return fmt.Sprintf("%ds", seconds)
+	}
+	minutes := seconds / 60
+	remainingSeconds := seconds % 60
+	if remainingSeconds == 0 {
+		return fmt.Sprintf("%dm", minutes)
+	}
+	return fmt.Sprintf("%dm %ds", minutes, remainingSeconds)
 }
 
 func renderPlainContent(v *toolCallCmp, content string) string {

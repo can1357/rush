@@ -123,12 +123,11 @@ func (r *reasoningDialogCmp) Init() tea.Cmd {
 func (r *reasoningDialogCmp) populateEffortOptions() tea.Cmd {
 	cfg := config.Get()
 	if agentCfg, ok := cfg.Agents[config.AgentMaestro]; ok {
-		selectedModel := cfg.Models[agentCfg.Model]
 		model := cfg.GetModelByType(agentCfg.Model)
 
-		// Get current reasoning effort
-		currentEffort := selectedModel.ReasoningEffort
-		if currentEffort == "" && model != nil {
+		// Get current reasoning effort from model defaults
+		var currentEffort string
+		if model != nil {
 			currentEffort = model.DefaultReasoningEffort
 		}
 

@@ -16,7 +16,6 @@ import (
 	"github.com/can1357/rush/genai"
 	"github.com/openai/openai-go/v2"
 	"github.com/openai/openai-go/v2/packages/param"
-	"github.com/openai/openai-go/v2/shared"
 )
 
 // LanguageModelPrepareCallFunc is a function that prepares the call for the language model.
@@ -116,20 +115,8 @@ func DefaultPrepareCallFunc(model genai.LanguageModel, params *openai.ChatComple
 	if providerOptions.ServiceTier != nil {
 		params.ServiceTier = openai.ChatCompletionNewParamsServiceTier(*providerOptions.ServiceTier)
 	}
-
 	if providerOptions.ReasoningEffort != nil {
-		switch *providerOptions.ReasoningEffort {
-		case ReasoningEffortMinimal:
-			params.ReasoningEffort = shared.ReasoningEffortMinimal
-		case ReasoningEffortLow:
-			params.ReasoningEffort = shared.ReasoningEffortLow
-		case ReasoningEffortMedium:
-			params.ReasoningEffort = shared.ReasoningEffortMedium
-		case ReasoningEffortHigh:
-			params.ReasoningEffort = shared.ReasoningEffortHigh
-		default:
-			return nil, fmt.Errorf("reasoning model `%s` not supported", *providerOptions.ReasoningEffort)
-		}
+		params.ReasoningEffort = *providerOptions.ReasoningEffort
 	}
 
 	if isReasoningModel(model.Model().ID) {
