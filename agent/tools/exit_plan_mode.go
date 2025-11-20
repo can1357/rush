@@ -43,7 +43,9 @@ func NewExitPlanModeTool(sessionService session.Service) genai.AgentTool {
 
 			// Exit plan mode
 			sess.PlanMode = false
-			_, err = sessionService.Save(ctx, sess)
+			// Use background context to ensure the state change persists even if the
+			// calling request context is cancelled when the tool finishes.
+			_, err = sessionService.Save(context.Background(), sess)
 			if err != nil {
 				return genai.NewTextErrorResponse("failed to exit plan mode"), nil
 			}

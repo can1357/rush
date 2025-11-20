@@ -74,6 +74,7 @@ type SessionAgent interface {
 	ClearQueue(sessionID string)
 	Summarize(context.Context, string, genai.ProviderOptions) error
 	Model() Model
+	SetSystemPrompt(prompt string)
 }
 
 type Model struct {
@@ -467,11 +468,16 @@ Plan mode is active. The user indicated that they do not want you to execute yet
 					return false
 				}
 				var runTokens int64
-				for _, st := range steps {
-					runTokens += st.Usage.TotalTokens
+				if len(steps) > 0 {
+					runTokens = steps[len(steps)-1].Usage.TotalTokens
 				}
 
-				tokensUsed := sessionBaselineTokens + runTokens
+				// If we have run tokens, they include the full context (history + new generation),
+				// so we use them directly. Otherwise, fallback to baseline.
+				tokensUsed := runTokens
+				if tokensUsed == 0 {
+					tokensUsed = sessionBaselineTokens
+				}
 				remaining := cw - tokensUsed
 				var threshold int64
 				if cw > 200_000 {
@@ -784,8 +790,10 @@ func (a *sessionAgent) Summarize(ctx context.Context, sessionID string, opts gen
 	// Just in case, get just the last usage info.
 	usage := resp.Response.Usage
 	currentSession.SummaryMessageID = summaryMessage.ID
-	currentSession.CompletionTokens = usage.OutputTokens
-	currentSession.PromptTokens = 0
+	// Reset active context token counts to the summary window; cost already recorded.
+	// The new context consists of the summary message (which was the output of this call).
+	currentSession.CompletionTokens = 0
+	currentSession.PromptTokens = usage.OutputTokens
 	_, err = a.sessions.Save(genCtx, currentSession)
 	return err
 }
@@ -971,8 +979,8 @@ func (a *sessionAgent) updateSessionUsage(model Model, session *session.Session,
 		session.Cost += cost
 	}
 
-	session.CompletionTokens += usage.OutputTokens + usage.CacheReadTokens
-	session.PromptTokens += usage.InputTokens + usage.CacheCreationTokens
+	session.CompletionTokens = usage.OutputTokens + usage.CacheReadTokens
+	session.PromptTokens = usage.InputTokens + usage.CacheCreationTokens
 }
 
 func (a *sessionAgent) Cancel(sessionID string) {
@@ -1054,6 +1062,10 @@ func (a *sessionAgent) SetSmallModel(model Model) {
 
 func (a *sessionAgent) SetTools(tools []genai.AgentTool) {
 	a.tools = tools
+}
+
+func (a *sessionAgent) SetSystemPrompt(prompt string) {
+	a.systemPrompt = prompt
 }
 
 func (a *sessionAgent) Model() Model {

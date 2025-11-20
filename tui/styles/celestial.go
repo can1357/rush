@@ -53,6 +53,46 @@ func NewCelestialTheme() *Theme {
 		RedDark:  ParseHex("#F43E5C"),
 		RedLight: ParseHex("#EC6A88"),
 		Cherry:   ParseHex("#E95378"),
+
+		// Editor-specific colors
+		EditorLineNumber:       ParseHex("#D5D8DA1A"), // Line numbers
+		EditorLineNumberActive: ParseHex("#D5D8DA80"), // Active line number
+		EditorCursor:           ParseHex("#E95378"),   // Cursor color
+		EditorSelection:        ParseHex("#2E303EB3"), // Selection background
+		EditorSelectionHighlight:   ParseHex("#6C6F934D"), // Selection highlight
+		EditorWordHighlight:        ParseHex("#6C6F9380"), // Word highlight
+		EditorFindMatch:            ParseHex("#6C6F9380"), // Find match
+		EditorFindMatchHighlight:   ParseHex("#6C6F934D"), // Find match highlight
+		EditorLineHighlight:        ParseHex("#2E303E4D"), // Current line
+
+		// Diff colors
+		DiffInsertedTextBg:  ParseHex("#09F7A01A"), // Inserted text background
+		DiffRemovedTextBg:   ParseHex("#F43E5C1A"), // Removed text background
+		DiffInsertLineBg:    ParseHex("#09F7A01A"), // Insert line background
+		DiffDeleteLineBg:    ParseHex("#F43E5C1A"), // Delete line background
+		DiffInsertLineNumBg: ParseHex("#09F7A0B3"), // Insert line number background
+		DiffDeleteLineNumBg: ParseHex("#F43E5CB3"), // Delete line number background
+
+		// Terminal ANSI colors
+		AnsiBlue:          ParseHex("#26BBD9"),
+		AnsiBrightBlue:    ParseHex("#3FC4DE"),
+		AnsiCyan:          ParseHex("#59E1E3"),
+		AnsiBrightCyan:    ParseHex("#6BE4E6"),
+		AnsiGreen:         ParseHex("#29D398"),
+		AnsiBrightGreen:   ParseHex("#3FDAA4"),
+		AnsiMagenta:       ParseHex("#EE64AC"),
+		AnsiBrightMagenta: ParseHex("#F075B5"),
+		AnsiRed:           ParseHex("#E95678"),
+		AnsiBrightRed:     ParseHex("#EC6A88"),
+		AnsiYellow:        ParseHex("#FAB795"),
+		AnsiBrightYellow:  ParseHex("#FBC3A7"),
+
+		// Git decoration colors
+		GitAdded:     ParseHex("#27D797B3"),
+		GitModified:  ParseHex("#E07267"),
+		GitDeleted:   ParseHex("#F43E5C"),
+		GitUntracked: ParseHex("#27D797"),
+		GitIgnored:   ParseHex("#D5D8DA4D"),
 	}
 
 	// Text selection.

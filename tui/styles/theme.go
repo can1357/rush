@@ -76,6 +76,46 @@ type Theme struct {
 	RedLight color.Color
 	Cherry   color.Color
 
+	// Editor-specific colors
+	EditorLineNumber       color.Color
+	EditorLineNumberActive color.Color
+	EditorCursor           color.Color
+	EditorSelection        color.Color
+	EditorSelectionHighlight color.Color
+	EditorWordHighlight      color.Color
+	EditorFindMatch          color.Color
+	EditorFindMatchHighlight color.Color
+	EditorLineHighlight      color.Color
+
+	// Diff colors
+	DiffInsertedTextBg color.Color
+	DiffRemovedTextBg  color.Color
+	DiffInsertLineBg   color.Color
+	DiffDeleteLineBg   color.Color
+	DiffInsertLineNumBg color.Color
+	DiffDeleteLineNumBg color.Color
+
+	// Terminal ANSI colors
+	AnsiBlue          color.Color
+	AnsiBrightBlue    color.Color
+	AnsiCyan          color.Color
+	AnsiBrightCyan    color.Color
+	AnsiGreen         color.Color
+	AnsiBrightGreen   color.Color
+	AnsiMagenta       color.Color
+	AnsiBrightMagenta color.Color
+	AnsiRed           color.Color
+	AnsiBrightRed     color.Color
+	AnsiYellow        color.Color
+	AnsiBrightYellow  color.Color
+
+	// Git decoration colors
+	GitAdded      color.Color
+	GitModified   color.Color
+	GitDeleted    color.Color
+	GitUntracked  color.Color
+	GitIgnored    color.Color
+
 	// Text selection.
 	TextSelection lipgloss.Style
 
@@ -454,23 +494,23 @@ func (t *Theme) buildStyles() *Styles {
 			},
 			InsertLine: diffview.LineStyle{
 				LineNumber: lipgloss.NewStyle().
-					Foreground(lipgloss.Color("#27D797")).
-					Background(lipgloss.Color("#1a3d2d")),
+					Foreground(t.GreenDark).
+					Background(t.DiffInsertLineNumBg),
 				Symbol: lipgloss.NewStyle().
-					Foreground(lipgloss.Color("#27D797")).
-					Background(lipgloss.Color("#1f4a36")),
+					Foreground(t.GreenDark).
+					Background(t.DiffInsertLineBg),
 				Code: lipgloss.NewStyle().
-					Background(lipgloss.Color("#1f4a36")),
+					Background(t.DiffInsertLineBg),
 			},
 			DeleteLine: diffview.LineStyle{
 				LineNumber: lipgloss.NewStyle().
-					Foreground(lipgloss.Color("#F43E5C")).
-					Background(lipgloss.Color("#3d1e29")),
+					Foreground(t.RedDark).
+					Background(t.DiffDeleteLineNumBg),
 				Symbol: lipgloss.NewStyle().
-					Foreground(lipgloss.Color("#F43E5C")).
-					Background(lipgloss.Color("#4a2533")),
+					Foreground(t.RedDark).
+					Background(t.DiffDeleteLineBg),
 				Code: lipgloss.NewStyle().
-					Background(lipgloss.Color("#4a2533")),
+					Background(t.DiffDeleteLineBg),
 			},
 		},
 		FilePicker: filepicker.Styles{

@@ -696,8 +696,20 @@ func (c *coordinator) UpdateMaestroModel(ctx context.Context, model config.Model
 		return fmt.Errorf("failed to build small model: %w", err)
 	}
 
+	prompt, err := maestroPrompt(prompt.WithWorkingDir(c.cfg.WorkingDir()))
+	if err != nil {
+		return fmt.Errorf("failed to build maestro prompt: %w", err)
+	}
+
+	// Rebuild system prompt for the new model
+	systemPrompt, err := prompt.Build(ctx, newModel.Model.Provider(), newModel.Model.Model(), *c.cfg)
+	if err != nil {
+		return fmt.Errorf("failed to build system prompt: %w", err)
+	}
+
 	c.currentAgent.SetModel(newModel)
 	c.currentAgent.SetSmallModel(newSmallModel)
+	c.currentAgent.SetSystemPrompt(systemPrompt)
 
 	agentCfg, ok := c.cfg.Agents[config.AgentMaestro]
 	if !ok {
