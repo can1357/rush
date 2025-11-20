@@ -280,6 +280,27 @@ func (p *chatPage) Update(msg tea.Msg) (util.Model, tea.Cmd) {
 		p.editor = u.(editor.Editor)
 		return p, cmd
 	case pubsub.Event[session.Session]:
+		// Update local session if it matches
+		if msg.Type == pubsub.UpdatedEvent && msg.Payload.ID == p.session.ID {
+			// Detect PlanMode change (Disabled via tool/backend)
+			if p.session.PlanMode && !msg.Payload.PlanMode {
+				// Restore model
+				var targetModel config.ModelSelection
+				if p.previousModel != nil {
+					targetModel = *p.previousModel
+					p.previousModel = nil
+				} else {
+					// Fallback to default configuration
+					cfg := config.Get()
+					agentCfg := cfg.Agents[config.AgentMaestro]
+					targetModel = cfg.Models[agentCfg.Model]
+				}
+				p.app.SelectModel(context.Background(), targetModel)
+				cmds = append(cmds, util.ReportInfo("Plan mode disabled"))
+			}
+			p.session = msg.Payload
+		}
+
 		u, cmd := p.header.Update(msg)
 		p.header = u.(header.Header)
 		cmds = append(cmds, cmd)
@@ -346,6 +367,10 @@ func (p *chatPage) Update(msg tea.Msg) (util.Model, tea.Cmd) {
 					// Switch model and enable thinking for plan mode
 					selectedModel := p.app.AgentCoordinator.Model().Selection
 					if msg.Enable {
+						if p.previousModel == nil {
+							current := selectedModel
+							p.previousModel = &current
+						}
 						cfg := config.Get()
 						if largeModel := cfg.ModelByClass(config.ProAI); largeModel != nil {
 							selectedModel = cfg.Models[config.ProAI]

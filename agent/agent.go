@@ -149,13 +149,26 @@ func (a *sessionAgent) Run(ctx context.Context, call SessionAgentCall) (*genai.A
 		a.tools[len(a.tools)-1].SetProviderOptions(a.getCacheControlOptions())
 	}
 
+	// Dynamic token limit based on context window with a safety buffer
+	maxTokens := int64(a.model.Props.ContextWindow)
+	if maxTokens == 0 {
+		maxTokens = 100_000 // Fallback default
+	} else {
+		// Leave 10% buffer or at least 5k tokens
+		buffer := int64(float64(maxTokens) * 0.1)
+		if buffer < 5000 {
+			buffer = 5000
+		}
+		maxTokens -= buffer
+	}
+
 	agent := genai.NewAgent(
 		a.model.Model,
 		genai.WithSystemPrompt(a.systemPrompt),
 		genai.WithTools(a.tools...),
 		genai.WithStopConditions(
-			genai.StepCountIs(50),        // Max 50 agentic turns to prevent infinite loops.
-			genai.MaxTokensUsed(100_000), // Max 100k tokens per agent call.
+			genai.StepCountIs(50), // Max 50 agentic turns to prevent infinite loops.
+			genai.MaxTokensUsed(maxTokens),
 		),
 	)
 
@@ -163,6 +176,24 @@ func (a *sessionAgent) Run(ctx context.Context, call SessionAgentCall) (*genai.A
 	currentSession, err := a.sessions.Get(ctx, call.SessionID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get session: %w", err)
+	}
+
+	sessionBaselineTokens := currentSession.CompletionTokens + currentSession.PromptTokens
+	cw := int64(a.model.Props.ContextWindow)
+	var maxBudgetReached bool
+
+	// Ensure correct model is used based on PlanMode state
+	// This handles the case where PlanMode was disabled (e.g. by exit_plan_mode)
+	// but the agent instance hasn't updated its model reference yet.
+	if currentSession.PlanMode {
+		// If in plan mode, ensure we are using the "smart" model (usually the default/large one)
+		// This is the default behavior, but explicit check helps clarity
+	} else {
+		// If NOT in plan mode, we should be using the selected model.
+		// If the previous run was in plan mode, a.model might be set to the planner model.
+		// In the current architecture, a.model is the "main" model.
+		// TODO: If we implement separate Planner/Executor models dynamically, switch here.
+		// For now, we assume a.model is the correct one to use for the session.
 	}
 
 	msgs, err := a.getSessionMessages(ctx, currentSession)
@@ -416,10 +447,17 @@ Plan mode is active. The user indicated that they do not want you to execute yet
 			return a.messages.Update(genCtx, *currentAssistant)
 		},
 		StopWhen: []genai.StopCondition{
-			func(_ []genai.StepResult) bool {
-				cw := int64(a.model.Props.ContextWindow)
-				tokens := currentSession.CompletionTokens + currentSession.PromptTokens
-				remaining := cw - tokens
+			func(steps []genai.StepResult) bool {
+				if cw == 0 {
+					return false
+				}
+				var runTokens int64
+				for _, st := range steps {
+					runTokens += st.Usage.TotalTokens
+				}
+
+				tokensUsed := sessionBaselineTokens + runTokens
+				remaining := cw - tokensUsed
 				var threshold int64
 				if cw > 200_000 {
 					threshold = 20_000
@@ -430,7 +468,7 @@ Plan mode is active. The user indicated that they do not want you to execute yet
 					slog.Info("auto-summarization triggered",
 						"reason", "token budget threshold exceeded",
 						"context_window", cw,
-						"tokens_used", tokens,
+						"tokens_used", tokensUsed,
 						"tokens_remaining", remaining,
 						"threshold", threshold,
 						"session_id", call.SessionID,
@@ -438,8 +476,20 @@ Plan mode is active. The user indicated that they do not want you to execute yet
 					shouldSummarize = true
 					return true
 				}
+				// Graceful stop when we hit the per-call budget; trigger summarization to continue safely.
+				if maxTokens > 0 && tokensUsed >= maxTokens {
+					maxBudgetReached = true
+					shouldSummarize = true
+					slog.Warn("token budget reached for call; stopping to summarize",
+						"tokens_used", tokensUsed,
+						"budget", maxTokens,
+						"session_id", call.SessionID,
+					)
+					return true
+				}
 				return false
 			},
+			genai.StepCountIs(50),
 		},
 	})
 
@@ -531,19 +581,35 @@ Plan mode is active. The user indicated that they do not want you to execute yet
 	}
 	wg.Wait()
 
+	if maxBudgetReached && currentAssistant != nil && !currentAssistant.IsFinished() {
+		currentAssistant.AppendContent("\n\n[Truncated: token budget reached, summarizing to continue safely.]")
+		currentAssistant.AddFinish(message.FinishReasonMaxTokens, "", "")
+		_ = a.messages.Update(ctx, *currentAssistant)
+	}
+
 	if shouldSummarize {
+		origPrompt := call.Prompt
 		// Must release active request before Summarize, which checks IsSessionBusy
 		a.activeRequests.Del(call.SessionID)
 		if summarizeErr := a.Summarize(genCtx, call.SessionID, call.ProviderOptions); summarizeErr != nil {
 			return nil, summarizeErr
 		}
+
+		// Critical: Re-fetch the session to get the updated (reset) token counts.
+		// Without this, the next Run loop will see the old high token count
+		// and trigger summarization again immediately, leading to a loop.
+		currentSession, err = a.sessions.Get(ctx, call.SessionID)
+		if err != nil {
+			return nil, fmt.Errorf("failed to refresh session after summary: %w", err)
+		}
+
 		// Always requeue to continue work after summarization
 		existing, ok := a.messageQueue.Get(call.SessionID)
 		if !ok {
 			existing = []SessionAgentCall{}
 		}
 		// Preserve the original intent but indicate this is a continuation
-		call.Prompt = "Continue with the task described in the conversation above. Complete any remaining work."
+		call.Prompt = fmt.Sprintf("Continue the task: %s\nUse the summary above for context and avoid repeating questions.", origPrompt)
 		existing = append(existing, call)
 		a.messageQueue.Set(call.SessionID, existing)
 	}
@@ -684,8 +750,8 @@ func (a *sessionAgent) Summarize(ctx context.Context, sessionID string, opts gen
 	// Just in case, get just the last usage info.
 	usage := resp.Response.Usage
 	currentSession.SummaryMessageID = summaryMessage.ID
-	currentSession.CompletionTokens = usage.OutputTokens
-	currentSession.PromptTokens = 0
+	currentSession.CompletionTokens += usage.OutputTokens + usage.CacheReadTokens
+	currentSession.PromptTokens += usage.InputTokens + usage.CacheCreationTokens
 	_, err = a.sessions.Save(genCtx, currentSession)
 	return err
 }

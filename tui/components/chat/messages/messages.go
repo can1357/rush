@@ -175,6 +175,20 @@ func (msg *messageCmp) style() lipgloss.Style {
 // Shows model name, response time, and finish reason when the message is complete.
 func (m *messageCmp) renderAssistantMessage() string {
 	t := styles.CurrentTheme()
+
+	// Distinguish summaries with a clear header/footer so users notice context resets.
+	if m.message.IsSummaryMessage {
+		header := t.S().Subtle.Render("━━ CONTEXT SUMMARY ━━")
+		body := m.toMarkdown(m.message.Content().String())
+		return m.style().Render(
+			lipgloss.JoinVertical(
+				lipgloss.Left,
+				header,
+				body,
+			),
+		)
+	}
+
 	parts := []string{}
 	content := m.message.Content().String()
 	thinking := m.message.IsThinking()
