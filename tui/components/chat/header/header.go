@@ -120,7 +120,8 @@ func (h *header) details(availWidth int) string {
 
 	agentCfg := config.Get().Agents[config.AgentMaestro]
 	model := config.Get().GetModelByType(agentCfg.Model)
-	percentage := (float64(h.session.CompletionTokens+h.session.PromptTokens) / float64(model.ContextWindow)) * 100
+	currentTokens := h.session.CurrentInputTokens + h.session.CurrentOutputTokens
+	percentage := (float64(currentTokens) / float64(model.ContextWindow)) * 100
 	formattedPercentage := s.Muted.Render(fmt.Sprintf("%d%%", int(percentage)))
 	parts = append(parts, formattedPercentage)
 

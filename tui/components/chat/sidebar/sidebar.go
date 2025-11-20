@@ -628,42 +628,39 @@ func (m *sidebarCmp) todoBlock() string {
 	return lipgloss.JoinVertical(lipgloss.Left, lines...)
 }
 
-func formatTokensAndCost(tokens, contextWindow int64, cost float64) string {
+func formatTokensAndCost(currentTokens, cumulativeTokens, contextWindow int64, cost float64) string {
 	t := styles.CurrentTheme()
-	// Format tokens in human-readable format (e.g., 110K, 1.2M)
-	var formattedTokens string
-	switch {
-	case tokens >= 1_000_000:
-		formattedTokens = fmt.Sprintf("%.1fM", float64(tokens)/1_000_000)
-	case tokens >= 1_000:
-		formattedTokens = fmt.Sprintf("%.1fK", float64(tokens)/1_000)
-	default:
-		formattedTokens = fmt.Sprintf("%d", tokens)
-	}
-
-	// Remove .0 suffix if present
-	if strings.HasSuffix(formattedTokens, ".0K") {
-		formattedTokens = strings.Replace(formattedTokens, ".0K", "K", 1)
-	}
-	if strings.HasSuffix(formattedTokens, ".0M") {
-		formattedTokens = strings.Replace(formattedTokens, ".0M", "M", 1)
-	}
-
-	percentage := (float64(tokens) / float64(contextWindow)) * 100
-
 	baseStyle := t.S().Base
 
-	formattedCost := baseStyle.Foreground(t.FgMuted).Render(fmt.Sprintf("$%.2f", cost))
-
-	formattedTokens = baseStyle.Foreground(t.FgSubtle).Render(fmt.Sprintf("(%s)", formattedTokens))
-	formattedPercentage := baseStyle.Foreground(t.FgMuted).Render(fmt.Sprintf("%d%%", int(percentage)))
-	formattedTokens = fmt.Sprintf("%s %s", formattedPercentage, formattedTokens)
-	if percentage > 80 {
-		// add the warning icon
-		formattedTokens = fmt.Sprintf("%s %s", styles.WarningIcon, formattedTokens)
+	// Format helper
+	formatNum := func(n int64) string {
+		switch {
+		case n >= 1_000_000:
+			s := fmt.Sprintf("%.1fM", float64(n)/1_000_000)
+			return strings.Replace(s, ".0M", "M", 1)
+		case n >= 1_000:
+			s := fmt.Sprintf("%.1fK", float64(n)/1_000)
+			return strings.Replace(s, ".0K", "K", 1)
+		default:
+			return fmt.Sprintf("%d", n)
+		}
 	}
 
-	return fmt.Sprintf("%s %s", formattedTokens, formattedCost)
+	// Format: currentK/maxK (cumulativeK) $cost
+	currentStr := formatNum(currentTokens)
+	maxStr := formatNum(contextWindow)
+	cumulativeStr := formatNum(cumulativeTokens)
+
+	percentage := (float64(currentTokens) / float64(contextWindow)) * 100
+
+	// Main display: currentK/maxK
+	mainDisplay := baseStyle.Foreground(t.FgBase).Render(fmt.Sprintf("%s/%s", currentStr, maxStr))
+	if percentage > 80 {
+		mainDisplay = fmt.Sprintf("%s %s", styles.WarningIcon, mainDisplay)
+	}
+
+	costDisplay := baseStyle.Foreground(t.FgMuted).Render(fmt.Sprintf("$%.2f (%s)", cost, cumulativeStr))
+	return mainDisplay + " " + costDisplay
 }
 
 func (s *sidebarCmp) currentModelBlock() string {
@@ -707,7 +704,8 @@ func (s *sidebarCmp) currentModelBlock() string {
 		parts = append(
 			parts,
 			"  "+formatTokensAndCost(
-				s.session.CompletionTokens+s.session.PromptTokens,
+				s.session.CurrentInputTokens+s.session.CurrentOutputTokens,
+				s.session.PromptTokens+s.session.CompletionTokens,
 				model.ContextWindow,
 				s.session.Cost,
 			),

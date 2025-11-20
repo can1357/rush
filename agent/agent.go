@@ -790,8 +790,11 @@ func (a *sessionAgent) Summarize(ctx context.Context, sessionID string, opts gen
 	usage := resp.Response.Usage
 	currentSession.SummaryMessageID = summaryMessage.ID
 
+	// Reset cumulative tokens after summarization (start fresh with summary)
 	currentSession.CompletionTokens = 0
 	currentSession.PromptTokens = usage.OutputTokens
+	currentSession.CurrentInputTokens = usage.OutputTokens
+	currentSession.CurrentOutputTokens = 0
 	_, err = a.sessions.Save(genCtx, currentSession)
 	return err
 }
@@ -977,8 +980,13 @@ func (a *sessionAgent) updateSessionUsage(model Model, session *session.Session,
 		session.Cost += cost
 	}
 
-	session.CompletionTokens = usage.OutputTokens + usage.CacheReadTokens
-	session.PromptTokens = usage.InputTokens + usage.CacheCreationTokens
+	// Accumulate total billing tokens (cumulative across all requests)
+	session.CompletionTokens += usage.OutputTokens + usage.CacheReadTokens
+	session.PromptTokens += usage.InputTokens + usage.CacheCreationTokens
+
+	// Track current request tokens (for context window display)
+	session.CurrentInputTokens = usage.InputTokens + usage.CacheCreationTokens
+	session.CurrentOutputTokens = usage.OutputTokens + usage.CacheReadTokens
 }
 
 func (a *sessionAgent) Cancel(sessionID string) {

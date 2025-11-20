@@ -393,6 +393,11 @@ func (p *chatPage) Update(msg tea.Msg) (util.Model, tea.Cmd) {
 						if p.previousModel != nil {
 							selectedModel = *p.previousModel
 							p.previousModel = nil
+						} else {
+							// Fallback: restore to default configured model
+							cfg := config.Get()
+							agentCfg := cfg.Agents[config.AgentMaestro]
+							selectedModel = cfg.Models[agentCfg.Model]
 						}
 					}
 
