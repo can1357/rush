@@ -52,12 +52,8 @@ type questionDialogCmp struct {
 func NewQuestionDialogCmp(req question.QuestionRequest) QuestionDialogCmp {
 	selections := make(map[int]map[int]bool)
 	focusedOption := make(map[int]int)
-	for i, q := range req.Questions {
+	for i := range req.Questions {
 		selections[i] = make(map[int]bool)
-		// Pre-select first option for single-select questions
-		if !q.MultiSelect {
-			selections[i][0] = true
-		}
 		focusedOption[i] = 0 // Start with first option focused
 	}
 
@@ -133,6 +129,23 @@ func (d *questionDialogCmp) handleKeyPress(msg tea.KeyPressMsg) (util.Model, tea
 			return d, nil
 		}
 
+		// For single-select, if nothing selected, select the focused option first
+		if !q.MultiSelect {
+			hasSelection := d.otherActive[d.currentQuestion]
+			if !hasSelection {
+				for _, selected := range d.selections[d.currentQuestion] {
+					if selected {
+						hasSelection = true
+						break
+					}
+				}
+			}
+			// If no selection, select the currently focused option
+			if !hasSelection {
+				d.toggleSelection(q)
+			}
+		}
+
 		// Move to next question or submit
 		if d.currentQuestion < len(d.request.Questions)-1 {
 			d.currentQuestion++
@@ -174,21 +187,6 @@ func (d *questionDialogCmp) moveSelection(delta int, q question.Question) {
 	currentFocused := d.focusedOption[d.currentQuestion]
 	newFocused := (currentFocused + delta + totalOptions) % totalOptions
 	d.focusedOption[d.currentQuestion] = newFocused
-
-	if q.MultiSelect {
-		// In multi-select, just move focus (selection happens with Space)
-		return
-	}
-
-	// Single-select: clear all and select new one
-	d.selections[d.currentQuestion] = make(map[int]bool)
-	if newFocused == len(q.Options) {
-		// "Other" option
-		d.otherActive[d.currentQuestion] = true
-	} else {
-		d.selections[d.currentQuestion][newFocused] = true
-		d.otherActive[d.currentQuestion] = false
-	}
 }
 
 func (d *questionDialogCmp) toggleSelection(q question.Question) {
@@ -196,7 +194,13 @@ func (d *questionDialogCmp) toggleSelection(q question.Question) {
 
 	if currentFocused == len(q.Options) {
 		// Toggling "Other"
-		d.otherActive[d.currentQuestion] = !d.otherActive[d.currentQuestion]
+		if q.MultiSelect {
+			d.otherActive[d.currentQuestion] = !d.otherActive[d.currentQuestion]
+		} else {
+			// Single-select: clear all and activate Other
+			d.selections[d.currentQuestion] = make(map[int]bool)
+			d.otherActive[d.currentQuestion] = true
+		}
 		if d.otherActive[d.currentQuestion] {
 			d.focusedInput = true
 			d.cursorPos = len(d.otherInputs[d.currentQuestion])
@@ -208,7 +212,10 @@ func (d *questionDialogCmp) toggleSelection(q question.Question) {
 		// Toggle the checkbox
 		d.selections[d.currentQuestion][currentFocused] = !d.selections[d.currentQuestion][currentFocused]
 	} else {
-		// Single-select: already handled by moveSelection
+		// Single-select: clear all and select this one
+		d.selections[d.currentQuestion] = make(map[int]bool)
+		d.selections[d.currentQuestion][currentFocused] = true
+		d.otherActive[d.currentQuestion] = false
 	}
 }
 
@@ -293,14 +300,14 @@ func (d *questionDialogCmp) View() string {
 		}
 
 		prefix := "  "
-		if q.MultiSelect && isFocused {
+		if isFocused {
 			prefix = "> "
 		}
 
 		line := fmt.Sprintf("%s%s %s", prefix, icon, opt.Label)
 		if selected {
 			line = selectedStyle.Render(line)
-		} else if isFocused && q.MultiSelect {
+		} else if isFocused {
 			line = focusStyle.Render(line)
 		} else {
 			line = labelStyle.Render(line)
@@ -324,14 +331,14 @@ func (d *questionDialogCmp) View() string {
 	}
 
 	otherPrefix := "  "
-	if q.MultiSelect && otherFocused {
+	if otherFocused {
 		otherPrefix = "> "
 	}
 
 	otherLine := fmt.Sprintf("%s%s Other", otherPrefix, otherIcon)
 	if otherSelected {
 		otherLine = selectedStyle.Render(otherLine)
-	} else if otherFocused && q.MultiSelect {
+	} else if otherFocused {
 		otherLine = focusStyle.Render(otherLine)
 	} else {
 		otherLine = labelStyle.Render(otherLine)
@@ -349,10 +356,13 @@ func (d *questionDialogCmp) View() string {
 
 	// Instructions
 	instructions := []string{}
+	instructions = append(instructions, "Space: select")
 	if q.MultiSelect {
-		instructions = append(instructions, "Space: toggle")
+		instructions = append(instructions, "Enter: next/submit")
+	} else {
+		instructions = append(instructions, "Enter: select & next")
 	}
-	instructions = append(instructions, "Enter: next/submit", "Esc: cancel")
+	instructions = append(instructions, "Esc: cancel")
 	if len(d.request.Questions) > 1 {
 		instructions = append(instructions, "←/→: prev/next question")
 	}
