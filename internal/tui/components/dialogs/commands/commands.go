@@ -359,7 +359,7 @@ func (c *commandDialogCmp) defaultCommands() []Command {
 
 	// Add reasoning toggle for models that support it
 	cfg := config.Get()
-	if agentCfg, ok := cfg.Agents[config.AgentCoder]; ok {
+	if agentCfg, ok := cfg.Agents[config.AgentRoot]; ok {
 		providerCfg := cfg.GetProviderForModel(agentCfg.Model)
 		model := cfg.GetModelByType(agentCfg.Model)
 		if providerCfg != nil && model != nil && model.CanReason {
@@ -406,7 +406,7 @@ func (c *commandDialogCmp) defaultCommands() []Command {
 		})
 	}
 	if c.sessionID != "" {
-		agentCfg := config.Get().Agents[config.AgentCoder]
+		agentCfg := config.Get().Agents[config.AgentRoot]
 		model := config.Get().GetModelByType(agentCfg.Model)
 		if model.SupportsImages {
 			commands = append(commands, Command{

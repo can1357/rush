@@ -700,7 +700,7 @@ func (s *splashCmp) mcpBlock() string {
 
 func (s *splashCmp) currentModelBlock() string {
 	cfg := config.Get()
-	agentCfg := cfg.Agents[config.AgentCoder]
+	agentCfg := cfg.Agents[config.AgentRoot]
 	model := config.Get().GetModelByType(agentCfg.Model)
 	if model == nil {
 		return ""

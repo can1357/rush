@@ -17,7 +17,9 @@ import (
 	"github.com/charmbracelet/crush/internal/message"
 	"github.com/charmbracelet/crush/internal/permission"
 	"github.com/charmbracelet/crush/internal/pubsub"
+	questionpkg "github.com/charmbracelet/crush/internal/question"
 	"github.com/charmbracelet/crush/internal/session"
+	"github.com/charmbracelet/crush/internal/todo"
 	"github.com/charmbracelet/crush/internal/tui/components/anim"
 	"github.com/charmbracelet/crush/internal/tui/components/chat"
 	"github.com/charmbracelet/crush/internal/tui/components/chat/editor"
@@ -32,7 +34,9 @@ import (
 	"github.com/charmbracelet/crush/internal/tui/components/dialogs/commands"
 	"github.com/charmbracelet/crush/internal/tui/components/dialogs/filepicker"
 	"github.com/charmbracelet/crush/internal/tui/components/dialogs/models"
+	"github.com/charmbracelet/crush/internal/tui/components/dialogs/question"
 	"github.com/charmbracelet/crush/internal/tui/components/dialogs/reasoning"
+	"github.com/charmbracelet/crush/internal/tui/components/todolist"
 	"github.com/charmbracelet/crush/internal/tui/page"
 	"github.com/charmbracelet/crush/internal/tui/styles"
 	"github.com/charmbracelet/crush/internal/tui/util"
@@ -103,11 +107,12 @@ type chatPage struct {
 	keyMap  KeyMap
 
 	// Components
-	header  header.Header
-	sidebar sidebar.Sidebar
-	chat    chat.MessageListCmp
-	editor  editor.Editor
-	splash  splash.Splash
+	header   header.Header
+	sidebar  sidebar.Sidebar
+	chat     chat.MessageListCmp
+	editor   editor.Editor
+	splash   splash.Splash
+	todoList todolist.TodoList
 
 	// Simple state flags
 	showingDetails   bool
@@ -126,6 +131,7 @@ func New(app *app.App) ChatPage {
 		chat:        chat.New(app),
 		editor:      editor.New(app),
 		splash:      splash.New(),
+		todoList:    todolist.New(),
 		focusedPane: PanelTypeSplash,
 	}
 }
@@ -330,6 +336,38 @@ func (p *chatPage) Update(msg tea.Msg) (util.Model, tea.Cmd) {
 		cmds = append(cmds, cmd)
 		return p, tea.Batch(cmds...)
 
+	case pubsub.Event[todo.Todo]:
+		// Todo update - refresh todo list for the current session
+		if msg.Type == pubsub.CreatedEvent || msg.Type == pubsub.UpdatedEvent {
+			if msg.Payload.SessionID == p.session.ID {
+				// Fetch all todos for this session
+				cmd := p.refreshTodos()
+				return p, cmd
+			}
+		}
+		return p, nil
+
+	case todolist.TodoListUpdateMsg:
+		u, cmd := p.todoList.Update(msg)
+		p.todoList = u.(todolist.TodoList)
+		return p, cmd
+
+	case pubsub.Event[questionpkg.QuestionRequest]:
+		// Question request - open dialog
+		if msg.Type == pubsub.CreatedEvent {
+			return p, p.openQuestionDialog(msg.Payload)
+		}
+		return p, nil
+
+	case question.QuestionResponseMsg:
+		// User answered or canceled the question
+		if msg.Canceled {
+			p.app.Questions.Cancel(msg.RequestID)
+		} else {
+			p.app.Questions.Answer(msg.RequestID, msg.Answers)
+		}
+		return p, nil
+
 	case commands.CommandRunCustomMsg:
 		if p.app.AgentCoordinator.IsBusy() {
 			return p, util.ReportWarn("Agent is busy, please wait before executing a command...")
@@ -371,7 +409,7 @@ func (p *chatPage) Update(msg tea.Msg) (util.Model, tea.Cmd) {
 			}
 			return p, p.newSession()
 		case key.Matches(msg, p.keyMap.AddAttachment):
-			agentCfg := config.Get().Agents[config.AgentCoder]
+			agentCfg := config.Get().Agents[config.AgentRoot]
 			model := config.Get().GetModelByType(agentCfg.Model)
 			if model.SupportsImages {
 				return p, util.CmdHandler(commands.OpenFilePickerMsg{})
@@ -476,10 +514,25 @@ func (p *chatPage) View() string {
 			)
 		} else {
 			sidebarView := p.sidebar.View()
+			todoView := p.todoList.View()
+
+			// Combine sidebar and todo list vertically
+			var rightPanel string
+			if todoView != "" {
+				rightPanel = lipgloss.JoinVertical(
+					lipgloss.Left,
+					sidebarView,
+					"",
+					todoView,
+				)
+			} else {
+				rightPanel = sidebarView
+			}
+
 			messages := lipgloss.JoinHorizontal(
 				lipgloss.Left,
 				messagesView,
-				sidebarView,
+				rightPanel,
 			)
 			chatView = lipgloss.JoinVertical(
 				lipgloss.Left,
@@ -530,7 +583,7 @@ func (p *chatPage) updateCompactConfig(compact bool) tea.Cmd {
 func (p *chatPage) toggleThinking() tea.Cmd {
 	return func() tea.Msg {
 		cfg := config.Get()
-		agentCfg := cfg.Agents[config.AgentCoder]
+		agentCfg := cfg.Agents[config.AgentRoot]
 		currentModel := cfg.Models[agentCfg.Model]
 
 		// Toggle the thinking mode
@@ -559,7 +612,7 @@ func (p *chatPage) toggleThinking() tea.Cmd {
 func (p *chatPage) openReasoningDialog() tea.Cmd {
 	return func() tea.Msg {
 		cfg := config.Get()
-		agentCfg := cfg.Agents[config.AgentCoder]
+		agentCfg := cfg.Agents[config.AgentRoot]
 		model := cfg.GetModelByType(agentCfg.Model)
 		providerCfg := cfg.GetProviderForModel(agentCfg.Model)
 
@@ -576,7 +629,7 @@ func (p *chatPage) openReasoningDialog() tea.Cmd {
 func (p *chatPage) handleReasoningEffortSelected(effort string) tea.Cmd {
 	return func() tea.Msg {
 		cfg := config.Get()
-		agentCfg := cfg.Agents[config.AgentCoder]
+		agentCfg := cfg.Agents[config.AgentRoot]
 		currentModel := cfg.Models[agentCfg.Model]
 
 		// Update the model configuration
@@ -1123,4 +1176,21 @@ func (p *chatPage) isMouseOverChat(x, y int) bool {
 
 	// Check if mouse coordinates are within chat bounds
 	return x >= chatX && x < chatX+chatWidth && y >= chatY && y < chatY+chatHeight
+}
+
+func (p *chatPage) refreshTodos() tea.Cmd {
+	return func() tea.Msg {
+		ctx := context.Background()
+		todos, err := p.app.Todos.List(ctx, p.session.ID)
+		if err != nil {
+			return util.ReportError(err)
+		}
+		return todolist.TodoListUpdateMsg{Todos: todos}
+	}
+}
+
+func (p *chatPage) openQuestionDialog(req questionpkg.QuestionRequest) tea.Cmd {
+	return util.CmdHandler(dialogs.OpenDialogMsg{
+		Model: question.NewQuestionDialogCmp(req),
+	})
 }

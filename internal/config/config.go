@@ -51,8 +51,9 @@ const (
 )
 
 const (
-	AgentCoder string = "coder"
-	AgentTask  string = "task"
+	AgentRoot    string = "root"
+	AgentTask    string = "task"
+	AgentExplore string = "explore"
 )
 
 type SelectedModel struct {
@@ -537,6 +538,7 @@ func (c *Config) recordRecentModel(modelType SelectedModelType, model SelectedMo
 func allToolNames() []string {
 	return []string{
 		"agent",
+		"ask_user_question",
 		"bash",
 		"job_output",
 		"job_kill",
@@ -551,6 +553,7 @@ func allToolNames() []string {
 		"grep",
 		"ls",
 		"sourcegraph",
+		"todo_write",
 		"view",
 		"write",
 	}
@@ -586,20 +589,31 @@ func (c *Config) SetupAgents() {
 	allowedTools := resolveAllowedTools(allToolNames(), c.Options.DisabledTools)
 
 	agents := map[string]Agent{
-		AgentCoder: {
-			ID:           AgentCoder,
-			Name:         "Coder",
-			Description:  "An agent that helps with executing coding tasks.",
+		AgentRoot: {
+			ID:           AgentRoot,
+			Name:         "Root",
+			Description:  "Main agent for coding tasks, software engineering, and general assistance.",
 			Model:        SelectedModelTypeLarge,
 			ContextPaths: c.Options.ContextPaths,
 			AllowedTools: allowedTools,
 		},
 
 		AgentTask: {
-			ID:           AgentCoder,
+			ID:           AgentTask,
 			Name:         "Task",
-			Description:  "An agent that helps with searching for context and finding implementation details.",
+			Description:  "General-purpose agent for researching complex questions, searching for code, and executing multi-step tasks. When you are searching for a keyword or file and are not confident that you will find the right match in the first few tries use this agent to perform the search for you.",
 			Model:        SelectedModelTypeLarge,
+			ContextPaths: c.Options.ContextPaths,
+			AllowedTools: resolveReadOnlyTools(allowedTools),
+			// NO MCPs or LSPs by default
+			AllowedMCP: map[string][]string{},
+		},
+
+		AgentExplore: {
+			ID:           AgentExplore,
+			Name:         "Explore",
+			Description:  "Fast agent specialized for exploring codebases. Use this when you need to quickly find files by patterns (eg. \"src/components/**/*.tsx\"), search code for keywords (eg. \"API endpoints\"), or answer questions about the codebase (eg. \"how do API endpoints work?\").",
+			Model:        SelectedModelTypeSmall,
 			ContextPaths: c.Options.ContextPaths,
 			AllowedTools: resolveReadOnlyTools(allowedTools),
 			// NO MCPs or LSPs by default
