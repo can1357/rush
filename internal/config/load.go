@@ -282,9 +282,36 @@ func (c *Config) configureProviders(env env.Env, resolver VariableResolver, know
 			continue
 		}
 		if len(providerConfig.Models) == 0 {
-			slog.Warn("Skipping custom provider because the provider has no models", "provider", id)
-			c.Providers.Del(id)
-			continue
+			// Allow empty models if discovery is enabled
+			if providerConfig.DiscoverModels {
+				slog.Info("Discovering models from provider", "provider", id)
+				discoveredModels, err := DiscoverModelsFromProvider(providerConfig, resolver)
+				if err != nil {
+					slog.Warn("Failed to discover models from provider", "provider", id, "error", err)
+					c.Providers.Del(id)
+					continue
+				}
+				if len(discoveredModels) == 0 {
+					slog.Warn("No models discovered from provider", "provider", id)
+					c.Providers.Del(id)
+					continue
+				}
+				providerConfig.Models = discoveredModels
+			} else {
+				slog.Warn("Skipping custom provider because the provider has no models", "provider", id)
+				c.Providers.Del(id)
+				continue
+			}
+		} else if providerConfig.DiscoverModels {
+			// If models are already configured but discovery is enabled, merge them
+			slog.Info("Discovering additional models from provider", "provider", id)
+			discoveredModels, err := DiscoverModelsFromProvider(providerConfig, resolver)
+			if err != nil {
+				slog.Warn("Failed to discover additional models", "provider", id, "error", err)
+			} else {
+				// Merge discovered models with configured models (configured take precedence)
+				providerConfig.Models = mergeModels(providerConfig.Models, discoveredModels)
+			}
 		}
 		apiKey, err := resolver.ResolveValue(providerConfig.APIKey)
 		if apiKey == "" || err != nil {
@@ -299,6 +326,73 @@ func (c *Config) configureProviders(env env.Env, resolver VariableResolver, know
 
 		c.Providers.Set(id, providerConfig)
 	}
+
+	// Auto-detect LiteLLM provider from environment variables
+	if err := c.autoDetectLiteLLM(env, resolver); err != nil {
+		slog.Warn("Failed to auto-detect LiteLLM provider", "error", err)
+	}
+
+	return nil
+}
+
+// autoDetectLiteLLM automatically configures LiteLLM provider if env vars are present
+func (c *Config) autoDetectLiteLLM(env env.Env, resolver VariableResolver) error {
+	const litellmID = "litellm"
+
+	// Skip if already configured by user
+	if _, exists := c.Providers.Get(litellmID); exists {
+		return nil
+	}
+
+	// Check for LiteLLM environment variables
+	apiKey := env.Get("LITELLM_API_KEY")
+	baseURL := env.Get("LITELLM_BASE_URL")
+
+	// If neither is set, skip auto-detection
+	if apiKey == "" && baseURL == "" {
+		return nil
+	}
+
+	// Default base URL for LiteLLM
+	if baseURL == "" {
+		baseURL = "http://localhost:4000/v1"
+	}
+
+	// API key is optional for local LiteLLM instances
+	if apiKey == "" {
+		slog.Info("Auto-detected LiteLLM without API key (assuming local instance)")
+	}
+
+	providerConfig := ProviderConfig{
+		ID:             litellmID,
+		Name:           "LiteLLM",
+		Type:           catwalk.TypeOpenAICompat,
+		BaseURL:        baseURL,
+		APIKey:         apiKey,
+		DiscoverModels: true,
+		DefaultModelMetadata: &DefaultModelMetadata{
+			ContextWindow:    8192,
+			DefaultMaxTokens: 4096,
+		},
+		Models: []catwalk.Model{},
+	}
+
+	// Discover models immediately
+	slog.Info("Auto-detected LiteLLM provider, discovering models", "base_url", baseURL)
+	discoveredModels, err := DiscoverModelsFromProvider(providerConfig, resolver)
+	if err != nil {
+		slog.Warn("Failed to discover models from auto-detected LiteLLM", "error", err)
+		// Don't fail, just add with empty models for now
+	} else if len(discoveredModels) > 0 {
+		providerConfig.Models = discoveredModels
+		slog.Info("Auto-configured LiteLLM provider", "models", len(discoveredModels))
+	}
+
+	// Only add if we have models or API key is explicitly set
+	if len(providerConfig.Models) > 0 || apiKey != "" {
+		c.Providers.Set(litellmID, providerConfig)
+	}
+
 	return nil
 }
 
@@ -686,4 +780,26 @@ func isInsideWorktree() bool {
 		"--is-inside-work-tree",
 	).CombinedOutput()
 	return err == nil && strings.TrimSpace(string(bts)) == "true"
+}
+
+// mergeModels merges discovered models with configured models.
+// Configured models take precedence to allow manual overrides.
+func mergeModels(configured, discovered []catwalk.Model) []catwalk.Model {
+	// Create a map of configured model IDs for quick lookup
+	configuredIDs := make(map[string]bool)
+	for _, m := range configured {
+		configuredIDs[m.ID] = true
+	}
+
+	// Add discovered models that aren't already configured
+	result := make([]catwalk.Model, 0, len(configured)+len(discovered))
+	result = append(result, configured...)
+
+	for _, m := range discovered {
+		if !configuredIDs[m.ID] {
+			result = append(result, m)
+		}
+	}
+
+	return result
 }

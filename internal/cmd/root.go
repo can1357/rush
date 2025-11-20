@@ -41,6 +41,7 @@ func init() {
 		runCmd,
 		dirsCmd,
 		updateProvidersCmd,
+		discoverModelsCmd,
 		logsCmd,
 		schemaCmd,
 	)

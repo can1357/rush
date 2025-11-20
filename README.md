@@ -303,6 +303,78 @@ Custom Anthropic-compatible providers follow this format:
 }
 ```
 
+#### LiteLLM with Model Discovery
+
+LiteLLM is a unified proxy for 100+ LLM providers. Rush supports automatic model discovery from LiteLLM, eliminating the need to manually configure models.
+
+**Setup:**
+
+1. Install and run LiteLLM proxy:
+
+   ```bash
+   pip install litellm
+   litellm --config litellm_config.yaml
+   ```
+
+2. **Option A:** Auto-detection via environment variables (recommended)
+
+   Set `RUSH_LITELLM_BASE_URL` and optionally `RUSH_LITELLM_API_KEY`:
+
+   ```bash
+   export RUSH_LITELLM_BASE_URL="http://localhost:4000/v1"
+   export RUSH_LITELLM_API_KEY="your-master-key"  # Optional for local instances
+   rush
+   ```
+
+   Rush will automatically detect LiteLLM and discover available models on startup.
+
+3. **Option B:** Manual configuration with automatic model discovery:
+
+```json
+{
+	"$schema": "https://raw.githubusercontent.com/can1357/rush/main/schema.json",
+	"providers": {
+		"litellm": {
+			"type": "openai-compat",
+			"base_url": "http://localhost:4000/v1",
+			"api_key": "$LITELLM_MASTER_KEY",
+			"discover_models": true,
+			"default_model_metadata": {
+				"context_window": 8192,
+				"default_max_tokens": 4096
+			}
+		}
+	}
+}
+```
+
+**How it works:**
+
+- `discover_models: true` enables automatic model discovery from the `/v1/models` endpoint (defaults to `true`)
+- Rush fetches available models on startup and caches them in `~/.rush/discovered-models.json`
+- `default_model_metadata` provides fallback values for models that don't report their capabilities
+- Models are merged with any manually configured models (manual configs take precedence)
+
+**Manual model discovery:**
+
+```bash
+# Discover models from LiteLLM provider
+rush discover-models litellm
+
+# Discover from all providers with discovery enabled
+rush discover-models --all
+
+# Save discovered models to config
+rush discover-models litellm --save
+```
+
+**Benefits:**
+
+- Zero configuration: Just point to your LiteLLM proxy
+- Automatic updates: New models appear without config changes
+- Multi-provider support: Access all LiteLLM-supported providers through one endpoint
+- Offline fallback: Cached models available when proxy is unreachable
+
 ### Amazon Bedrock
 
 Rush currently supports running Anthropic models through Bedrock, with caching disabled.

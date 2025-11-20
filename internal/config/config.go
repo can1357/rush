@@ -109,8 +109,22 @@ type ProviderConfig struct {
 	// Used to pass extra parameters to the provider.
 	ExtraParams map[string]string `json:"-"`
 
+	// Enable automatic model discovery from provider's /v1/models endpoint (openai-compat only)
+	DiscoverModels bool `json:"discover_models,omitempty" jsonschema:"description=Enable automatic model discovery from provider API,default=true"`
+
+	// Default metadata to apply to discovered models (context window, max tokens, etc.)
+	DefaultModelMetadata *DefaultModelMetadata `json:"default_model_metadata,omitempty" jsonschema:"description=Default metadata for discovered models"`
+
 	// The provider models
 	Models []catwalk.Model `json:"models,omitempty" jsonschema:"description=List of models available from this provider"`
+}
+
+// DefaultModelMetadata provides default values for discovered models
+type DefaultModelMetadata struct {
+	ContextWindow     int64 `json:"context_window,omitempty" jsonschema:"description=Default context window for discovered models,example=8192"`
+	DefaultMaxTokens  int64 `json:"default_max_tokens,omitempty" jsonschema:"description=Default max tokens for discovered models,example=4096"`
+	CostPer1MIn       float64 `json:"cost_per_1m_in,omitempty" jsonschema:"description=Default input cost per 1M tokens,example=0.5"`
+	CostPer1MOut      float64 `json:"cost_per_1m_out,omitempty" jsonschema:"description=Default output cost per 1M tokens,example=1.5"`
 }
 
 type MCPType string

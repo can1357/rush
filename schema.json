@@ -81,6 +81,40 @@
         "tools"
       ]
     },
+    "DefaultModelMetadata": {
+      "properties": {
+        "context_window": {
+          "type": "integer",
+          "description": "Default context window for discovered models",
+          "examples": [
+            8192
+          ]
+        },
+        "default_max_tokens": {
+          "type": "integer",
+          "description": "Default max tokens for discovered models",
+          "examples": [
+            4096
+          ]
+        },
+        "cost_per_1m_in": {
+          "type": "number",
+          "description": "Default input cost per 1M tokens",
+          "examples": [
+            0.5
+          ]
+        },
+        "cost_per_1m_out": {
+          "type": "number",
+          "description": "Default output cost per 1M tokens",
+          "examples": [
+            1.5
+          ]
+        }
+      },
+      "additionalProperties": false,
+      "type": "object"
+    },
     "LSPConfig": {
       "properties": {
         "disabled": {
@@ -477,6 +511,15 @@
         "provider_options": {
           "type": "object",
           "description": "Additional provider-specific options for this provider"
+        },
+        "discover_models": {
+          "type": "boolean",
+          "description": "Enable automatic model discovery from provider API",
+          "default": true
+        },
+        "default_model_metadata": {
+          "$ref": "#/$defs/DefaultModelMetadata",
+          "description": "Default metadata for discovered models"
         },
         "models": {
           "items": {
