@@ -13,9 +13,6 @@ import (
 	"github.com/can1357/rush/genai"
 )
 
-//go:embed templates/agent_tool.md
-var agentToolDescription []byte
-
 // generateAgentToolDescription creates a dynamic description for the Task tool
 // based on available agent types and their configurations.
 func generateAgentToolDescription(agents map[string]config.Agent) string {

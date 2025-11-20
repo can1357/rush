@@ -52,8 +52,8 @@ var (
 )
 
 var (
-	availableRunes = []rune("0123456789abcdefABCDEF~!@#$£€%^&*()+=_")
-	ellipsisFrames = []string{".", "..", "...", ""}
+	availableRunes = []rune("✳✴✵✶✷✸✹⁕※⁂⁎⁑")
+	ellipsisFrames = []string{"", ".", "..", "..."}
 )
 
 // Internal ID management. Used during animating to ensure that frame messages

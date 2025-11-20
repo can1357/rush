@@ -1319,13 +1319,13 @@ func (o responsesLanguageModel) streamObjectWithJSONMode(ctx context.Context, ca
 		}
 
 		// Final validation and emit
-		if streamErr == nil && lastParsedObject != nil {
+		if lastParsedObject != nil {
 			yield(genai.ObjectStreamPart{
 				Type:         genai.ObjectStreamPartTypeFinish,
 				Usage:        usage,
 				FinishReason: finishReason,
 			})
-		} else if streamErr == nil && lastParsedObject == nil {
+		} else {
 			// No object was generated
 			yield(genai.ObjectStreamPart{
 				Type: genai.ObjectStreamPartTypeError,

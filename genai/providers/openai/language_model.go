@@ -239,9 +239,12 @@ func (o languageModel) prepareParams(call genai.Call) (*openai.ChatCompletionNew
 
 	if len(call.Tools) > 0 {
 		tools, toolChoice, toolWarnings := toOpenAiTools(call.Tools, call.ToolChoice)
-		params.Tools = tools
-		if toolChoice != nil {
-			params.ToolChoice = *toolChoice
+		// Only set tools and tool_choice if we have valid tools after filtering
+		if len(tools) > 0 {
+			params.Tools = tools
+			if toolChoice != nil {
+				params.ToolChoice = *toolChoice
+			}
 		}
 		warnings = append(warnings, toolWarnings...)
 	}
