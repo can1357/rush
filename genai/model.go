@@ -12,6 +12,8 @@ import (
 	"context"
 	"fmt"
 	"iter"
+
+	"github.com/charmbracelet/catwalk/pkg/catwalk"
 )
 
 // Usage represents token usage statistics for a model call.
@@ -259,5 +261,5 @@ type LanguageModel interface {
 	StreamObject(context.Context, ObjectCall) (ObjectStreamResponse, error)
 
 	Provider() string
-	Model() string
+	Model() *catwalk.Model
 }

@@ -20,6 +20,7 @@ import (
 	"github.com/can1357/rush/genai"
 	"github.com/can1357/rush/genai/object"
 	"github.com/can1357/rush/genai/schema"
+	"github.com/charmbracelet/catwalk/pkg/catwalk"
 	"github.com/google/uuid"
 	"github.com/openai/openai-go/v2"
 	"github.com/openai/openai-go/v2/packages/param"
@@ -30,25 +31,25 @@ import (
 const topLogprobsMax = 20
 
 type responsesLanguageModel struct {
+	model      *catwalk.Model
 	provider   string
-	modelID    string
 	client     openai.Client
 	objectMode genai.ObjectMode
 }
 
 // newResponsesLanguageModel implements a responses api model
 // INFO: (kujtim) currently we do not support stored parameter we default it to false.
-func newResponsesLanguageModel(modelID string, provider string, client openai.Client, objectMode genai.ObjectMode) responsesLanguageModel {
+func newResponsesLanguageModel(model *catwalk.Model, provider string, client openai.Client, objectMode genai.ObjectMode) responsesLanguageModel {
 	return responsesLanguageModel{
-		modelID:    modelID,
+		model:      model,
 		provider:   provider,
 		client:     client,
 		objectMode: objectMode,
 	}
 }
 
-func (o responsesLanguageModel) Model() string {
-	return o.modelID
+func (o responsesLanguageModel) Model() *catwalk.Model {
+	return o.model
 }
 
 func (o responsesLanguageModel) Provider() string {
@@ -134,7 +135,7 @@ func (o responsesLanguageModel) prepareParams(call genai.Call) (*responses.Respo
 		Store: param.NewOpt(false),
 	}
 
-	modelConfig := getResponsesModelConfig(o.modelID)
+	modelConfig := getResponsesModelConfig(o.model.ID)
 
 	if call.TopK != nil {
 		warnings = append(warnings, genai.CallWarning{
@@ -201,7 +202,7 @@ func (o responsesLanguageModel) prepareParams(call genai.Call) (*responses.Respo
 		addInclude(IncludeMessageOutputTextLogprobs)
 	}
 
-	params.Model = o.modelID
+	params.Model = o.model.ID
 	params.Input = responses.ResponseNewParamsInputUnion{
 		OfInputItemList: input,
 	}

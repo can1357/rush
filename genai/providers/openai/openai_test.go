@@ -19,9 +19,21 @@ import (
 	"testing"
 
 	"github.com/can1357/rush/genai"
+	"github.com/charmbracelet/catwalk/pkg/catwalk"
 	"github.com/openai/openai-go/v2/packages/param"
 	"github.com/stretchr/testify/require"
 )
+
+// testModels provides a list of test models for use in tests
+var testModels = []catwalk.Model{
+	{ID: "gpt-3.5-turbo"},
+	{ID: "gpt-4o"},
+	{ID: "gpt-4o-mini"},
+	{ID: "gpt-4o-search-preview"},
+	{ID: "o1-mini"},
+	{ID: "o1-preview"},
+	{ID: "o3-mini"},
+}
 
 func TestToOpenAiPrompt_SystemMessages(t *testing.T) {
 	t.Parallel()
@@ -817,7 +829,7 @@ func TestDoGenerate(t *testing.T) {
 			"content": "Hello, World!",
 		})
 
-		provider, err := New(
+		provider, err := New(WithModels(testModels),
 			WithAPIKey("test-api-key"),
 			WithBaseURL(server.server.URL),
 		)
@@ -850,7 +862,7 @@ func TestDoGenerate(t *testing.T) {
 			},
 		})
 
-		provider, err := New(
+		provider, err := New(WithModels(testModels),
 			WithAPIKey("test-api-key"),
 			WithBaseURL(server.server.URL),
 		)
@@ -875,7 +887,7 @@ func TestDoGenerate(t *testing.T) {
 
 		server.prepareJSONResponse(map[string]any{})
 
-		provider, err := New(
+		provider, err := New(WithModels(testModels),
 			WithAPIKey("test-api-key"),
 			WithBaseURL(server.server.URL),
 		)
@@ -916,7 +928,7 @@ func TestDoGenerate(t *testing.T) {
 			},
 		})
 
-		provider, err := New(
+		provider, err := New(WithModels(testModels),
 			WithAPIKey("test-api-key"),
 			WithBaseURL(server.server.URL),
 		)
@@ -943,7 +955,7 @@ func TestDoGenerate(t *testing.T) {
 			"logprobs": testLogprobs,
 		})
 
-		provider, err := New(
+		provider, err := New(WithModels(testModels),
 			WithAPIKey("test-api-key"),
 			WithBaseURL(server.server.URL),
 		)
@@ -978,7 +990,7 @@ func TestDoGenerate(t *testing.T) {
 			"finish_reason": "stop",
 		})
 
-		provider, err := New(
+		provider, err := New(WithModels(testModels),
 			WithAPIKey("test-api-key"),
 			WithBaseURL(server.server.URL),
 		)
@@ -1003,7 +1015,7 @@ func TestDoGenerate(t *testing.T) {
 			"finish_reason": "eos",
 		})
 
-		provider, err := New(
+		provider, err := New(WithModels(testModels),
 			WithAPIKey("test-api-key"),
 			WithBaseURL(server.server.URL),
 		)
@@ -1028,7 +1040,7 @@ func TestDoGenerate(t *testing.T) {
 			"content": "",
 		})
 
-		provider, err := New(
+		provider, err := New(WithModels(testModels),
 			WithAPIKey("test-api-key"),
 			WithBaseURL(server.server.URL),
 		)
@@ -1061,7 +1073,7 @@ func TestDoGenerate(t *testing.T) {
 
 		server.prepareJSONResponse(map[string]any{})
 
-		provider, err := New(
+		provider, err := New(WithModels(testModels),
 			WithAPIKey("test-api-key"),
 			WithBaseURL(server.server.URL),
 		)
@@ -1104,7 +1116,7 @@ func TestDoGenerate(t *testing.T) {
 			"content": "",
 		})
 
-		provider, err := New(
+		provider, err := New(WithModels(testModels),
 			WithAPIKey("test-api-key"),
 			WithBaseURL(server.server.URL),
 		)
@@ -1145,7 +1157,7 @@ func TestDoGenerate(t *testing.T) {
 			"content": "",
 		})
 
-		provider, err := New(
+		provider, err := New(WithModels(testModels),
 			WithAPIKey("test-api-key"),
 			WithBaseURL(server.server.URL),
 		)
@@ -1184,7 +1196,7 @@ func TestDoGenerate(t *testing.T) {
 			"content": "",
 		})
 
-		provider, err := New(
+		provider, err := New(WithModels(testModels),
 			WithAPIKey("test-api-key"),
 			WithBaseURL(server.server.URL),
 		)
@@ -1257,7 +1269,7 @@ func TestDoGenerate(t *testing.T) {
 			},
 		})
 
-		provider, err := New(
+		provider, err := New(WithModels(testModels),
 			WithAPIKey("test-api-key"),
 			WithBaseURL(server.server.URL),
 		)
@@ -1316,7 +1328,7 @@ func TestDoGenerate(t *testing.T) {
 			},
 		})
 
-		provider, err := New(
+		provider, err := New(WithModels(testModels),
 			WithAPIKey("test-api-key"),
 			WithBaseURL(server.server.URL),
 		)
@@ -1359,7 +1371,7 @@ func TestDoGenerate(t *testing.T) {
 			},
 		})
 
-		provider, err := New(
+		provider, err := New(WithModels(testModels),
 			WithAPIKey("test-api-key"),
 			WithBaseURL(server.server.URL),
 		)
@@ -1395,7 +1407,7 @@ func TestDoGenerate(t *testing.T) {
 			},
 		})
 
-		provider, err := New(
+		provider, err := New(WithModels(testModels),
 			WithAPIKey("test-api-key"),
 			WithBaseURL(server.server.URL),
 		)
@@ -1424,7 +1436,7 @@ func TestDoGenerate(t *testing.T) {
 
 		server.prepareJSONResponse(map[string]any{})
 
-		provider, err := New(
+		provider, err := New(WithModels(testModels),
 			WithAPIKey("test-api-key"),
 			WithBaseURL(server.server.URL),
 		)
@@ -1473,7 +1485,7 @@ func TestDoGenerate(t *testing.T) {
 
 		server.prepareJSONResponse(map[string]any{})
 
-		provider, err := New(
+		provider, err := New(WithModels(testModels),
 			WithAPIKey("test-api-key"),
 			WithBaseURL(server.server.URL),
 		)
@@ -1518,7 +1530,7 @@ func TestDoGenerate(t *testing.T) {
 			},
 		})
 
-		provider, err := New(
+		provider, err := New(WithModels(testModels),
 			WithAPIKey("test-api-key"),
 			WithBaseURL(server.server.URL),
 		)
@@ -1546,7 +1558,7 @@ func TestDoGenerate(t *testing.T) {
 			"model": "o1-preview",
 		})
 
-		provider, err := New(
+		provider, err := New(WithModels(testModels),
 			WithAPIKey("test-api-key"),
 			WithBaseURL(server.server.URL),
 		)
@@ -1585,7 +1597,7 @@ func TestDoGenerate(t *testing.T) {
 			"content": "",
 		})
 
-		provider, err := New(
+		provider, err := New(WithModels(testModels),
 			WithAPIKey("test-api-key"),
 			WithBaseURL(server.server.URL),
 		)
@@ -1630,7 +1642,7 @@ func TestDoGenerate(t *testing.T) {
 			"content": "",
 		})
 
-		provider, err := New(
+		provider, err := New(WithModels(testModels),
 			WithAPIKey("test-api-key"),
 			WithBaseURL(server.server.URL),
 		)
@@ -1669,7 +1681,7 @@ func TestDoGenerate(t *testing.T) {
 			"content": "",
 		})
 
-		provider, err := New(
+		provider, err := New(WithModels(testModels),
 			WithAPIKey("test-api-key"),
 			WithBaseURL(server.server.URL),
 		)
@@ -1712,7 +1724,7 @@ func TestDoGenerate(t *testing.T) {
 			"content": "",
 		})
 
-		provider, err := New(
+		provider, err := New(WithModels(testModels),
 			WithAPIKey("test-api-key"),
 			WithBaseURL(server.server.URL),
 		)
@@ -1751,7 +1763,7 @@ func TestDoGenerate(t *testing.T) {
 			"content": "",
 		})
 
-		provider, err := New(
+		provider, err := New(WithModels(testModels),
 			WithAPIKey("test-api-key"),
 			WithBaseURL(server.server.URL),
 		)
@@ -1788,7 +1800,7 @@ func TestDoGenerate(t *testing.T) {
 
 		server.prepareJSONResponse(map[string]any{})
 
-		provider, err := New(
+		provider, err := New(WithModels(testModels),
 			WithAPIKey("test-api-key"),
 			WithBaseURL(server.server.URL),
 		)
@@ -1823,7 +1835,7 @@ func TestDoGenerate(t *testing.T) {
 			"content": "",
 		})
 
-		provider, err := New(
+		provider, err := New(WithModels(testModels),
 			WithAPIKey("test-api-key"),
 			WithBaseURL(server.server.URL),
 		)
@@ -1860,7 +1872,7 @@ func TestDoGenerate(t *testing.T) {
 
 		server.prepareJSONResponse(map[string]any{})
 
-		provider, err := New(
+		provider, err := New(WithModels(testModels),
 			WithAPIKey("test-api-key"),
 			WithBaseURL(server.server.URL),
 		)
@@ -1894,7 +1906,7 @@ func TestDoGenerate(t *testing.T) {
 
 		server.prepareJSONResponse(map[string]any{})
 
-		provider, err := New(
+		provider, err := New(WithModels(testModels),
 			WithAPIKey("test-api-key"),
 			WithBaseURL(server.server.URL),
 		)
@@ -1931,7 +1943,7 @@ func TestDoGenerate(t *testing.T) {
 
 		server.prepareJSONResponse(map[string]any{})
 
-		provider, err := New(
+		provider, err := New(WithModels(testModels),
 			WithAPIKey("test-api-key"),
 			WithBaseURL(server.server.URL),
 		)
@@ -2239,7 +2251,7 @@ func TestDoStream(t *testing.T) {
 			"logprobs": testLogprobs,
 		})
 
-		provider, err := New(
+		provider, err := New(WithModels(testModels),
 			WithAPIKey("test-api-key"),
 			WithBaseURL(server.server.URL),
 		)
@@ -2296,7 +2308,7 @@ func TestDoStream(t *testing.T) {
 
 		server.prepareToolStreamResponse()
 
-		provider, err := New(
+		provider, err := New(WithModels(testModels),
 			WithAPIKey("test-api-key"),
 			WithBaseURL(server.server.URL),
 		)
@@ -2383,7 +2395,7 @@ func TestDoStream(t *testing.T) {
 			},
 		})
 
-		provider, err := New(
+		provider, err := New(WithModels(testModels),
 			WithAPIKey("test-api-key"),
 			WithBaseURL(server.server.URL),
 		)
@@ -2423,7 +2435,7 @@ func TestDoStream(t *testing.T) {
 
 		server.prepareErrorStreamResponse()
 
-		provider, err := New(
+		provider, err := New(WithModels(testModels),
 			WithAPIKey("test-api-key"),
 			WithBaseURL(server.server.URL),
 		)
@@ -2465,7 +2477,7 @@ func TestDoStream(t *testing.T) {
 			"content": []string{},
 		})
 
-		provider, err := New(
+		provider, err := New(WithModels(testModels),
 			WithAPIKey("test-api-key"),
 			WithBaseURL(server.server.URL),
 		)
@@ -2514,7 +2526,7 @@ func TestDoStream(t *testing.T) {
 			},
 		})
 
-		provider, err := New(
+		provider, err := New(WithModels(testModels),
 			WithAPIKey("test-api-key"),
 			WithBaseURL(server.server.URL),
 		)
@@ -2565,7 +2577,7 @@ func TestDoStream(t *testing.T) {
 			},
 		})
 
-		provider, err := New(
+		provider, err := New(WithModels(testModels),
 			WithAPIKey("test-api-key"),
 			WithBaseURL(server.server.URL),
 		)
@@ -2609,7 +2621,7 @@ func TestDoStream(t *testing.T) {
 			"content": []string{},
 		})
 
-		provider, err := New(
+		provider, err := New(WithModels(testModels),
 			WithAPIKey("test-api-key"),
 			WithBaseURL(server.server.URL),
 		)
@@ -2652,7 +2664,7 @@ func TestDoStream(t *testing.T) {
 			"content": []string{},
 		})
 
-		provider, err := New(
+		provider, err := New(WithModels(testModels),
 			WithAPIKey("test-api-key"),
 			WithBaseURL(server.server.URL),
 		)
@@ -2699,7 +2711,7 @@ func TestDoStream(t *testing.T) {
 			"content": []string{},
 		})
 
-		provider, err := New(
+		provider, err := New(WithModels(testModels),
 			WithAPIKey("test-api-key"),
 			WithBaseURL(server.server.URL),
 		)
@@ -2742,7 +2754,7 @@ func TestDoStream(t *testing.T) {
 			"content": []string{},
 		})
 
-		provider, err := New(
+		provider, err := New(WithModels(testModels),
 			WithAPIKey("test-api-key"),
 			WithBaseURL(server.server.URL),
 		)
@@ -2786,7 +2798,7 @@ func TestDoStream(t *testing.T) {
 			"model":   "o1-preview",
 		})
 
-		provider, err := New(
+		provider, err := New(WithModels(testModels),
 			WithAPIKey("test-api-key"),
 			WithBaseURL(server.server.URL),
 		)
@@ -2833,7 +2845,7 @@ func TestDoStream(t *testing.T) {
 			},
 		})
 
-		provider, err := New(
+		provider, err := New(WithModels(testModels),
 			WithAPIKey("test-api-key"),
 			WithBaseURL(server.server.URL),
 		)

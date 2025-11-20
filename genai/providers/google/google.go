@@ -24,6 +24,7 @@ import (
 	"github.com/can1357/rush/genai/object"
 	"github.com/can1357/rush/genai/providers/anthropic"
 	"github.com/can1357/rush/genai/schema"
+	"github.com/charmbracelet/catwalk/pkg/catwalk"
 	"github.com/charmbracelet/x/exp/slice"
 	"github.com/google/uuid"
 	gai "google.golang.org/genai"
@@ -51,10 +52,17 @@ type options struct {
 	skipAuth       bool
 	toolCallIDFunc ToolCallIDFunc
 	objectMode     genai.ObjectMode
+	models         []catwalk.Model
 }
 
 // Option defines a function that configures Google provider options.
 type Option = func(*options)
+
+func WithModels(models []catwalk.Model) Option {
+	return func(o *options) {
+		o.models = models
+	}
+}
 
 // New creates a new Google provider with the given options.
 func New(opts ...Option) (genai.Provider, error) {
@@ -66,6 +74,10 @@ func New(opts ...Option) (genai.Provider, error) {
 	}
 	for _, o := range opts {
 		o(&options)
+	}
+
+	if options.models == nil {
+		options.models = genai.GetKnownProviderInfo(catwalk.InferenceProviderGemini).Models
 	}
 
 	options.name = cmp.Or(options.name, Name)
@@ -151,9 +163,22 @@ func (*provider) Name() string {
 	return Name
 }
 
+func (o *provider) Models() []catwalk.Model {
+	return o.options.models
+}
+
+func (o *provider) ModelDescription(modelID string) *catwalk.Model {
+	for i := range o.options.models {
+		if o.options.models[i].ID == modelID {
+			return &o.options.models[i]
+		}
+	}
+	return nil
+}
+
 type languageModel struct {
 	provider        string
-	modelID         string
+	model           *catwalk.Model
 	client          *gai.Client
 	providerOptions options
 	objectMode      genai.ObjectMode
@@ -161,6 +186,11 @@ type languageModel struct {
 
 // LanguageModel implements genai.Provider.
 func (a *provider) LanguageModel(ctx context.Context, modelID string) (genai.LanguageModel, error) {
+	model := a.ModelDescription(modelID)
+	if model == nil {
+		return nil, fmt.Errorf("model not found: %s", modelID)
+	}
+
 	if strings.Contains(modelID, "anthropic") || strings.Contains(modelID, "claude") {
 		p, err := anthropic.New(
 			anthropic.WithVertex(a.options.project, a.options.location),
@@ -209,7 +239,7 @@ func (a *provider) LanguageModel(ctx context.Context, modelID string) (genai.Lan
 	}
 
 	return &languageModel{
-		modelID:         modelID,
+		model:           model,
 		provider:        a.options.name,
 		providerOptions: a.options,
 		client:          client,
@@ -252,7 +282,7 @@ func (g languageModel) prepareParams(call genai.Call) (*gai.GenerateContentConfi
 		}
 	}
 
-	isGemmaModel := strings.HasPrefix(strings.ToLower(g.modelID), "gemma-")
+	isGemmaModel := strings.HasPrefix(strings.ToLower(g.model.ID), "gemma-")
 
 	if isGemmaModel && systemInstructions != nil && len(systemInstructions.Parts) > 0 {
 		if len(content) > 0 && content[0].Role == gai.RoleUser {
@@ -537,7 +567,7 @@ func (g *languageModel) Generate(ctx context.Context, call genai.Call) (*genai.R
 		return nil, errors.New("no messages to send")
 	}
 
-	chat, err := g.client.Chats.Create(ctx, g.modelID, config, history)
+	chat, err := g.client.Chats.Create(ctx, g.model.ID, config, history)
 	if err != nil {
 		return nil, err
 	}
@@ -551,8 +581,8 @@ func (g *languageModel) Generate(ctx context.Context, call genai.Call) (*genai.R
 }
 
 // Model implements genai.LanguageModel.
-func (g *languageModel) Model() string {
-	return g.modelID
+func (g *languageModel) Model() *catwalk.Model {
+	return g.model
 }
 
 // Provider implements genai.LanguageModel.
@@ -572,7 +602,7 @@ func (g *languageModel) Stream(ctx context.Context, call genai.Call) (genai.Stre
 		return nil, errors.New("no messages to send")
 	}
 
-	chat, err := g.client.Chats.Create(ctx, g.modelID, config, history)
+	chat, err := g.client.Chats.Create(ctx, g.model.ID, config, history)
 	if err != nil {
 		return nil, err
 	}
@@ -912,7 +942,7 @@ func (g *languageModel) generateObjectWithJSONMode(ctx context.Context, call gen
 		return nil, errors.New("no messages to send")
 	}
 
-	chat, err := g.client.Chats.Create(ctx, g.modelID, config, history)
+	chat, err := g.client.Chats.Create(ctx, g.model.ID, config, history)
 	if err != nil {
 		return nil, err
 	}
@@ -994,7 +1024,7 @@ func (g *languageModel) streamObjectWithJSONMode(ctx context.Context, call genai
 		return nil, errors.New("no messages to send")
 	}
 
-	chat, err := g.client.Chats.Create(ctx, g.modelID, config, history)
+	chat, err := g.client.Chats.Create(ctx, g.model.ID, config, history)
 	if err != nil {
 		return nil, err
 	}

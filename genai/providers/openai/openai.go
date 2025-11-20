@@ -12,9 +12,11 @@ package openai
 import (
 	"cmp"
 	"context"
+	"fmt"
 	"maps"
 
 	"github.com/can1357/rush/genai"
+	"github.com/charmbracelet/catwalk/pkg/catwalk"
 	"github.com/openai/openai-go/v2"
 	"github.com/openai/openai-go/v2/option"
 )
@@ -42,10 +44,17 @@ type options struct {
 	sdkOptions           []option.RequestOption
 	objectMode           genai.ObjectMode
 	languageModelOptions []LanguageModelOption
+	models               []catwalk.Model
 }
 
 // Option defines a function that configures OpenAI provider options.
 type Option = func(*options)
+
+func WithModels(models []catwalk.Model) Option {
+	return func(o *options) {
+		o.models = models
+	}
+}
 
 // New creates a new OpenAI provider with the given options.
 func New(opts ...Option) (genai.Provider, error) {
@@ -55,6 +64,10 @@ func New(opts ...Option) (genai.Provider, error) {
 	}
 	for _, o := range opts {
 		o(&providerOptions)
+	}
+
+	if providerOptions.models == nil {
+		providerOptions.models = genai.GetKnownProviderInfo(catwalk.InferenceProviderOpenAI).Models
 	}
 
 	providerOptions.baseURL = cmp.Or(providerOptions.baseURL, DefaultURL)
@@ -156,6 +169,11 @@ func (o *provider) LanguageModel(_ context.Context, modelID string) (genai.Langu
 	openaiClientOptions := make([]option.RequestOption, 0, 5+len(o.options.headers)+len(o.options.sdkOptions))
 	openaiClientOptions = append(openaiClientOptions, option.WithMaxRetries(0))
 
+	model := o.ModelDescription(modelID)
+	if model == nil {
+		return nil, fmt.Errorf("model not found: %s", modelID)
+	}
+
 	if o.options.apiKey != "" {
 		openaiClientOptions = append(openaiClientOptions, option.WithAPIKey(o.options.apiKey))
 	}
@@ -181,13 +199,13 @@ func (o *provider) LanguageModel(_ context.Context, modelID string) (genai.Langu
 		if objectMode == genai.ObjectModeJSON {
 			objectMode = genai.ObjectModeAuto
 		}
-		return newResponsesLanguageModel(modelID, o.options.name, client, objectMode), nil
+		return newResponsesLanguageModel(model, o.options.name, client, objectMode), nil
 	}
 
 	o.options.languageModelOptions = append(o.options.languageModelOptions, WithLanguageModelObjectMode(o.options.objectMode))
 
 	return newLanguageModel(
-		modelID,
+		model,
 		o.options.name,
 		client,
 		o.options.languageModelOptions...,
@@ -196,4 +214,17 @@ func (o *provider) LanguageModel(_ context.Context, modelID string) (genai.Langu
 
 func (o *provider) Name() string {
 	return Name
+}
+
+func (o *provider) Models() []catwalk.Model {
+	return o.options.models
+}
+
+func (o *provider) ModelDescription(modelID string) *catwalk.Model {
+	for i := range o.options.models {
+		if o.options.models[i].ID == modelID {
+			return &o.options.models[i]
+		}
+	}
+	return nil
 }

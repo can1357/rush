@@ -271,7 +271,9 @@ func (a *appModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return a, util.ReportError(err)
 		}
 
-		go a.app.UpdateAgentModel(context.TODO())
+		if msg.ModelType == config.DefaultAI {
+			go a.app.SelectModel(context.TODO(), msg.Model)
+		}
 		return a, util.ReportInfo(fmt.Sprintf("%s model changed to %s", msg.ModelType.Name(), msg.Model.Model))
 
 	// File Picker
@@ -667,7 +669,7 @@ func (a *appModel) View() tea.View {
 
 func (a *appModel) handleStateChanged(ctx context.Context) tea.Cmd {
 	return func() tea.Msg {
-		a.app.UpdateAgentModel(ctx)
+		a.app.SelectModel(ctx, a.app.AgentCoordinator.Model().Selection)
 		return nil
 	}
 }

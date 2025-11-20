@@ -27,6 +27,7 @@ import (
 	"github.com/charmbracelet/anthropic-sdk-go/option"
 	"github.com/charmbracelet/anthropic-sdk-go/packages/param"
 	"github.com/charmbracelet/anthropic-sdk-go/vertex"
+	"github.com/charmbracelet/catwalk/pkg/catwalk"
 	"golang.org/x/oauth2/google"
 )
 
@@ -51,6 +52,7 @@ type options struct {
 	useBedrock bool
 
 	objectMode genai.ObjectMode
+	models     []catwalk.Model
 }
 
 type provider struct {
@@ -60,6 +62,12 @@ type provider struct {
 // Option defines a function that configures Anthropic provider options.
 type Option = func(*options)
 
+func WithModels(models []catwalk.Model) Option {
+	return func(o *options) {
+		o.models = models
+	}
+}
+
 // New creates a new Anthropic provider with the given options.
 func New(opts ...Option) (genai.Provider, error) {
 	providerOptions := options{
@@ -68,6 +76,10 @@ func New(opts ...Option) (genai.Provider, error) {
 	}
 	for _, o := range opts {
 		o(&providerOptions)
+	}
+
+	if providerOptions.models == nil {
+		providerOptions.models = genai.GetKnownProviderInfo(catwalk.InferenceProviderAnthropic).Models
 	}
 
 	providerOptions.baseURL = cmp.Or(providerOptions.baseURL, DefaultURL)
@@ -147,6 +159,11 @@ func (a *provider) LanguageModel(ctx context.Context, modelID string) (genai.Lan
 	clientOptions := make([]option.RequestOption, 0, 5+len(a.options.headers))
 	clientOptions = append(clientOptions, option.WithMaxRetries(0))
 
+	model := a.ModelDescription(modelID)
+	if model == nil {
+		return nil, fmt.Errorf("model not found: %s", modelID)
+	}
+
 	if a.options.apiKey != "" && !a.options.useBedrock {
 		clientOptions = append(clientOptions, option.WithAPIKey(a.options.apiKey))
 	}
@@ -197,6 +214,7 @@ func (a *provider) LanguageModel(ctx context.Context, modelID string) (genai.Lan
 		}
 	}
 	return languageModel{
+		model:    model,
 		modelID:  modelID,
 		provider: a.options.name,
 		options:  a.options,
@@ -205,6 +223,7 @@ func (a *provider) LanguageModel(ctx context.Context, modelID string) (genai.Lan
 }
 
 type languageModel struct {
+	model    *catwalk.Model
 	provider string
 	modelID  string
 	client   anthropic.Client
@@ -212,8 +231,8 @@ type languageModel struct {
 }
 
 // Model implements genai.LanguageModel.
-func (a languageModel) Model() string {
-	return a.modelID
+func (a languageModel) Model() *catwalk.Model {
+	return a.model
 }
 
 // Provider implements genai.LanguageModel.
@@ -324,6 +343,19 @@ func (a languageModel) prepareParams(call genai.Call) (*anthropic.MessageNewPara
 
 func (a *provider) Name() string {
 	return Name
+}
+
+func (a *provider) Models() []catwalk.Model {
+	return a.options.models
+}
+
+func (a *provider) ModelDescription(modelID string) *catwalk.Model {
+	for i := range a.options.models {
+		if a.options.models[i].ID == modelID {
+			return &a.options.models[i]
+		}
+	}
+	return nil
 }
 
 // GetCacheControl extracts cache control settings from provider options.

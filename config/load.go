@@ -420,10 +420,10 @@ func (c *Config) setDefaults(workingDir, dataDir string) {
 		c.Providers = csync.NewMap[string, ProviderConfig]()
 	}
 	if c.Models == nil {
-		c.Models = make(map[ModelType]SelectedModel)
+		c.Models = make(map[ModelType]ModelSelection)
 	}
 	if c.RecentModels == nil {
-		c.RecentModels = make(map[ModelType][]SelectedModel)
+		c.RecentModels = make(map[ModelType][]ModelSelection)
 	}
 	if c.MCP == nil {
 		c.MCP = make(map[string]MCPConfig)
@@ -491,7 +491,7 @@ func (c *Config) applyLSPDefaults() {
 	}
 }
 
-func (c *Config) defaultModelSelection(knownProviders []catwalk.Provider) (largeModel SelectedModel, smallModel SelectedModel, err error) {
+func (c *Config) defaultModelSelection(knownProviders []catwalk.Provider) (largeModel ModelSelection, smallModel ModelSelection, err error) {
 	if len(knownProviders) == 0 && c.Providers.Len() == 0 {
 		err = fmt.Errorf("no providers configured, please configure at least one provider")
 		return largeModel, smallModel, err
@@ -509,7 +509,7 @@ func (c *Config) defaultModelSelection(knownProviders []catwalk.Provider) (large
 			err = fmt.Errorf("default large model %s not found for provider %s", p.DefaultLargeModelID, p.ID)
 			return largeModel, smallModel, err
 		}
-		largeModel = SelectedModel{
+		largeModel = ModelSelection{
 			Provider:        string(p.ID),
 			Model:           defaultLargeModel.ID,
 			MaxTokens:       defaultLargeModel.DefaultMaxTokens,
@@ -521,7 +521,7 @@ func (c *Config) defaultModelSelection(knownProviders []catwalk.Provider) (large
 			err = fmt.Errorf("default small model %s not found for provider %s", p.DefaultSmallModelID, p.ID)
 			return largeModel, smallModel, err
 		}
-		smallModel = SelectedModel{
+		smallModel = ModelSelection{
 			Provider:        string(p.ID),
 			Model:           defaultSmallModel.ID,
 			MaxTokens:       defaultSmallModel.DefaultMaxTokens,
@@ -546,13 +546,13 @@ func (c *Config) defaultModelSelection(knownProviders []catwalk.Provider) (large
 		return largeModel, smallModel, err
 	}
 	defaultLargeModel := c.GetModel(providerConfig.ID, providerConfig.Models[0].ID)
-	largeModel = SelectedModel{
+	largeModel = ModelSelection{
 		Provider:  providerConfig.ID,
 		Model:     defaultLargeModel.ID,
 		MaxTokens: defaultLargeModel.DefaultMaxTokens,
 	}
 	defaultSmallModel := c.GetModel(providerConfig.ID, providerConfig.Models[0].ID)
-	smallModel = SelectedModel{
+	smallModel = ModelSelection{
 		Provider:  providerConfig.ID,
 		Model:     defaultSmallModel.ID,
 		MaxTokens: defaultSmallModel.DefaultMaxTokens,
@@ -567,7 +567,7 @@ func (c *Config) configureSelectedModels(knownProviders []catwalk.Provider) erro
 	}
 	large, small := defaultLarge, defaultSmall
 
-	largeModelSelected, largeModelConfigured := c.Models[LargeAI]
+	largeModelSelected, largeModelConfigured := c.Models[DefaultAI]
 	if largeModelConfigured {
 		if largeModelSelected.Model != "" {
 			large.Model = largeModelSelected.Model
@@ -579,7 +579,7 @@ func (c *Config) configureSelectedModels(knownProviders []catwalk.Provider) erro
 		if model == nil {
 			large = defaultLarge
 			// override the model type to large
-			err := c.UpdatePreferredModel(LargeAI, large)
+			err := c.UpdatePreferredModel(DefaultAI, large)
 			if err != nil {
 				return fmt.Errorf("failed to update preferred large model: %w", err)
 			}
@@ -654,7 +654,7 @@ func (c *Config) configureSelectedModels(knownProviders []catwalk.Provider) erro
 			small.Think = smallModelSelected.Think
 		}
 	}
-	c.Models[LargeAI] = large
+	c.Models[DefaultAI] = large
 	c.Models[SmallAI] = small
 	return nil
 }

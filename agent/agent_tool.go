@@ -181,12 +181,12 @@ func (c *coordinator) agentTool(ctx context.Context, description string) (genai.
 			}
 
 			model := agent.Model()
-			maxTokens := model.CatwalkCfg.DefaultMaxTokens
-			if model.ModelCfg.MaxTokens != 0 {
-				maxTokens = model.ModelCfg.MaxTokens
+			maxTokens := model.Props.DefaultMaxTokens
+			if model.Selection.MaxTokens != 0 {
+				maxTokens = model.Selection.MaxTokens
 			}
 
-			providerCfg, ok := c.cfg.Providers.Get(model.ModelCfg.Provider)
+			providerCfg, ok := c.cfg.Providers.Get(model.Selection.Provider)
 			if !ok {
 				return genai.ToolResponse{}, errors.New("model provider not configured")
 			}
@@ -196,11 +196,11 @@ func (c *coordinator) agentTool(ctx context.Context, description string) (genai.
 				Prompt:           params.Prompt,
 				MaxOutputTokens:  maxTokens,
 				ProviderOptions:  getProviderOptions(model, providerCfg),
-				Temperature:      model.ModelCfg.Temperature,
-				TopP:             model.ModelCfg.TopP,
-				TopK:             model.ModelCfg.TopK,
-				FrequencyPenalty: model.ModelCfg.FrequencyPenalty,
-				PresencePenalty:  model.ModelCfg.PresencePenalty,
+				Temperature:      model.Selection.Temperature,
+				TopP:             model.Selection.TopP,
+				TopK:             model.Selection.TopK,
+				FrequencyPenalty: model.Selection.FrequencyPenalty,
+				PresencePenalty:  model.Selection.PresencePenalty,
 			})
 			if err != nil {
 				return genai.NewTextErrorResponse("error generating response"), nil

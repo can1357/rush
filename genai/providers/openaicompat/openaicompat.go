@@ -12,6 +12,7 @@ package openaicompat
 import (
 	"github.com/can1357/rush/genai"
 	"github.com/can1357/rush/genai/providers/openai"
+	"github.com/charmbracelet/catwalk/pkg/catwalk"
 	"github.com/openai/openai-go/v2/option"
 )
 
@@ -113,5 +114,12 @@ func WithSDKOptions(opts ...option.RequestOption) Option {
 func WithObjectMode(om genai.ObjectMode) Option {
 	return func(o *options) {
 		o.objectMode = om
+	}
+}
+
+// WithModels sets the models for the OpenAI-compatible provider.
+func WithModels(models []catwalk.Model) Option {
+	return func(o *options) {
+		o.openaiOptions = append(o.openaiOptions, openai.WithModels(models))
 	}
 }

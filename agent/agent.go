@@ -58,7 +58,7 @@ type SessionAgentCall struct {
 
 type SessionAgent interface {
 	Run(context.Context, SessionAgentCall) (*genai.AgentResult, error)
-	SetModels(large Model, small Model)
+	SetModel(model Model)
 	SetTools(tools []genai.AgentTool)
 	Cancel(sessionID string)
 	CancelAll()
@@ -71,14 +71,13 @@ type SessionAgent interface {
 }
 
 type Model struct {
-	Model      genai.LanguageModel
-	CatwalkCfg catwalk.Model
-	ModelCfg   config.SelectedModel
+	Model     genai.LanguageModel
+	Props     *catwalk.Model
+	Selection config.ModelSelection
 }
 
 type sessionAgent struct {
-	largeModel           Model
-	smallModel           Model
+	model                Model
 	systemPromptPrefix   string
 	systemPrompt         string
 	tools                []genai.AgentTool
@@ -93,8 +92,7 @@ type sessionAgent struct {
 }
 
 type SessionAgentOptions struct {
-	LargeModel           Model
-	SmallModel           Model
+	Model                Model
 	SystemPromptPrefix   string
 	SystemPrompt         string
 	DisableAutoSummarize bool
@@ -109,8 +107,7 @@ func NewSessionAgent(
 	opts SessionAgentOptions,
 ) SessionAgent {
 	return &sessionAgent{
-		largeModel:           opts.LargeModel,
-		smallModel:           opts.SmallModel,
+		model:                opts.Model,
 		systemPromptPrefix:   opts.SystemPromptPrefix,
 		systemPrompt:         opts.SystemPrompt,
 		sessions:             opts.Sessions,
@@ -149,7 +146,7 @@ func (a *sessionAgent) Run(ctx context.Context, call SessionAgentCall) (*genai.A
 	}
 
 	agent := genai.NewAgent(
-		a.largeModel.Model,
+		a.model.Model,
 		genai.WithSystemPrompt(a.systemPrompt),
 		genai.WithTools(a.tools...),
 		genai.WithStopConditions(
@@ -279,8 +276,8 @@ Plan mode is active. The user indicated that they do not want you to execute yet
 			assistantMsg, err = a.messages.Create(callContext, call.SessionID, message.CreateMessageParams{
 				Role:     message.Assistant,
 				Parts:    []message.ContentPart{},
-				Model:    a.largeModel.ModelCfg.Model,
-				Provider: a.largeModel.ModelCfg.Provider,
+				Model:    a.model.Selection.Model,
+				Provider: a.model.Selection.Provider,
 			})
 			if err != nil {
 				return callContext, prepared, err
@@ -399,7 +396,7 @@ Plan mode is active. The user indicated that they do not want you to execute yet
 				finishReason = message.FinishReasonToolUse
 			}
 			currentAssistant.AddFinish(finishReason, "", "")
-			a.updateSessionUsage(a.largeModel, &currentSession, stepResult.Usage, a.openrouterCost(stepResult.ProviderMetadata))
+			a.updateSessionUsage(a.model, &currentSession, stepResult.Usage, a.openrouterCost(stepResult.ProviderMetadata))
 
 			// Increment turn count if message has actual content (not thinking-only)
 			if !currentAssistant.IsThinkingOnly() {
@@ -416,7 +413,7 @@ Plan mode is active. The user indicated that they do not want you to execute yet
 		},
 		StopWhen: []genai.StopCondition{
 			func(_ []genai.StepResult) bool {
-				cw := int64(a.largeModel.CatwalkCfg.ContextWindow)
+				cw := int64(a.model.Props.ContextWindow)
 				tokens := currentSession.CompletionTokens + currentSession.PromptTokens
 				remaining := cw - tokens
 				var threshold int64
@@ -531,20 +528,20 @@ Plan mode is active. The user indicated that they do not want you to execute yet
 	wg.Wait()
 
 	if shouldSummarize {
+		// Must release active request before Summarize, which checks IsSessionBusy
 		a.activeRequests.Del(call.SessionID)
 		if summarizeErr := a.Summarize(genCtx, call.SessionID, call.ProviderOptions); summarizeErr != nil {
 			return nil, summarizeErr
 		}
-		// If the agent wasn't done...
-		if len(currentAssistant.ToolCalls()) > 0 {
-			existing, ok := a.messageQueue.Get(call.SessionID)
-			if !ok {
-				existing = []SessionAgentCall{}
-			}
-			call.Prompt = fmt.Sprintf("The previous session was interrupted because it got too long, the initial user request was: `%s`", call.Prompt)
-			existing = append(existing, call)
-			a.messageQueue.Set(call.SessionID, existing)
+		// Always requeue to continue work after summarization
+		existing, ok := a.messageQueue.Get(call.SessionID)
+		if !ok {
+			existing = []SessionAgentCall{}
 		}
+		// Preserve the original intent but indicate this is a continuation
+		call.Prompt = "Continue with the task described in the conversation above. Complete any remaining work."
+		existing = append(existing, call)
+		a.messageQueue.Set(call.SessionID, existing)
 	}
 
 	// Release active request before processing queued messages.
@@ -586,8 +583,8 @@ func (a *sessionAgent) Summarize(ctx context.Context, sessionID string, opts gen
 	defer a.activeRequests.Del(sessionID)
 	defer cancel()
 
-	agent := genai.NewAgent(a.largeModel.Model,
-		genai.WithSystemPrompt(string(summaryPrompt)),
+	agent := genai.NewAgent(a.model.Model,
+		genai.WithSystemPrompt("You are a helpful AI assistant tasked with summarizing conversations."),
 		genai.WithStopConditions(
 			genai.StepCountIs(5),        // Max 5 steps for summarization.
 			genai.MaxTokensUsed(50_000), // Max 50k tokens for summarization.
@@ -595,8 +592,8 @@ func (a *sessionAgent) Summarize(ctx context.Context, sessionID string, opts gen
 	)
 	summaryMessage, err := a.messages.Create(ctx, sessionID, message.CreateMessageParams{
 		Role:             message.Assistant,
-		Model:            a.largeModel.Model.Model(),
-		Provider:         a.largeModel.Model.Provider(),
+		Model:            a.model.Model.Model().ID,
+		Provider:         a.model.Model.Provider(),
 		IsSummaryMessage: true,
 	})
 	if err != nil {
@@ -604,7 +601,7 @@ func (a *sessionAgent) Summarize(ctx context.Context, sessionID string, opts gen
 	}
 
 	resp, err := agent.Stream(genCtx, genai.AgentStreamCall{
-		Prompt:          "Provide a detailed summary of our conversation above.",
+		Prompt:          string(summaryPrompt),
 		Messages:        aiMsgs,
 		ProviderOptions: opts,
 		PrepareStep: func(callContext context.Context, options genai.PrepareStepFunctionOptions) (_ context.Context, prepared genai.PrepareStepResult, err error) {
@@ -650,6 +647,22 @@ func (a *sessionAgent) Summarize(ctx context.Context, sessionID string, opts gen
 		return err
 	}
 
+	// Add a continuation prompt after the summary to resume work
+	continuationMsg, err := a.messages.Create(ctx, sessionID, message.CreateMessageParams{
+		Role:     message.User,
+		Model:    a.model.Model.Model().ID,
+		Provider: a.model.Model.Provider(),
+	})
+	if err != nil {
+		return err
+	}
+	continuationMsg.AppendContent("<system-reminder>This session is being continued from a previous conversation that ran out of context. The conversation is summarized above. Please continue the conversation from where we left it off without asking the user any further questions. Continue with the last task that you were asked to work on.</system-reminder>")
+	continuationMsg.AddFinish(message.FinishReasonEndTurn, "", "")
+	err = a.messages.Update(ctx, continuationMsg)
+	if err != nil {
+		return err
+	}
+
 	var openrouterCost *float64
 	for _, step := range resp.Steps {
 		stepCost := a.openrouterCost(step.ProviderMetadata)
@@ -662,7 +675,7 @@ func (a *sessionAgent) Summarize(ctx context.Context, sessionID string, opts gen
 		}
 	}
 
-	a.updateSessionUsage(a.largeModel, &currentSession, resp.TotalUsage, openrouterCost)
+	a.updateSessionUsage(a.model, &currentSession, resp.TotalUsage, openrouterCost)
 
 	// Just in case, get just the last usage info.
 	usage := resp.Response.Usage
@@ -758,11 +771,11 @@ func (a *sessionAgent) generateTitle(ctx context.Context, session *session.Sessi
 	}
 
 	var maxOutput int64 = 40
-	if a.smallModel.CatwalkCfg.CanReason {
-		maxOutput = a.smallModel.CatwalkCfg.DefaultMaxTokens
+	if a.model.Props.CanReason {
+		maxOutput = a.model.Props.DefaultMaxTokens
 	}
 
-	agent := genai.NewAgent(a.smallModel.Model,
+	agent := genai.NewAgent(a.model.Model,
 		genai.WithSystemPrompt(string(titlePrompt)+"\n /no_think"),
 		genai.WithMaxOutputTokens(maxOutput),
 		genai.WithStopConditions(
@@ -816,7 +829,7 @@ func (a *sessionAgent) generateTitle(ctx context.Context, session *session.Sessi
 		}
 	}
 
-	a.updateSessionUsage(a.smallModel, session, resp.TotalUsage, openrouterCost)
+	a.updateSessionUsage(a.model, session, resp.TotalUsage, openrouterCost)
 	_, saveErr := a.sessions.Save(ctx, *session)
 	if saveErr != nil {
 		slog.Error("failed to save session title & usage", "error", saveErr)
@@ -838,7 +851,7 @@ func (a *sessionAgent) openrouterCost(metadata genai.ProviderMetadata) *float64 
 }
 
 func (a *sessionAgent) updateSessionUsage(model Model, session *session.Session, usage genai.Usage, overrideCost *float64) {
-	modelConfig := model.CatwalkCfg
+	modelConfig := model.Props
 	cost := modelConfig.CostPer1MInCached/1e6*float64(usage.CacheCreationTokens) +
 		modelConfig.CostPer1MOutCached/1e6*float64(usage.CacheReadTokens) +
 		modelConfig.CostPer1MIn/1e6*float64(usage.InputTokens) +
@@ -850,8 +863,8 @@ func (a *sessionAgent) updateSessionUsage(model Model, session *session.Session,
 		session.Cost += cost
 	}
 
-	session.CompletionTokens = usage.OutputTokens + usage.CacheReadTokens
-	session.PromptTokens = usage.InputTokens + usage.CacheCreationTokens
+	session.CompletionTokens += usage.OutputTokens + usage.CacheReadTokens
+	session.PromptTokens += usage.InputTokens + usage.CacheCreationTokens
 }
 
 func (a *sessionAgent) Cancel(sessionID string) {
@@ -923,9 +936,8 @@ func (a *sessionAgent) QueuedPrompts(sessionID string) int {
 	return len(l)
 }
 
-func (a *sessionAgent) SetModels(large Model, small Model) {
-	a.largeModel = large
-	a.smallModel = small
+func (a *sessionAgent) SetModel(model Model) {
+	a.model = model
 }
 
 func (a *sessionAgent) SetTools(tools []genai.AgentTool) {
@@ -933,5 +945,5 @@ func (a *sessionAgent) SetTools(tools []genai.AgentTool) {
 }
 
 func (a *sessionAgent) Model() Model {
-	return a.largeModel
+	return a.model
 }

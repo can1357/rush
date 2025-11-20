@@ -1121,8 +1121,8 @@ func TestConfig_configureSelectedModels(t *testing.T) {
 		}
 
 		cfg := &Config{
-			Models: map[ModelType]SelectedModel{
-				LargeAI: {
+			Models: map[ModelType]ModelSelection{
+				DefaultAI: {
 					Model: "larger-model",
 				},
 			},
@@ -1135,7 +1135,7 @@ func TestConfig_configureSelectedModels(t *testing.T) {
 
 		err = cfg.configureSelectedModels(knownProviders)
 		require.NoError(t, err)
-		large := cfg.Models[LargeAI]
+		large := cfg.Models[DefaultAI]
 		small := cfg.Models[SmallAI]
 		require.Equal(t, "larger-model", large.Model)
 		require.Equal(t, "openai", large.Provider)
@@ -1181,7 +1181,7 @@ func TestConfig_configureSelectedModels(t *testing.T) {
 		}
 
 		cfg := &Config{
-			Models: map[ModelType]SelectedModel{
+			Models: map[ModelType]ModelSelection{
 				SmallAI: {
 					Model:     "a-small-model",
 					Provider:  "anthropic",
@@ -1197,7 +1197,7 @@ func TestConfig_configureSelectedModels(t *testing.T) {
 
 		err = cfg.configureSelectedModels(knownProviders)
 		require.NoError(t, err)
-		large := cfg.Models[LargeAI]
+		large := cfg.Models[DefaultAI]
 		small := cfg.Models[SmallAI]
 		require.Equal(t, "large-model", large.Model)
 		require.Equal(t, "openai", large.Provider)
@@ -1228,8 +1228,8 @@ func TestConfig_configureSelectedModels(t *testing.T) {
 		}
 
 		cfg := &Config{
-			Models: map[ModelType]SelectedModel{
-				LargeAI: {
+			Models: map[ModelType]ModelSelection{
+				DefaultAI: {
 					MaxTokens: 100,
 				},
 			},
@@ -1242,7 +1242,7 @@ func TestConfig_configureSelectedModels(t *testing.T) {
 
 		err = cfg.configureSelectedModels(knownProviders)
 		require.NoError(t, err)
-		large := cfg.Models[LargeAI]
+		large := cfg.Models[DefaultAI]
 		require.Equal(t, "large-model", large.Model)
 		require.Equal(t, "openai", large.Provider)
 		require.Equal(t, int64(100), large.MaxTokens)

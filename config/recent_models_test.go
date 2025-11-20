@@ -39,17 +39,17 @@ func TestRecordRecentModel_AddsAndPersists(t *testing.T) {
 	cfg.setDefaults(dir, "")
 	cfg.dataConfigDir = filepath.Join(dir, "config.json")
 
-	err := cfg.recordRecentModel(LargeAI, SelectedModel{Provider: "openai", Model: "gpt-4o"})
+	err := cfg.recordRecentModel(DefaultAI, ModelSelection{Provider: "openai", Model: "gpt-4o"})
 	require.NoError(t, err)
 
 	// in-memory state
-	require.Len(t, cfg.RecentModels[LargeAI], 1)
-	require.Equal(t, "openai", cfg.RecentModels[LargeAI][0].Provider)
-	require.Equal(t, "gpt-4o", cfg.RecentModels[LargeAI][0].Model)
+	require.Len(t, cfg.RecentModels[DefaultAI], 1)
+	require.Equal(t, "openai", cfg.RecentModels[DefaultAI][0].Provider)
+	require.Equal(t, "gpt-4o", cfg.RecentModels[DefaultAI][0].Model)
 
 	// persisted state
 	rm := readRecentModels(t, cfg.dataConfigDir)
-	large, ok := rm[string(LargeAI)].([]any)
+	large, ok := rm[DefaultAI.String()].([]any)
 	require.True(t, ok)
 	require.Len(t, large, 1)
 	item, ok := large[0].(map[string]any)
@@ -67,15 +67,15 @@ func TestRecordRecentModel_DedupeAndMoveToFront(t *testing.T) {
 	cfg.dataConfigDir = filepath.Join(dir, "config.json")
 
 	// Add two entries
-	require.NoError(t, cfg.recordRecentModel(LargeAI, SelectedModel{Provider: "openai", Model: "gpt-4o"}))
-	require.NoError(t, cfg.recordRecentModel(LargeAI, SelectedModel{Provider: "anthropic", Model: "claude"}))
+	require.NoError(t, cfg.recordRecentModel(DefaultAI, ModelSelection{Provider: "openai", Model: "gpt-4o"}))
+	require.NoError(t, cfg.recordRecentModel(DefaultAI, ModelSelection{Provider: "anthropic", Model: "claude"}))
 	// Re-add first; should move to front and not duplicate
-	require.NoError(t, cfg.recordRecentModel(LargeAI, SelectedModel{Provider: "openai", Model: "gpt-4o"}))
+	require.NoError(t, cfg.recordRecentModel(DefaultAI, ModelSelection{Provider: "openai", Model: "gpt-4o"}))
 
-	got := cfg.RecentModels[LargeAI]
+	got := cfg.RecentModels[DefaultAI]
 	require.Len(t, got, 2)
-	require.Equal(t, SelectedModel{Provider: "openai", Model: "gpt-4o"}, got[0])
-	require.Equal(t, SelectedModel{Provider: "anthropic", Model: "claude"}, got[1])
+	require.Equal(t, ModelSelection{Provider: "openai", Model: "gpt-4o"}, got[0])
+	require.Equal(t, ModelSelection{Provider: "anthropic", Model: "claude"}, got[1])
 }
 
 func TestRecordRecentModel_TrimsToMax(t *testing.T) {
@@ -87,7 +87,7 @@ func TestRecordRecentModel_TrimsToMax(t *testing.T) {
 	cfg.dataConfigDir = filepath.Join(dir, "config.json")
 
 	// Insert 6 unique models; max is 5
-	entries := []SelectedModel{
+	entries := []ModelSelection{
 		{Provider: "p1", Model: "m1"},
 		{Provider: "p2", Model: "m2"},
 		{Provider: "p3", Model: "m3"},
@@ -96,22 +96,22 @@ func TestRecordRecentModel_TrimsToMax(t *testing.T) {
 		{Provider: "p6", Model: "m6"},
 	}
 	for _, e := range entries {
-		require.NoError(t, cfg.recordRecentModel(LargeAI, e))
+		require.NoError(t, cfg.recordRecentModel(DefaultAI, e))
 	}
 
 	// in-memory state
-	got := cfg.RecentModels[LargeAI]
+	got := cfg.RecentModels[DefaultAI]
 	require.Len(t, got, 5)
 	// Newest first, capped at 5: p6..p2
-	require.Equal(t, SelectedModel{Provider: "p6", Model: "m6"}, got[0])
-	require.Equal(t, SelectedModel{Provider: "p5", Model: "m5"}, got[1])
-	require.Equal(t, SelectedModel{Provider: "p4", Model: "m4"}, got[2])
-	require.Equal(t, SelectedModel{Provider: "p3", Model: "m3"}, got[3])
-	require.Equal(t, SelectedModel{Provider: "p2", Model: "m2"}, got[4])
+	require.Equal(t, ModelSelection{Provider: "p6", Model: "m6"}, got[0])
+	require.Equal(t, ModelSelection{Provider: "p5", Model: "m5"}, got[1])
+	require.Equal(t, ModelSelection{Provider: "p4", Model: "m4"}, got[2])
+	require.Equal(t, ModelSelection{Provider: "p3", Model: "m3"}, got[3])
+	require.Equal(t, ModelSelection{Provider: "p2", Model: "m2"}, got[4])
 
 	// persisted state: verify trimmed to 5 and newest-first order
 	rm := readRecentModels(t, cfg.dataConfigDir)
-	large, ok := rm[string(LargeAI)].([]any)
+	large, ok := rm[DefaultAI.String()].([]any)
 	require.True(t, ok)
 	require.Len(t, large, 5)
 	// Build provider:model IDs and verify order
@@ -132,14 +132,14 @@ func TestRecordRecentModel_SkipsEmptyValues(t *testing.T) {
 	cfg.dataConfigDir = filepath.Join(dir, "config.json")
 
 	// Missing provider
-	require.NoError(t, cfg.recordRecentModel(LargeAI, SelectedModel{Provider: "", Model: "m"}))
+	require.NoError(t, cfg.recordRecentModel(DefaultAI, ModelSelection{Provider: "", Model: "m"}))
 	// Missing model
-	require.NoError(t, cfg.recordRecentModel(LargeAI, SelectedModel{Provider: "p", Model: ""}))
+	require.NoError(t, cfg.recordRecentModel(DefaultAI, ModelSelection{Provider: "p", Model: ""}))
 
-	_, ok := cfg.RecentModels[LargeAI]
+	_, ok := cfg.RecentModels[DefaultAI]
 	// Map may be initialized, but should have no entries
 	if ok {
-		require.Len(t, cfg.RecentModels[LargeAI], 0)
+		require.Len(t, cfg.RecentModels[DefaultAI], 0)
 	}
 	// No file should be written (stat via fs.FS)
 	baseDir := filepath.Dir(cfg.dataConfigDir)
@@ -156,8 +156,8 @@ func TestRecordRecentModel_NoPersistOnNoop(t *testing.T) {
 	cfg.setDefaults(dir, "")
 	cfg.dataConfigDir = filepath.Join(dir, "config.json")
 
-	entry := SelectedModel{Provider: "openai", Model: "gpt-4o"}
-	require.NoError(t, cfg.recordRecentModel(LargeAI, entry))
+	entry := ModelSelection{Provider: "openai", Model: "gpt-4o"}
+	require.NoError(t, cfg.recordRecentModel(DefaultAI, entry))
 
 	baseDir := filepath.Dir(cfg.dataConfigDir)
 	fileName := filepath.Base(cfg.dataConfigDir)
@@ -170,7 +170,7 @@ func TestRecordRecentModel_NoPersistOnNoop(t *testing.T) {
 	beforeMod := stBefore.ModTime()
 
 	// Re-record same entry should be a no-op (no write)
-	require.NoError(t, cfg.recordRecentModel(LargeAI, entry))
+	require.NoError(t, cfg.recordRecentModel(DefaultAI, entry))
 
 	after, err := fs.ReadFile(os.DirFS(baseDir), fileName)
 	require.NoError(t, err)
@@ -190,7 +190,7 @@ func TestUpdatePreferredModel_UpdatesRecents(t *testing.T) {
 	cfg.setDefaults(dir, "")
 	cfg.dataConfigDir = filepath.Join(dir, "config.json")
 
-	sel := SelectedModel{Provider: "openai", Model: "gpt-4o"}
+	sel := ModelSelection{Provider: "openai", Model: "gpt-4o"}
 	require.NoError(t, cfg.UpdatePreferredModel(SmallAI, sel))
 
 	// in-memory
@@ -199,7 +199,7 @@ func TestUpdatePreferredModel_UpdatesRecents(t *testing.T) {
 
 	// persisted (read via fs.FS)
 	rm := readRecentModels(t, cfg.dataConfigDir)
-	small, ok := rm[string(SmallAI)].([]any)
+	small, ok := rm[SmallAI.String()].([]any)
 	require.True(t, ok)
 	require.Len(t, small, 1)
 }
@@ -213,30 +213,30 @@ func TestRecordRecentModel_TypeIsolation(t *testing.T) {
 	cfg.dataConfigDir = filepath.Join(dir, "config.json")
 
 	// Add models to both large and small types
-	largeModel := SelectedModel{Provider: "openai", Model: "gpt-4o"}
-	smallModel := SelectedModel{Provider: "anthropic", Model: "claude"}
+	largeModel := ModelSelection{Provider: "openai", Model: "gpt-4o"}
+	smallModel := ModelSelection{Provider: "anthropic", Model: "claude"}
 
-	require.NoError(t, cfg.recordRecentModel(LargeAI, largeModel))
+	require.NoError(t, cfg.recordRecentModel(DefaultAI, largeModel))
 	require.NoError(t, cfg.recordRecentModel(SmallAI, smallModel))
 
 	// in-memory: verify types maintain separate histories
-	require.Len(t, cfg.RecentModels[LargeAI], 1)
+	require.Len(t, cfg.RecentModels[DefaultAI], 1)
 	require.Len(t, cfg.RecentModels[SmallAI], 1)
-	require.Equal(t, largeModel, cfg.RecentModels[LargeAI][0])
+	require.Equal(t, largeModel, cfg.RecentModels[DefaultAI][0])
 	require.Equal(t, smallModel, cfg.RecentModels[SmallAI][0])
 
 	// Add another to large, verify small unchanged
-	anotherLarge := SelectedModel{Provider: "google", Model: "gemini"}
-	require.NoError(t, cfg.recordRecentModel(LargeAI, anotherLarge))
+	anotherLarge := ModelSelection{Provider: "google", Model: "gemini"}
+	require.NoError(t, cfg.recordRecentModel(DefaultAI, anotherLarge))
 
-	require.Len(t, cfg.RecentModels[LargeAI], 2)
+	require.Len(t, cfg.RecentModels[DefaultAI], 2)
 	require.Len(t, cfg.RecentModels[SmallAI], 1)
 	require.Equal(t, smallModel, cfg.RecentModels[SmallAI][0])
 
 	// persisted state: verify both types exist with correct lengths and contents
 	rm := readRecentModels(t, cfg.dataConfigDir)
 
-	large, ok := rm[string(LargeAI)].([]any)
+	large, ok := rm[DefaultAI.String()].([]any)
 	require.True(t, ok)
 	require.Len(t, large, 2)
 	// Verify newest first for large type
@@ -245,7 +245,7 @@ func TestRecordRecentModel_TypeIsolation(t *testing.T) {
 	require.Equal(t, "openai", large[1].(map[string]any)["provider"])
 	require.Equal(t, "gpt-4o", large[1].(map[string]any)["model"])
 
-	small, ok := rm[string(SmallAI)].([]any)
+	small, ok := rm[SmallAI.String()].([]any)
 	require.True(t, ok)
 	require.Len(t, small, 1)
 	require.Equal(t, "anthropic", small[0].(map[string]any)["provider"])

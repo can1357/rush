@@ -93,6 +93,7 @@ func zAIBuilder(model string) builderFunc {
 			openaicompat.WithBaseURL("https://api.z.ai/api/coding/paas/v4"),
 			openaicompat.WithAPIKey(os.Getenv("RUSH_ZAI_API_KEY")),
 			openaicompat.WithHTTPClient(&http.Client{Transport: r}),
+			openaicompat.WithModels([]catwalk.Model{{ID: model}}),
 		)
 		if err != nil {
 			return nil, err
@@ -137,21 +138,13 @@ func testEnv(t *testing.T) fakeEnv {
 func testSessionAgent(env fakeEnv, large, small genai.LanguageModel, systemPrompt string, tools ...genai.AgentTool) SessionAgent {
 	largeModel := Model{
 		Model: large,
-		CatwalkCfg: catwalk.Model{
-			ContextWindow:    200000,
-			DefaultMaxTokens: 10000,
-		},
-	}
-	smallModel := Model{
-		Model: small,
-		CatwalkCfg: catwalk.Model{
+		Props: &catwalk.Model{
 			ContextWindow:    200000,
 			DefaultMaxTokens: 10000,
 		},
 	}
 	agent := NewSessionAgent(SessionAgentOptions{
-		LargeModel:           largeModel,
-		SmallModel:           smallModel,
+		Model:                largeModel,
 		SystemPromptPrefix:   "",
 		SystemPrompt:         systemPrompt,
 		DisableAutoSummarize: false,

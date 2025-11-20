@@ -264,8 +264,9 @@ func (app *App) RunNonInteractive(ctx context.Context, output io.Writer, prompt 
 	}
 }
 
-func (app *App) UpdateAgentModel(ctx context.Context) error {
-	return app.AgentCoordinator.UpdateModels(ctx)
+func (app *App) SelectModel(ctx context.Context, model config.ModelSelection) error {
+	app.config.Models[config.DefaultAI] = model
+	return app.AgentCoordinator.UpdateMaestroModel(ctx, model)
 }
 
 func (app *App) setupEvents() {

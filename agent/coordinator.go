@@ -54,7 +54,7 @@ type Coordinator interface {
 	ClearQueue(sessionID string)
 	Summarize(context.Context, string) error
 	Model() Model
-	UpdateModels(ctx context.Context) error
+	UpdateMaestroModel(ctx context.Context, model config.ModelSelection) error
 }
 
 type coordinator struct {
@@ -66,6 +66,7 @@ type coordinator struct {
 	todos       todo.Service
 	questions   question.Service
 	lspClients  *csync.Map[string, *lsp.Client]
+	modelCache  *csync.Map[string, genai.LanguageModel]
 
 	currentAgent SessionAgent
 	agents       map[string]SessionAgent
@@ -123,16 +124,16 @@ func (c *coordinator) Run(ctx context.Context, sessionID string, prompt string, 
 	}
 
 	model := c.currentAgent.Model()
-	maxTokens := model.CatwalkCfg.DefaultMaxTokens
-	if model.ModelCfg.MaxTokens != 0 {
-		maxTokens = model.ModelCfg.MaxTokens
+	maxTokens := model.Props.DefaultMaxTokens
+	if model.Selection.MaxTokens != 0 {
+		maxTokens = model.Selection.MaxTokens
 	}
 
-	if !model.CatwalkCfg.SupportsImages && attachments != nil {
+	if !model.Props.SupportsImages && attachments != nil {
 		attachments = nil
 	}
 
-	providerCfg, ok := c.cfg.Providers.Get(model.ModelCfg.Provider)
+	providerCfg, ok := c.cfg.Providers.Get(model.Selection.Provider)
 	if !ok {
 		return nil, errors.New("model provider not configured")
 	}
@@ -160,8 +161,8 @@ func getProviderOptions(model Model, providerCfg config.ProviderConfig) genai.Pr
 	providerCfgOpts := []byte("{}")
 	catwalkOpts := []byte("{}")
 
-	if model.ModelCfg.ProviderOptions != nil {
-		data, err := json.Marshal(model.ModelCfg.ProviderOptions)
+	if model.Selection.ProviderOptions != nil {
+		data, err := json.Marshal(model.Selection.ProviderOptions)
 		if err == nil {
 			cfgOpts = data
 		}
@@ -174,8 +175,8 @@ func getProviderOptions(model Model, providerCfg config.ProviderConfig) genai.Pr
 		}
 	}
 
-	if model.CatwalkCfg.Options.ProviderOptions != nil {
-		data, err := json.Marshal(model.CatwalkCfg.Options.ProviderOptions)
+	if model.Props.Options.ProviderOptions != nil {
+		data, err := json.Marshal(model.Props.Options.ProviderOptions)
 		if err == nil {
 			catwalkOpts = data
 		}
@@ -204,11 +205,11 @@ func getProviderOptions(model Model, providerCfg config.ProviderConfig) genai.Pr
 	switch providerCfg.Type {
 	case openai.Name, azure.Name:
 		_, hasReasoningEffort := mergedOptions["reasoning_effort"]
-		if !hasReasoningEffort && model.ModelCfg.ReasoningEffort != "" {
-			mergedOptions["reasoning_effort"] = model.ModelCfg.ReasoningEffort
+		if !hasReasoningEffort && model.Selection.ReasoningEffort != "" {
+			mergedOptions["reasoning_effort"] = model.Selection.ReasoningEffort
 		}
-		if openai.IsResponsesModel(model.CatwalkCfg.ID) {
-			if openai.IsResponsesReasoningModel(model.CatwalkCfg.ID) {
+		if openai.IsResponsesModel(model.Props.ID) {
+			if openai.IsResponsesReasoningModel(model.Props.ID) {
 				mergedOptions["reasoning_summary"] = "auto"
 				mergedOptions["include"] = []openai.IncludeType{openai.IncludeReasoningEncryptedContent}
 			}
@@ -224,7 +225,7 @@ func getProviderOptions(model Model, providerCfg config.ProviderConfig) genai.Pr
 		}
 	case anthropic.Name:
 		_, hasThink := mergedOptions["thinking"]
-		if !hasThink && model.ModelCfg.Think {
+		if !hasThink && model.Selection.Think {
 			mergedOptions["thinking"] = map[string]any{
 				// TODO: kujtim see if we need to make this dynamic
 				"budget_tokens": 2000,
@@ -237,10 +238,10 @@ func getProviderOptions(model Model, providerCfg config.ProviderConfig) genai.Pr
 
 	case openrouter.Name:
 		_, hasReasoning := mergedOptions["reasoning"]
-		if !hasReasoning && model.ModelCfg.ReasoningEffort != "" {
+		if !hasReasoning && model.Selection.ReasoningEffort != "" {
 			mergedOptions["reasoning"] = map[string]any{
 				"enabled": true,
-				"effort":  model.ModelCfg.ReasoningEffort,
+				"effort":  model.Selection.ReasoningEffort,
 			}
 		}
 		parsed, err := openrouter.ParseOptions(mergedOptions)
@@ -261,8 +262,8 @@ func getProviderOptions(model Model, providerCfg config.ProviderConfig) genai.Pr
 		}
 	case openaicompat.Name:
 		_, hasReasoningEffort := mergedOptions["reasoning_effort"]
-		if !hasReasoningEffort && model.ModelCfg.ReasoningEffort != "" {
-			mergedOptions["reasoning_effort"] = model.ModelCfg.ReasoningEffort
+		if !hasReasoningEffort && model.Selection.ReasoningEffort != "" {
+			mergedOptions["reasoning_effort"] = model.Selection.ReasoningEffort
 		}
 		parsed, err := openaicompat.ParseOptions(mergedOptions)
 		if err == nil {
@@ -275,31 +276,26 @@ func getProviderOptions(model Model, providerCfg config.ProviderConfig) genai.Pr
 
 func mergeCallOptions(model Model, cfg config.ProviderConfig) (genai.ProviderOptions, *float64, *float64, *int64, *float64, *float64) {
 	modelOptions := getProviderOptions(model, cfg)
-	temp := cmp.Or(model.ModelCfg.Temperature, model.CatwalkCfg.Options.Temperature)
-	topP := cmp.Or(model.ModelCfg.TopP, model.CatwalkCfg.Options.TopP)
-	topK := cmp.Or(model.ModelCfg.TopK, model.CatwalkCfg.Options.TopK)
-	freqPenalty := cmp.Or(model.ModelCfg.FrequencyPenalty, model.CatwalkCfg.Options.FrequencyPenalty)
-	presPenalty := cmp.Or(model.ModelCfg.PresencePenalty, model.CatwalkCfg.Options.PresencePenalty)
+	temp := cmp.Or(model.Selection.Temperature, model.Props.Options.Temperature)
+	topP := cmp.Or(model.Selection.TopP, model.Props.Options.TopP)
+	topK := cmp.Or(model.Selection.TopK, model.Props.Options.TopK)
+	freqPenalty := cmp.Or(model.Selection.FrequencyPenalty, model.Props.Options.FrequencyPenalty)
+	presPenalty := cmp.Or(model.Selection.PresencePenalty, model.Props.Options.PresencePenalty)
 	return modelOptions, temp, topP, topK, freqPenalty, presPenalty
 }
 
 func (c *coordinator) buildAgent(ctx context.Context, prompt *prompt.Prompt, agent config.Agent) (SessionAgent, error) {
-	large, small, err := c.buildAgentModels(ctx)
+	model := c.Model()
+	systemPrompt, err := prompt.Build(ctx, model.Model.Provider(), model.Model.Model(), *c.cfg)
 	if err != nil {
 		return nil, err
 	}
 
-	systemPrompt, err := prompt.Build(ctx, large.Model.Provider(), large.Model.Model(), *c.cfg)
-	if err != nil {
-		return nil, err
-	}
-
-	largeProviderCfg, _ := c.cfg.Providers.Get(large.ModelCfg.Provider)
+	modelProviderCfg, _ := c.cfg.Providers.Get(model.Selection.Provider)
 	reminderService := reminder.NewService(c.todos, c.sessions)
 	result := NewSessionAgent(SessionAgentOptions{
-		LargeModel:           large,
-		SmallModel:           small,
-		SystemPromptPrefix:   largeProviderCfg.SystemPromptPrefix,
+		Model:                model,
+		SystemPromptPrefix:   modelProviderCfg.SystemPromptPrefix,
 		SystemPrompt:         systemPrompt,
 		DisableAutoSummarize: c.cfg.Options.DisableAutoSummarize,
 		IsYolo:               c.permissions.SkipRequests(),
@@ -398,87 +394,37 @@ func (c *coordinator) buildTools(ctx context.Context, agent config.Agent) ([]gen
 	return filteredTools, nil
 }
 
-// TODO: when we support multiple agents we need to change this so that we pass in the agent specific model config
-func (c *coordinator) buildAgentModels(ctx context.Context) (Model, Model, error) {
-	largeModelCfg, ok := c.cfg.Models[config.LargeAI]
+func (c *coordinator) buildAgentModel(ctx context.Context, sel config.ModelSelection) (Model, error) {
+	providerCfg, ok := c.cfg.Providers.Get(sel.Provider)
 	if !ok {
-		return Model{}, Model{}, errors.New("large model not selected")
-	}
-	smallModelCfg, ok := c.cfg.Models[config.SmallAI]
-	if !ok {
-		return Model{}, Model{}, errors.New("small model not selected")
-	}
-	largeProviderCfg, ok := c.cfg.Providers.Get(largeModelCfg.Provider)
-	if !ok {
-		return Model{}, Model{}, errors.New("large model provider not configured")
+		return Model{}, errors.New("model provider not configured")
 	}
 
-	largeProvider, err := c.buildProvider(largeProviderCfg, largeModelCfg)
+	provider, err := c.buildProvider(providerCfg, sel)
 	if err != nil {
-		return Model{}, Model{}, err
+		return Model{}, err
 	}
 
-	smallProviderCfg, ok := c.cfg.Providers.Get(smallModelCfg.Provider)
-	if !ok {
-		return Model{}, Model{}, errors.New("large model provider not configured")
-	}
+	var props *catwalk.Model
 
-	smallProvider, err := c.buildProvider(smallProviderCfg, largeModelCfg)
-	if err != nil {
-		return Model{}, Model{}, err
-	}
-
-	var largeCatwalkModel *catwalk.Model
-	var smallCatwalkModel *catwalk.Model
-
-	for _, m := range largeProviderCfg.Models {
-		if m.ID == largeModelCfg.Model {
-			largeCatwalkModel = &m
-		}
-	}
-	for _, m := range smallProviderCfg.Models {
-		if m.ID == smallModelCfg.Model {
-			smallCatwalkModel = &m
+	for i := range providerCfg.Models {
+		m := &providerCfg.Models[i]
+		if m.ID == sel.Model {
+			props = m
+			break
 		}
 	}
 
-	if largeCatwalkModel == nil {
-		return Model{}, Model{}, errors.New("large model not found in provider config")
+	if props == nil {
+		return Model{}, fmt.Errorf("model not found in provider config: %s", sel.Model)
 	}
 
-	if smallCatwalkModel == nil {
-		return Model{}, Model{}, errors.New("snall model not found in provider config")
-	}
-
-	largeModelID := largeModelCfg.Model
-	smallModelID := smallModelCfg.Model
-
-	if largeModelCfg.Provider == openrouter.Name && isExactoSupported(largeModelID) {
-		largeModelID += ":exacto"
-	}
-
-	if smallModelCfg.Provider == openrouter.Name && isExactoSupported(smallModelID) {
-		smallModelID += ":exacto"
-	}
-
-	largeModel, err := largeProvider.LanguageModel(ctx, largeModelID)
+	model, err := provider.LanguageModel(ctx, sel.Model)
 	if err != nil {
-		return Model{}, Model{}, err
-	}
-	smallModel, err := smallProvider.LanguageModel(ctx, smallModelID)
-	if err != nil {
-		return Model{}, Model{}, err
+		return Model{}, err
 	}
 
-	return Model{
-			Model:      largeModel,
-			CatwalkCfg: *largeCatwalkModel,
-			ModelCfg:   largeModelCfg,
-		}, Model{
-			Model:      smallModel,
-			CatwalkCfg: *smallCatwalkModel,
-			ModelCfg:   smallModelCfg,
-		}, nil
+	return Model{Model: model, Props: props, Selection: sel}, nil
 }
 
 func (c *coordinator) buildAnthropicProvider(baseURL, apiKey string, headers map[string]string) (genai.Provider, error) {
@@ -646,7 +592,7 @@ func (c *coordinator) buildGoogleVertexProvider(headers map[string]string, optio
 	return google.New(opts...)
 }
 
-func (c *coordinator) isAnthropicThinking(model config.SelectedModel) bool {
+func (c *coordinator) isAnthropicThinking(model config.ModelSelection) bool {
 	if model.Think {
 		return true
 	}
@@ -665,7 +611,7 @@ func (c *coordinator) isAnthropicThinking(model config.SelectedModel) bool {
 	return false
 }
 
-func (c *coordinator) buildProvider(providerCfg config.ProviderConfig, model config.SelectedModel) (genai.Provider, error) {
+func (c *coordinator) buildProvider(providerCfg config.ProviderConfig, model config.ModelSelection) (genai.Provider, error) {
 	headers := maps.Clone(providerCfg.ExtraHeaders)
 	if headers == nil {
 		headers = make(map[string]string)
@@ -740,13 +686,13 @@ func (c *coordinator) Model() Model {
 	return c.currentAgent.Model()
 }
 
-func (c *coordinator) UpdateModels(ctx context.Context) error {
-	// build the models again so we make sure we get the latest config
-	large, small, err := c.buildAgentModels(ctx)
-	if err != nil {
-		return err
-	}
-	c.currentAgent.SetModels(large, small)
+func (c *coordinator) UpdateMaestroModel(ctx context.Context, model config.ModelSelection) error {
+	currentModel := c.currentAgent.Model()
+	c.currentAgent.SetModel(Model{
+		Model:     currentModel.Model,
+		Props:     currentModel.Props,
+		Selection: model,
+	})
 
 	agentCfg, ok := c.cfg.Agents[config.AgentMaestro]
 	if !ok {
@@ -766,7 +712,7 @@ func (c *coordinator) QueuedPrompts(sessionID string) int {
 }
 
 func (c *coordinator) Summarize(ctx context.Context, sessionID string) error {
-	providerCfg, ok := c.cfg.Providers.Get(c.currentAgent.Model().ModelCfg.Provider)
+	providerCfg, ok := c.cfg.Providers.Get(c.currentAgent.Model().Selection.Provider)
 	if !ok {
 		return errors.New("model provider not configured")
 	}

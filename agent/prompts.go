@@ -49,5 +49,5 @@ func InitializePrompt(cfg config.Config) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	return systemPrompt.Build(context.Background(), "", "", cfg)
+	return systemPrompt.Build(context.Background(), "", nil, cfg)
 }

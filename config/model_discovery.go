@@ -108,7 +108,7 @@ func DiscoverModelsFromProvider(cfg ProviderConfig, resolver VariableResolver) (
 		if strings.Contains(m.ID, "*") {
 			continue
 		}
-		model := convertToCarwalkModel(m, cfg.DefaultModelMetadata)
+		model := toCatwalkModel(m, cfg.DefaultModelMetadata)
 		models = append(models, model)
 	}
 
@@ -125,8 +125,8 @@ func DiscoverModelsFromProvider(cfg ProviderConfig, resolver VariableResolver) (
 	return models, nil
 }
 
-// convertToCarwalkModel converts an OpenAI model to catwalk.Model format
-func convertToCarwalkModel(m OpenAIModel, defaults *DefaultModelMetadata) catwalk.Model {
+// toCatwalkModel converts an OpenAI model to catwalk.Model format
+func toCatwalkModel(m OpenAIModel, defaults *DefaultModelMetadata) catwalk.Model {
 	model := catwalk.Model{
 		ID:   m.ID,
 		Name: m.ID,

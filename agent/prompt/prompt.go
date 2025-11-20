@@ -14,6 +14,7 @@ import (
 	"github.com/can1357/rush/config"
 	"github.com/can1357/rush/home"
 	"github.com/can1357/rush/shell"
+	"github.com/charmbracelet/catwalk/pkg/catwalk"
 )
 
 // Prompt represents a template-based prompt generator.
@@ -74,7 +75,7 @@ func NewPrompt(name, promptTemplate string, opts ...Option) (*Prompt, error) {
 	return p, nil
 }
 
-func (p *Prompt) Build(ctx context.Context, provider, model string, cfg config.Config) (string, error) {
+func (p *Prompt) Build(ctx context.Context, provider string, model *catwalk.Model, cfg config.Config) (string, error) {
 	t, err := template.New(p.name).Parse(p.template)
 	if err != nil {
 		return "", fmt.Errorf("parsing template: %w", err)
@@ -146,7 +147,7 @@ func expandPath(path string, cfg config.Config) string {
 	return path
 }
 
-func (p *Prompt) promptData(ctx context.Context, provider, model string, cfg config.Config) (PromptDat, error) {
+func (p *Prompt) promptData(ctx context.Context, provider string, model *catwalk.Model, cfg config.Config) (PromptDat, error) {
 	workingDir := cmp.Or(p.workingDir, cfg.WorkingDir())
 	platform := cmp.Or(p.platform, runtime.GOOS)
 
@@ -162,10 +163,15 @@ func (p *Prompt) promptData(ctx context.Context, provider, model string, cfg con
 		files[pathKey] = content
 	}
 
+	modelId := ""
+	if model != nil {
+		modelId = model.ID
+	}
+
 	isGit := isGitRepo(cfg.WorkingDir())
 	data := PromptDat{
 		Provider:   provider,
-		Model:      model,
+		Model:      modelId,
 		Config:     cfg,
 		WorkingDir: filepath.ToSlash(workingDir),
 		IsGitRepo:  isGit,

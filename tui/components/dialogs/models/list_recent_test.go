@@ -143,7 +143,8 @@ func TestModelList_RecentlyUsedSectionAndPrunesInvalid(t *testing.T) {
 	// Config should be rewritten with pruned recents in dataDir
 	dataConf := filepath.Join(dataDir, "rush", "config.json")
 	rm := readRecentModels(t, dataConf)
-	largeAny, ok := rm["large"].([]any)
+	// After marshaling, "large" is normalized to "def" (DefaultAI)
+	largeAny, ok := rm["def"].([]any)
 	require.True(t, ok)
 	// Ensure that only valid recent(s) remain and the invalid one is removed
 	found := false
@@ -252,7 +253,8 @@ func TestModelList_PrunesInvalidModelWithinValidProvider(t *testing.T) {
 	// Config should be rewritten with pruned recents in dataDir
 	dataConf := filepath.Join(dataDir, "rush", "config.json")
 	rm := readRecentModels(t, dataConf)
-	largeAny, ok := rm["large"].([]any)
+	// After marshaling, "large" is normalized to "def" (DefaultAI)
+	largeAny, ok := rm["def"].([]any)
 	require.True(t, ok)
 	require.Len(t, largeAny, 1, "should only have one valid model")
 	// Verify only p1:m1 remains

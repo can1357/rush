@@ -10,15 +10,22 @@
 package azure
 
 import (
+	"context"
 	"fmt"
 	"regexp"
 	"strings"
 
 	"github.com/can1357/rush/genai"
 	"github.com/can1357/rush/genai/providers/openai"
+	"github.com/charmbracelet/catwalk/pkg/catwalk"
 	"github.com/openai/openai-go/v2/azure"
 	"github.com/openai/openai-go/v2/option"
 )
+
+type provider struct {
+	wrapped genai.Provider
+	models  []catwalk.Model
+}
 
 type options struct {
 	baseURL    string
@@ -26,6 +33,7 @@ type options struct {
 	apiVersion string
 
 	openaiOptions []openai.Option
+	models        []catwalk.Model
 }
 
 const (
@@ -46,6 +54,12 @@ var azureURLPattern = regexp.MustCompile(`^(?:https?://)?([a-zA-Z0-9-]+)\.(?:ope
 // Option defines a function that configures Azure provider options.
 type Option = func(*options)
 
+func WithModels(models []catwalk.Model) Option {
+	return func(o *options) {
+		o.models = models
+	}
+}
+
 // New creates a new Azure provider with the given options.
 func New(opts ...Option) (genai.Provider, error) {
 	o := options{
@@ -54,16 +68,30 @@ func New(opts ...Option) (genai.Provider, error) {
 	for _, opt := range opts {
 		opt(&o)
 	}
-	return openai.New(
+
+	if o.models == nil {
+		o.models = genai.GetKnownProviderInfo(catwalk.InferenceProviderAzure).Models
+	}
+
+	wrapped, err := openai.New(
 		append(
 			o.openaiOptions,
 			openai.WithName(Name),
 			openai.WithBaseURL(o.baseURL),
+			openai.WithModels(o.models),
 			openai.WithSDKOptions(
 				azure.WithAPIKey(o.apiKey),
 			),
 		)...,
 	)
+	if err != nil {
+		return nil, err
+	}
+
+	return &provider{
+		wrapped: wrapped,
+		models:  o.models,
+	}, nil
 }
 
 // WithBaseURL sets the base URL for the Azure provider.
@@ -122,4 +150,30 @@ func WithUseResponsesAPI() Option {
 	return func(o *options) {
 		o.openaiOptions = append(o.openaiOptions, openai.WithUseResponsesAPI())
 	}
+}
+
+// LanguageModel implements genai.Provider.
+func (p *provider) LanguageModel(ctx context.Context, modelID string) (genai.LanguageModel, error) {
+	model := p.ModelDescription(modelID)
+	if model == nil {
+		return nil, fmt.Errorf("model not found: %s", modelID)
+	}
+	return p.wrapped.LanguageModel(ctx, modelID)
+}
+
+func (p *provider) Name() string {
+	return Name
+}
+
+func (p *provider) Models() []catwalk.Model {
+	return p.models
+}
+
+func (p *provider) ModelDescription(modelID string) *catwalk.Model {
+	for i := range p.models {
+		if p.models[i].ID == modelID {
+			return &p.models[i]
+		}
+	}
+	return nil
 }

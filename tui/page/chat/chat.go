@@ -127,7 +127,7 @@ type chatPage struct {
 	isProjectInit    bool
 
 	// Model state for plan mode restoration
-	previousModel *config.SelectedModel
+	previousModel *config.ModelSelection
 }
 
 func New(app *app.App) ChatPage {
@@ -344,34 +344,25 @@ func (p *chatPage) Update(msg tea.Msg) (util.Model, tea.Cmd) {
 					p.session.PlanMode = sess.PlanMode
 
 					// Switch model and enable thinking for plan mode
-					cfg := config.Get()
-					agentCfg := cfg.Agents[config.AgentMaestro]
-
+					selectedModel := p.app.AgentCoordinator.Model().Selection
 					if msg.Enable {
-						// Entering plan mode: save current model and switch to extra model
-						currentModel := cfg.Models[agentCfg.Model]
-						p.previousModel = &currentModel
-
-						if extraModel := cfg.ModelByClass(config.XlargeAI); extraModel != nil {
-							// Switch to extra model
-							selectedModel := cfg.Models[config.XlargeAI]
+						cfg := config.Get()
+						if largeModel := cfg.ModelByClass(config.LargeAI); largeModel != nil {
+							selectedModel = cfg.Models[config.LargeAI]
 							selectedModel.Think = true // Force thinking on
-							cfg.Models[agentCfg.Model] = selectedModel
 						} else {
-							// No extra model, just enable thinking on current model
-							currentModel.Think = true
-							cfg.Models[agentCfg.Model] = currentModel
+							selectedModel.Think = true
 						}
 					} else {
 						// Exiting plan mode: restore previous model if saved
 						if p.previousModel != nil {
-							cfg.Models[agentCfg.Model] = *p.previousModel
+							selectedModel = *p.previousModel
 							p.previousModel = nil
 						}
 					}
 
-					// Update agent with new model settings
-					p.app.UpdateAgentModel(context.Background())
+					// Select the new model
+					p.app.SelectModel(context.Background(), selectedModel)
 
 					// Update sidebar to show plan mode indicator
 					cmd := p.sidebar.SetSession(sess)
@@ -645,12 +636,11 @@ func (p *chatPage) updateCompactConfig(compact bool) tea.Cmd {
 func (p *chatPage) toggleThinking() tea.Cmd {
 	return func() tea.Msg {
 		cfg := config.Get()
-		agentCfg := cfg.Agents[config.AgentMaestro]
-		currentModel := cfg.Models[agentCfg.Model]
 
 		// Toggle the thinking mode
-		currentModel.Think = !currentModel.Think
-		if err := cfg.UpdatePreferredModel(agentCfg.Model, currentModel); err != nil {
+		model := p.app.AgentCoordinator.Model().Selection
+		model.Think = !model.Think
+		if err := cfg.UpdatePreferredModel(config.DefaultAI, model); err != nil {
 			return util.InfoMsg{
 				Type: util.InfoTypeError,
 				Msg:  "Failed to update thinking mode: " + err.Error(),
@@ -658,7 +648,7 @@ func (p *chatPage) toggleThinking() tea.Cmd {
 		}
 
 		// Update the agent with the new configuration
-		go p.app.UpdateAgentModel(context.TODO())
+		go p.app.SelectModel(context.TODO(), model)
 
 		return nil
 	}
@@ -686,9 +676,8 @@ func (p *chatPage) handleReasoningEffortSelected(effort string) tea.Cmd {
 		cfg := config.Get()
 		agentCfg := cfg.Agents[config.AgentMaestro]
 		currentModel := cfg.Models[agentCfg.Model]
-
-		// Update the model configuration
 		currentModel.ReasoningEffort = effort
+
 		if err := cfg.UpdatePreferredModel(agentCfg.Model, currentModel); err != nil {
 			return util.InfoMsg{
 				Type: util.InfoTypeError,
@@ -697,7 +686,7 @@ func (p *chatPage) handleReasoningEffortSelected(effort string) tea.Cmd {
 		}
 
 		// Update the agent with the new configuration
-		if err := p.app.UpdateAgentModel(context.TODO()); err != nil {
+		if err := p.app.SelectModel(context.TODO(), currentModel); err != nil {
 			return util.InfoMsg{
 				Type: util.InfoTypeError,
 				Msg:  "Failed to update reasoning effort: " + err.Error(),
@@ -891,7 +880,7 @@ func (p *chatPage) sendMessage(text string, attachments []message.Attachment) te
 
 			// Update config
 			cfg.UpdatePreferredModel(agentCfg.Model, currentModel)
-			p.app.UpdateAgentModel(context.TODO())
+			p.app.SelectModel(context.TODO(), currentModel)
 
 			// Run the agent
 			_, err := p.app.AgentCoordinator.Run(context.Background(), session.ID, text, attachments...)
@@ -900,7 +889,7 @@ func (p *chatPage) sendMessage(text string, attachments []message.Attachment) te
 			currentModel.Think = originalThink
 			currentModel.ProviderOptions = originalProviderOpts
 			cfg.UpdatePreferredModel(agentCfg.Model, currentModel)
-			p.app.UpdateAgentModel(context.TODO())
+			p.app.SelectModel(context.TODO(), currentModel)
 
 			if err != nil {
 				isCancelErr := errors.Is(err, context.Canceled)
@@ -1335,15 +1324,14 @@ func (p *chatPage) togglePlanMode() tea.Cmd {
 		currentModel := cfg.Models[agentCfg.Model]
 		p.previousModel = &currentModel
 
-		if extraModel := cfg.ModelByClass(config.XlargeAI); extraModel != nil {
-			selectedModel := cfg.Models[config.XlargeAI]
+		selectedModel := currentModel
+		if extraModel := cfg.ModelByClass(config.LargeAI); extraModel != nil {
+			selectedModel = cfg.Models[config.LargeAI]
 			selectedModel.Think = true
-			cfg.Models[agentCfg.Model] = selectedModel
 		} else {
-			currentModel.Think = true
-			cfg.Models[agentCfg.Model] = currentModel
+			selectedModel.Think = true
 		}
-		p.app.UpdateAgentModel(context.Background())
+		p.app.SelectModel(context.Background(), selectedModel)
 
 		return tea.Batch(
 			util.CmdHandler(chat.SessionSelectedMsg(newSession)),

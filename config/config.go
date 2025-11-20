@@ -2,6 +2,7 @@ package config
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"log/slog"
 	"net/http"
@@ -48,12 +49,10 @@ func (m ModelType) Name() string {
 	switch m {
 	case SmallAI:
 		return "small"
+	case DefaultAI:
+		return "default"
 	case LargeAI:
 		return "large"
-	case XlargeAI:
-		return "xlarge"
-	case InheritAI:
-		return "inherit"
 	default:
 		return "unknown"
 	}
@@ -63,22 +62,71 @@ func (m ModelType) String() string {
 	switch m {
 	case SmallAI:
 		return "sm"
+	case DefaultAI:
+		return "def"
 	case LargeAI:
 		return "lg"
-	case XlargeAI:
-		return "xl"
-	case InheritAI:
-		return "def"
 	default:
 		return "unknown"
 	}
 }
 
+func (m ModelType) MarshalJSON() ([]byte, error) {
+	return json.Marshal(m.String())
+}
+
+func (m *ModelType) UnmarshalJSON(data []byte) error {
+	var s string
+	if err := json.Unmarshal(data, &s); err != nil {
+		return err
+	}
+
+	switch s {
+	case "small", "sm":
+		*m = SmallAI
+	case "default", "def", "large", "lg":
+		// "large" was the old name for what is now "default"
+		*m = DefaultAI
+	// Legacy types - map to closest equivalent
+	case "xlarge", "xl", "extra":
+		*m = LargeAI
+	case "inherit":
+		*m = DefaultAI
+	default:
+		return fmt.Errorf("unknown model type: %s", s)
+	}
+	return nil
+}
+
+// MarshalText implements encoding.TextMarshaler for map keys.
+func (m ModelType) MarshalText() ([]byte, error) {
+	return []byte(m.String()), nil
+}
+
+// UnmarshalText implements encoding.TextUnmarshaler for map keys.
+func (m *ModelType) UnmarshalText(data []byte) error {
+	s := string(data)
+	switch s {
+	case "small", "sm":
+		*m = SmallAI
+	case "default", "def", "large", "lg":
+		// "large" was the old name for what is now "default"
+		*m = DefaultAI
+	// Legacy types - map to closest equivalent
+	case "xlarge", "xl", "extra":
+		*m = LargeAI
+	case "inherit":
+		*m = DefaultAI
+	default:
+		return fmt.Errorf("unknown model type: %s", s)
+	}
+	return nil
+}
+
 const (
 	SmallAI ModelType = iota
+	DefaultAI
 	LargeAI
-	XlargeAI
-	InheritAI
 )
 
 const (
@@ -87,7 +135,7 @@ const (
 	AgentExplore string = "explore"
 )
 
-type SelectedModel struct {
+type ModelSelection struct {
 	// The model id as used by the provider API.
 	// Required.
 	Model string `json:"model" jsonschema:"required,description=The model ID as used by the provider API,example=gpt-4o"`
@@ -297,7 +345,7 @@ type Agent struct {
 	// This is the id of the system prompt used by the agent
 	Disabled bool `json:"disabled,omitempty"`
 
-	Model ModelType `json:"model" jsonschema:"required,description=The model type to use for this agent,enum=large,enum=small,enum=extra,default=large"`
+	Model ModelType `json:"model" jsonschema:"required,description=The model type to use for this agent,enum=,enum=small,enum=extra,default=large"`
 
 	// The available tools for the agent
 	//  if this is nil, all tools are available
@@ -311,6 +359,10 @@ type Agent struct {
 
 	// Overrides the context paths for this agent
 	ContextPaths []string `json:"context_paths,omitempty"`
+
+	// Maximum number of turns (request/response cycles) for this agent
+	// Zero means use default (50 for maestro, 20 for task/explore)
+	MaxTurns int `json:"max_turns,omitempty"`
 }
 
 type Tools struct {
@@ -331,9 +383,9 @@ type Config struct {
 	Schema string `json:"$schema,omitempty"`
 
 	// We currently only support large/small as values here.
-	Models map[ModelType]SelectedModel `json:"models,omitempty" jsonschema:"description=Model configurations for different model types,example={\"large\":{\"model\":\"gpt-4o\",\"provider\":\"openai\"}}"`
+	Models map[ModelType]ModelSelection `json:"models,omitempty" jsonschema:"description=Model configurations for different model types,example={\"large\":{\"model\":\"gpt-4o\",\"provider\":\"openai\"}}"`
 	// Recently used models stored in the data directory config.
-	RecentModels map[ModelType][]SelectedModel `json:"recent_models,omitempty" jsonschema:"description=Recently used models sorted by most recent first"`
+	RecentModels map[ModelType][]ModelSelection `json:"recent_models,omitempty" jsonschema:"description=Recently used models sorted by most recent first"`
 
 	// The providers that are configured
 	Providers *csync.Map[string, ProviderConfig] `json:"providers,omitempty" jsonschema:"description=AI provider configurations"`
@@ -408,9 +460,6 @@ func (c *Config) GetModelByType(modelType ModelType) *catwalk.Model {
 }
 
 func (c *Config) ModelByClass(modelClass ModelType) *catwalk.Model {
-	if modelClass == InheritAI {
-		modelClass = c.Agents[AgentMaestro].Model
-	}
 	selectedModel, ok := c.Models[modelClass]
 	if !ok {
 		return nil
@@ -433,7 +482,7 @@ func (c *Config) Resolve(key string) (string, error) {
 	return c.resolver.ResolveValue(key)
 }
 
-func (c *Config) UpdatePreferredModel(modelType ModelType, model SelectedModel) error {
+func (c *Config) UpdatePreferredModel(modelType ModelType, model ModelSelection) error {
 	c.Models[modelType] = model
 	if err := c.SetConfigField(fmt.Sprintf("models.%s", modelType), model); err != nil {
 		return fmt.Errorf("failed to update preferred model: %w", err)
@@ -510,30 +559,30 @@ func (c *Config) SetProviderAPIKey(providerID, apiKey string) error {
 
 const maxRecentModelsPerType = 5
 
-func (c *Config) recordRecentModel(modelType ModelType, model SelectedModel) error {
+func (c *Config) recordRecentModel(modelType ModelType, model ModelSelection) error {
 	if model.Provider == "" || model.Model == "" {
 		return nil
 	}
 
 	if c.RecentModels == nil {
-		c.RecentModels = make(map[ModelType][]SelectedModel)
+		c.RecentModels = make(map[ModelType][]ModelSelection)
 	}
 
-	eq := func(a, b SelectedModel) bool {
+	eq := func(a, b ModelSelection) bool {
 		return a.Provider == b.Provider && a.Model == b.Model
 	}
 
-	entry := SelectedModel{
+	entry := ModelSelection{
 		Provider: model.Provider,
 		Model:    model.Model,
 	}
 
 	current := c.RecentModels[modelType]
-	withoutCurrent := slices.DeleteFunc(slices.Clone(current), func(existing SelectedModel) bool {
+	withoutCurrent := slices.DeleteFunc(slices.Clone(current), func(existing ModelSelection) bool {
 		return eq(existing, entry)
 	})
 
-	updated := append([]SelectedModel{entry}, withoutCurrent...)
+	updated := append([]ModelSelection{entry}, withoutCurrent...)
 	if len(updated) > maxRecentModelsPerType {
 		updated = updated[:maxRecentModelsPerType]
 	}
@@ -610,20 +659,22 @@ func (c *Config) SetupAgents() {
 			ID:           AgentMaestro,
 			Name:         "Maestro",
 			Description:  "Main agent for coding tasks, software engineering, and general assistance.",
-			Model:        LargeAI,
+			Model:        DefaultAI,
 			ContextPaths: c.Options.ContextPaths,
 			AllowedTools: allowedTools,
+			MaxTurns:     50, // Main agent gets more turns for complex tasks
 		},
 
 		AgentTask: {
 			ID:           AgentTask,
 			Name:         "Task",
 			Description:  "General-purpose agent for researching complex questions, searching for code, and executing multi-step tasks. When you are searching for a keyword or file and are not confident that you will find the right match in the first few tries use this agent to perform the search for you.",
-			Model:        LargeAI,
+			Model:        DefaultAI,
 			ContextPaths: c.Options.ContextPaths,
 			AllowedTools: resolveReadOnlyTools(allowedTools),
 			// NO MCPs or LSPs by default
 			AllowedMCP: map[string][]string{},
+			MaxTurns:   20, // Task agent gets fewer turns for focused work
 		},
 
 		AgentExplore: {
@@ -635,6 +686,7 @@ func (c *Config) SetupAgents() {
 			AllowedTools: resolveReadOnlyTools(allowedTools),
 			// NO MCPs or LSPs by default
 			AllowedMCP: map[string][]string{},
+			MaxTurns:   20, // Explore agent gets fewer turns for quick searches
 		},
 	}
 	c.Agents = agents

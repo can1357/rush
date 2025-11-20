@@ -15,6 +15,7 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/charmbracelet/catwalk/pkg/catwalk"
 	"github.com/stretchr/testify/require"
 )
 
@@ -86,8 +87,11 @@ func (m *mockLanguageModel) Provider() string {
 	return "mock-provider"
 }
 
-func (m *mockLanguageModel) Model() string {
-	return "mock-model"
+func (m *mockLanguageModel) Model() *catwalk.Model {
+	return &catwalk.Model{
+		ID:   "mock-model",
+		Name: "Mock Model",
+	}
 }
 
 func (m *mockLanguageModel) GenerateObject(ctx context.Context, call ObjectCall) (*ObjectResponse, error) {

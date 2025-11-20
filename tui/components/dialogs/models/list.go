@@ -114,11 +114,11 @@ func (m *ModelListComponent) SetModelType(modelType int) tea.Cmd {
 	itemsByKey := make(map[string]list.CompletionItem[ModelOption])
 
 	cfg := config.Get()
-	var currentModel config.SelectedModel
-	selectedType := config.LargeAI
+	var currentModel config.ModelSelection
+	selectedType := config.DefaultAI
 	if m.modelType == LargeModelType {
-		currentModel = cfg.Models[config.LargeAI]
-		selectedType = config.LargeAI
+		currentModel = cfg.Models[config.DefaultAI]
+		selectedType = config.DefaultAI
 	} else {
 		currentModel = cfg.Models[config.SmallAI]
 		selectedType = config.SmallAI
@@ -278,7 +278,7 @@ func (m *ModelListComponent) SetModelType(modelType int) tea.Cmd {
 		recentGroup := list.Group[list.CompletionItem[ModelOption]]{
 			Section: recentSection,
 		}
-		var validRecentItems []config.SelectedModel
+		var validRecentItems []config.ModelSelection
 		for _, recent := range recentItems {
 			key := modelKey(recent.Provider, recent.Model)
 			option, ok := itemsByKey[key]

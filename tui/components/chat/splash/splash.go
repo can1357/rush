@@ -352,14 +352,14 @@ func (s *splashCmp) setPreferredModel(selectedItem models.ModelOption) tea.Cmd {
 		return util.ReportError(fmt.Errorf("model %s not found for provider %s", selectedItem.Model.ID, selectedItem.Provider.ID))
 	}
 
-	selectedModel := config.SelectedModel{
+	selectedModel := config.ModelSelection{
 		Model:           selectedItem.Model.ID,
 		Provider:        string(selectedItem.Provider.ID),
 		ReasoningEffort: model.DefaultReasoningEffort,
 		MaxTokens:       model.DefaultMaxTokens,
 	}
 
-	err := cfg.UpdatePreferredModel(config.LargeAI, selectedModel)
+	err := cfg.UpdatePreferredModel(config.DefaultAI, selectedModel)
 	if err != nil {
 		return util.ReportError(err)
 	}
@@ -386,7 +386,7 @@ func (s *splashCmp) setPreferredModel(selectedItem models.ModelOption) tea.Cmd {
 			}
 			return nil
 		}
-		smallSelectedModel := config.SelectedModel{
+		smallSelectedModel := config.ModelSelection{
 			Model:           smallModel,
 			Provider:        string(selectedItem.Provider.ID),
 			ReasoningEffort: model.DefaultReasoningEffort,

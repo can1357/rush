@@ -21,6 +21,7 @@ import (
 	"github.com/can1357/rush/genai"
 	"github.com/can1357/rush/genai/object"
 	"github.com/can1357/rush/genai/schema"
+	"github.com/charmbracelet/catwalk/pkg/catwalk"
 	xjson "github.com/charmbracelet/x/json"
 	"github.com/google/uuid"
 	"github.com/openai/openai-go/v2"
@@ -29,8 +30,8 @@ import (
 )
 
 type languageModel struct {
+	model                      *catwalk.Model
 	provider                   string
-	modelID                    string
 	client                     openai.Client
 	objectMode                 genai.ObjectMode
 	prepareCallFunc            LanguageModelPrepareCallFunc
@@ -106,9 +107,9 @@ func WithLanguageModelObjectMode(om genai.ObjectMode) LanguageModelOption {
 	}
 }
 
-func newLanguageModel(modelID string, provider string, client openai.Client, opts ...LanguageModelOption) languageModel {
+func newLanguageModel(desc *catwalk.Model, provider string, client openai.Client, opts ...LanguageModelOption) languageModel {
 	model := languageModel{
-		modelID:                    modelID,
+		model:                      desc,
 		provider:                   provider,
 		client:                     client,
 		objectMode:                 genai.ObjectModeAuto,
@@ -134,8 +135,8 @@ type streamToolCall struct {
 }
 
 // Model implements genai.LanguageModel.
-func (o languageModel) Model() string {
-	return o.modelID
+func (o languageModel) Model() *catwalk.Model {
+	return o.model
 }
 
 // Provider implements genai.LanguageModel.
@@ -145,7 +146,7 @@ func (o languageModel) Provider() string {
 
 func (o languageModel) prepareParams(call genai.Call) (*openai.ChatCompletionNewParams, []genai.CallWarning, error) {
 	params := &openai.ChatCompletionNewParams{}
-	messages, warnings := o.toPromptFunc(call.Prompt, o.provider, o.modelID)
+	messages, warnings := o.toPromptFunc(call.Prompt, o.provider, o.model.ID)
 	if call.TopK != nil {
 		warnings = append(warnings, genai.CallWarning{
 			Type:    genai.CallWarningTypeUnsupportedSetting,
@@ -169,7 +170,7 @@ func (o languageModel) prepareParams(call genai.Call) (*openai.ChatCompletionNew
 		params.PresencePenalty = param.NewOpt(*call.PresencePenalty)
 	}
 
-	if isReasoningModel(o.modelID) {
+	if isReasoningModel(o.model.ID) {
 		// remove unsupported settings for reasoning models
 		// see https://platform.openai.com/docs/guides/reasoning#limitations
 		if call.Temperature != nil {
@@ -215,7 +216,7 @@ func (o languageModel) prepareParams(call genai.Call) (*openai.ChatCompletionNew
 	}
 
 	// Handle search preview models
-	if isSearchPreviewModel(o.modelID) {
+	if isSearchPreviewModel(o.model.ID) {
 		if call.Temperature != nil {
 			params.Temperature = param.Opt[float64]{}
 			warnings = append(warnings, genai.CallWarning{
@@ -236,7 +237,7 @@ func (o languageModel) prepareParams(call genai.Call) (*openai.ChatCompletionNew
 	}
 
 	params.Messages = messages
-	params.Model = o.modelID
+	params.Model = o.model.ID
 
 	// Check if messages contain any tool-related content
 	hasToolMessages := false

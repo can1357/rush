@@ -34,7 +34,7 @@ const (
 
 // ModelSelectedMsg is sent when a model is selected
 type ModelSelectedMsg struct {
-	Model     config.SelectedModel
+	Model     config.ModelSelection
 	ModelType config.ModelType
 }
 
@@ -159,7 +159,7 @@ func (m *modelDialogCmp) Update(msg tea.Msg) (util.Model, tea.Cmd) {
 
 			var modelType config.ModelType
 			if m.modelList.GetModelType() == LargeModelType {
-				modelType = config.LargeAI
+				modelType = config.DefaultAI
 			} else {
 				modelType = config.SmallAI
 			}
@@ -169,7 +169,7 @@ func (m *modelDialogCmp) Update(msg tea.Msg) (util.Model, tea.Cmd) {
 				return m, tea.Sequence(
 					util.CmdHandler(dialogs.CloseDialogMsg{}),
 					util.CmdHandler(ModelSelectedMsg{
-						Model: config.SelectedModel{
+						Model: config.ModelSelection{
 							Model:           selectedItem.Model.ID,
 							Provider:        string(selectedItem.Provider.ID),
 							ReasoningEffort: selectedItem.Model.DefaultReasoningEffort,
@@ -381,7 +381,7 @@ func (m *modelDialogCmp) saveAPIKeyAndContinue(apiKey string) tea.Cmd {
 	return tea.Sequence(
 		util.CmdHandler(dialogs.CloseDialogMsg{}),
 		util.CmdHandler(ModelSelectedMsg{
-			Model: config.SelectedModel{
+			Model: config.ModelSelection{
 				Model:           selectedModel.Model.ID,
 				Provider:        string(selectedModel.Provider.ID),
 				ReasoningEffort: selectedModel.Model.DefaultReasoningEffort,

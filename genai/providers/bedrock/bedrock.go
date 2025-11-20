@@ -13,11 +13,13 @@ import (
 	"github.com/can1357/rush/genai"
 	"github.com/can1357/rush/genai/providers/anthropic"
 	"github.com/charmbracelet/anthropic-sdk-go/option"
+	"github.com/charmbracelet/catwalk/pkg/catwalk"
 )
 
 type options struct {
 	skipAuth         bool
 	anthropicOptions []anthropic.Option
+	models           []catwalk.Model
 }
 
 const (
@@ -28,18 +30,30 @@ const (
 // Option defines a function that configures Bedrock provider options.
 type Option = func(*options)
 
+func WithModels(models []catwalk.Model) Option {
+	return func(o *options) {
+		o.models = models
+	}
+}
+
 // New creates a new Bedrock provider with the given options.
 func New(opts ...Option) (genai.Provider, error) {
 	var o options
 	for _, opt := range opts {
 		opt(&o)
 	}
+
+	if o.models == nil {
+		o.models = genai.GetKnownProviderInfo(catwalk.InferenceProviderBedrock).Models
+	}
+
 	return anthropic.New(
 		append(
 			o.anthropicOptions,
 			anthropic.WithName(Name),
 			anthropic.WithBedrock(),
 			anthropic.WithSkipAuth(o.skipAuth),
+			anthropic.WithModels(o.models),
 		)...,
 	)
 }

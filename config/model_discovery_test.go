@@ -151,10 +151,10 @@ func TestConvertToCarwalkModel(t *testing.T) {
 				OwnedBy: "openai",
 			},
 			want: catwalk.Model{
-				ID:                "openai/gpt-4",
-				Name:              "openai/gpt-4",
-				ContextWindow:     8192,
-				DefaultMaxTokens:  4096,
+				ID:               "openai/gpt-4",
+				Name:             "openai/gpt-4",
+				ContextWindow:    8192,
+				DefaultMaxTokens: 4096,
 			},
 		},
 		{
@@ -164,10 +164,10 @@ func TestConvertToCarwalkModel(t *testing.T) {
 				OwnedBy: "anthropic",
 			},
 			want: catwalk.Model{
-				ID:                "claude-3-opus-20240229",
-				Name:              "claude-3-opus-20240229",
-				ContextWindow:     8192,
-				DefaultMaxTokens:  4096,
+				ID:               "claude-3-opus-20240229",
+				Name:             "claude-3-opus-20240229",
+				ContextWindow:    8192,
+				DefaultMaxTokens: 4096,
 			},
 		},
 		{
@@ -183,19 +183,19 @@ func TestConvertToCarwalkModel(t *testing.T) {
 				CostPer1MOut:     15.0,
 			},
 			want: catwalk.Model{
-				ID:                "custom-llm",
-				Name:              "custom-llm",
-				ContextWindow:     200000,
-				DefaultMaxTokens:  16000,
-				CostPer1MIn:       3.0,
-				CostPer1MOut:      15.0,
+				ID:               "custom-llm",
+				Name:             "custom-llm",
+				ContextWindow:    200000,
+				DefaultMaxTokens: 16000,
+				CostPer1MIn:      3.0,
+				CostPer1MOut:     15.0,
 			},
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got := convertToCarwalkModel(tt.input, tt.defaults)
+			got := toCatwalkModel(tt.input, tt.defaults)
 			assert.Equal(t, tt.want.ID, got.ID)
 			assert.Equal(t, tt.want.Name, got.Name)
 			assert.Equal(t, tt.want.ContextWindow, got.ContextWindow)

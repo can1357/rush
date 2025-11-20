@@ -11,6 +11,7 @@ import (
 
 	"github.com/can1357/rush/agent/prompt"
 	"github.com/can1357/rush/agent/tools"
+	"github.com/can1357/rush/config"
 	"github.com/can1357/rush/genai"
 	"github.com/can1357/rush/permission"
 )
@@ -131,9 +132,10 @@ func (c *coordinator) agenticFetchTool(_ context.Context, client *http.Client) (
 				return genai.ToolResponse{}, fmt.Errorf("error creating prompt: %s", err)
 			}
 
-			_, small, err := c.buildAgentModels(ctx)
+			smallSelection := c.cfg.Models[config.SmallAI]
+			small, err := c.buildAgentModel(ctx, smallSelection)
 			if err != nil {
-				return genai.ToolResponse{}, fmt.Errorf("error building models: %s", err)
+				return genai.ToolResponse{}, fmt.Errorf("error building small model: %s", err)
 			}
 
 			systemPrompt, err := promptTemplate.Build(ctx, small.Model.Provider(), small.Model.Model(), *c.cfg)
@@ -141,7 +143,7 @@ func (c *coordinator) agenticFetchTool(_ context.Context, client *http.Client) (
 				return genai.ToolResponse{}, fmt.Errorf("error building system prompt: %s", err)
 			}
 
-			smallProviderCfg, ok := c.cfg.Providers.Get(small.ModelCfg.Provider)
+			smallProviderCfg, ok := c.cfg.Providers.Get(small.Selection.Provider)
 			if !ok {
 				return genai.ToolResponse{}, errors.New("small model provider not configured")
 			}
@@ -155,8 +157,7 @@ func (c *coordinator) agenticFetchTool(_ context.Context, client *http.Client) (
 			}
 
 			agent := NewSessionAgent(SessionAgentOptions{
-				LargeModel:           small, // Use small model for both (fetch doesn't need large)
-				SmallModel:           small,
+				Model:                small,
 				SystemPromptPrefix:   smallProviderCfg.SystemPromptPrefix,
 				SystemPrompt:         systemPrompt,
 				DisableAutoSummarize: c.cfg.Options.DisableAutoSummarize,
@@ -176,9 +177,9 @@ func (c *coordinator) agenticFetchTool(_ context.Context, client *http.Client) (
 			c.permissions.AutoApproveSession(session.ID)
 
 			// Use small model for web content analysis (faster and cheaper)
-			maxTokens := small.CatwalkCfg.DefaultMaxTokens
-			if small.ModelCfg.MaxTokens != 0 {
-				maxTokens = small.ModelCfg.MaxTokens
+			maxTokens := small.Props.DefaultMaxTokens
+			if small.Selection.MaxTokens != 0 {
+				maxTokens = small.Selection.MaxTokens
 			}
 
 			result, err := agent.Run(ctx, SessionAgentCall{
@@ -186,11 +187,11 @@ func (c *coordinator) agenticFetchTool(_ context.Context, client *http.Client) (
 				Prompt:           fullPrompt,
 				MaxOutputTokens:  maxTokens,
 				ProviderOptions:  getProviderOptions(small, smallProviderCfg),
-				Temperature:      small.ModelCfg.Temperature,
-				TopP:             small.ModelCfg.TopP,
-				TopK:             small.ModelCfg.TopK,
-				FrequencyPenalty: small.ModelCfg.FrequencyPenalty,
-				PresencePenalty:  small.ModelCfg.PresencePenalty,
+				Temperature:      small.Selection.Temperature,
+				TopP:             small.Selection.TopP,
+				TopK:             small.Selection.TopK,
+				FrequencyPenalty: small.Selection.FrequencyPenalty,
+				PresencePenalty:  small.Selection.PresencePenalty,
 			})
 			if err != nil {
 				return genai.NewTextErrorResponse("error generating response"), nil

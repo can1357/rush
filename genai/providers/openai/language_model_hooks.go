@@ -132,7 +132,7 @@ func DefaultPrepareCallFunc(model genai.LanguageModel, params *openai.ChatComple
 		}
 	}
 
-	if isReasoningModel(model.Model()) {
+	if isReasoningModel(model.Model().ID) {
 		if providerOptions.LogitBias != nil {
 			params.LogitBias = nil
 			warnings = append(warnings, genai.CallWarning{
@@ -162,14 +162,14 @@ func DefaultPrepareCallFunc(model genai.LanguageModel, params *openai.ChatComple
 	// Handle service tier validation
 	if providerOptions.ServiceTier != nil {
 		serviceTier := *providerOptions.ServiceTier
-		if serviceTier == "flex" && !supportsFlexProcessing(model.Model()) {
+		if serviceTier == "flex" && !supportsFlexProcessing(model.Model().ID) {
 			params.ServiceTier = ""
 			warnings = append(warnings, genai.CallWarning{
 				Type:    genai.CallWarningTypeUnsupportedSetting,
 				Setting: "ServiceTier",
 				Details: "flex processing is only available for o3, o4-mini, and gpt-5 models",
 			})
-		} else if serviceTier == "priority" && !supportsPriorityProcessing(model.Model()) {
+		} else if serviceTier == "priority" && !supportsPriorityProcessing(model.Model().ID) {
 			params.ServiceTier = ""
 			warnings = append(warnings, genai.CallWarning{
 				Type:    genai.CallWarningTypeUnsupportedSetting,
