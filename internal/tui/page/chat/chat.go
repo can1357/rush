@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strings"
 	"time"
 
 	"charm.land/bubbles/v2/help"
@@ -642,10 +643,7 @@ func (p *chatPage) handleReasoningEffortSelected(effort string) tea.Cmd {
 			}
 		}
 
-		return util.InfoMsg{
-			Type: util.InfoTypeInfo,
-			Msg:  "Reasoning effort set to " + effort,
-		}
+		return nil
 	}
 }
 
@@ -799,8 +797,65 @@ func (p *chatPage) sendMessage(text string, attachments []message.Attachment) te
 	if p.app.AgentCoordinator == nil {
 		return util.ReportError(fmt.Errorf("coder agent is not initialized"))
 	}
+
+	// Check for ultrathink trigger
+	hasUltrathink := strings.Contains(strings.ToLower(text), "ultrathink")
+
 	cmds = append(cmds, p.chat.GoToBottom())
 	cmds = append(cmds, func() tea.Msg {
+		// Enable ultrathink for this request only
+		if hasUltrathink {
+			cfg := config.Get()
+			agentCfg := cfg.Agents[config.AgentRoot]
+			currentModel := cfg.Models[agentCfg.Model]
+
+			// Store original state
+			originalThink := currentModel.Think
+			originalProviderOpts := make(map[string]any)
+			if currentModel.ProviderOptions != nil {
+				for k, v := range currentModel.ProviderOptions {
+					originalProviderOpts[k] = v
+				}
+			}
+
+			// Enable extended thinking with max tokens
+			currentModel.Think = true
+			if currentModel.ProviderOptions == nil {
+				currentModel.ProviderOptions = make(map[string]any)
+			}
+			currentModel.ProviderOptions["thinking"] = map[string]any{
+				"type":          "enabled",
+				"budget_tokens": 32000,
+			}
+
+			// Update config
+			cfg.UpdatePreferredModel(agentCfg.Model, currentModel)
+			p.app.UpdateAgentModel(context.TODO())
+
+			// Run the agent
+			_, err := p.app.AgentCoordinator.Run(context.Background(), session.ID, text, attachments...)
+
+			// Restore original settings
+			currentModel.Think = originalThink
+			currentModel.ProviderOptions = originalProviderOpts
+			cfg.UpdatePreferredModel(agentCfg.Model, currentModel)
+			p.app.UpdateAgentModel(context.TODO())
+
+			if err != nil {
+				isCancelErr := errors.Is(err, context.Canceled)
+				isPermissionErr := errors.Is(err, permission.ErrorPermissionDenied)
+				if isCancelErr || isPermissionErr {
+					return nil
+				}
+				return util.InfoMsg{
+					Type: util.InfoTypeError,
+					Msg:  err.Error(),
+				}
+			}
+			return nil
+		}
+
+		// Normal request
 		_, err := p.app.AgentCoordinator.Run(context.Background(), session.ID, text, attachments...)
 		if err != nil {
 			isCancelErr := errors.Is(err, context.Canceled)

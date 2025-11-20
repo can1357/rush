@@ -445,6 +445,11 @@ func (m *editorCmp) View() string {
 	agentCfg := cfg.Agents[config.AgentRoot]
 	currentModel := cfg.Models[agentCfg.Model]
 	thinkingEnabled := currentModel.Think
+	reasoningEffort := currentModel.ReasoningEffort
+
+	// Check for ultrathink trigger in input
+	inputText := strings.ToLower(m.textarea.Value())
+	hasUltrathink := strings.Contains(inputText, "ultrathink")
 
 	// Update placeholder
 	if m.app.AgentCoordinator != nil && m.app.AgentCoordinator.IsBusy() {
@@ -457,7 +462,11 @@ func (m *editorCmp) View() string {
 	}
 
 	// Update textarea prompt color based on thinking mode
-	if thinkingEnabled {
+	if hasUltrathink || reasoningEffort == "high" {
+		// Ultra-thinking mode with rainbow colors (triggered by keyword or high effort)
+		m.textarea.SetPromptFunc(4, ultraThinkPromptFunc)
+	} else if thinkingEnabled || reasoningEffort != "" {
+		// Standard thinking mode with blue
 		m.textarea.SetPromptFunc(4, thinkingPromptFunc)
 	} else {
 		m.setEditorPrompt()
@@ -619,6 +628,26 @@ func thinkingPromptFunc(info textarea.PromptInfo) string {
 	}
 	if info.Focused {
 		return t.S().Base.Foreground(t.BlueDark).Render("::: ")
+	}
+	return t.S().Muted.Render("::: ")
+}
+
+func ultraThinkPromptFunc(info textarea.PromptInfo) string {
+	t := styles.CurrentTheme()
+	if info.LineNumber == 0 {
+		if info.Focused {
+			// Rainbow gradient for cursor
+			colors := []string{"#FF0080", "#FF8C00", "#FFD700", "#00FF7F", "#00CED1", "#4169E1", "#8A2BE2"}
+			colorIdx := info.LineNumber % len(colors)
+			return lipgloss.NewStyle().Foreground(lipgloss.Color(colors[colorIdx])).Render("  > ")
+		}
+		return t.S().Muted.Render("  > ")
+	}
+	if info.Focused {
+		// Cycle through rainbow colors for continuation lines
+		colors := []string{"#FF0080", "#FF8C00", "#FFD700", "#00FF7F", "#00CED1", "#4169E1", "#8A2BE2"}
+		colorIdx := info.LineNumber % len(colors)
+		return lipgloss.NewStyle().Foreground(lipgloss.Color(colors[colorIdx])).Render("::: ")
 	}
 	return t.S().Muted.Render("::: ")
 }
