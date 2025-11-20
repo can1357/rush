@@ -125,6 +125,9 @@ type chatPage struct {
 	splashFullScreen bool
 	isOnboarding     bool
 	isProjectInit    bool
+
+	// Model state for plan mode restoration
+	previousModel *config.SelectedModel
 }
 
 func New(app *app.App) ChatPage {
@@ -345,7 +348,10 @@ func (p *chatPage) Update(msg tea.Msg) (util.Model, tea.Cmd) {
 					agentCfg := cfg.Agents[config.AgentRoot]
 
 					if msg.Enable {
-						// Entering plan mode: use extra model if configured, enable thinking
+						// Entering plan mode: save current model and switch to extra model
+						currentModel := cfg.Models[agentCfg.Model]
+						p.previousModel = &currentModel
+
 						if extraModel := cfg.ExtraModel(); extraModel != nil {
 							// Switch to extra model
 							selectedModel := cfg.Models[config.SelectedModelTypeExtra]
@@ -353,13 +359,16 @@ func (p *chatPage) Update(msg tea.Msg) (util.Model, tea.Cmd) {
 							cfg.Models[agentCfg.Model] = selectedModel
 						} else {
 							// No extra model, just enable thinking on current model
-							currentModel := cfg.Models[agentCfg.Model]
 							currentModel.Think = true
 							cfg.Models[agentCfg.Model] = currentModel
 						}
+					} else {
+						// Exiting plan mode: restore previous model if saved
+						if p.previousModel != nil {
+							cfg.Models[agentCfg.Model] = *p.previousModel
+							p.previousModel = nil
+						}
 					}
-					// Note: When exiting plan mode, thinking/model settings remain
-					// User can manually adjust if needed
 
 					// Update agent with new model settings
 					p.app.UpdateAgentModel(context.Background())
@@ -1321,12 +1330,16 @@ func (p *chatPage) togglePlanMode() tea.Cmd {
 		// Switch to extra model and enable thinking for plan mode
 		cfg := config.Get()
 		agentCfg := cfg.Agents[config.AgentRoot]
+
+		// Save current model for restoration
+		currentModel := cfg.Models[agentCfg.Model]
+		p.previousModel = &currentModel
+
 		if extraModel := cfg.ExtraModel(); extraModel != nil {
 			selectedModel := cfg.Models[config.SelectedModelTypeExtra]
 			selectedModel.Think = true
 			cfg.Models[agentCfg.Model] = selectedModel
 		} else {
-			currentModel := cfg.Models[agentCfg.Model]
 			currentModel.Think = true
 			cfg.Models[agentCfg.Model] = currentModel
 		}
