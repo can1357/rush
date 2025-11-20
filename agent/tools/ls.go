@@ -41,7 +41,7 @@ type LSResponseMetadata struct {
 }
 
 const (
-	LSToolName = "ls"
+	LSToolName = "Ls"
 	maxLSFiles = 1000
 )
 

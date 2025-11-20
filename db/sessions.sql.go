@@ -33,7 +33,7 @@ INSERT INTO sessions (
     null,
     strftime('%s', 'now'),
     strftime('%s', 'now')
-) RETURNING id, parent_session_id, title, message_count, prompt_tokens, completion_tokens, cost, updated_at, created_at, summary_message_id, last_todo_write_turn, last_reminder_turn, assistant_turn_count, plan_mode
+) RETURNING id, parent_session_id, title, message_count, prompt_tokens, completion_tokens, cost, updated_at, created_at, summary_message_id, last_todo_write_turn, last_reminder_turn, assistant_turn_count, plan_mode, current_input_tokens, current_output_tokens
 `
 
 type CreateSessionParams struct {
@@ -72,6 +72,8 @@ func (q *Queries) CreateSession(ctx context.Context, arg CreateSessionParams) (S
 		&i.LastReminderTurn,
 		&i.AssistantTurnCount,
 		&i.PlanMode,
+		&i.CurrentInputTokens,
+		&i.CurrentOutputTokens,
 	)
 	return i, err
 }
@@ -87,7 +89,7 @@ func (q *Queries) DeleteSession(ctx context.Context, id string) error {
 }
 
 const getSessionByID = `-- name: GetSessionByID :one
-SELECT id, parent_session_id, title, message_count, prompt_tokens, completion_tokens, cost, updated_at, created_at, summary_message_id, last_todo_write_turn, last_reminder_turn, assistant_turn_count, plan_mode
+SELECT id, parent_session_id, title, message_count, prompt_tokens, completion_tokens, cost, updated_at, created_at, summary_message_id, last_todo_write_turn, last_reminder_turn, assistant_turn_count, plan_mode, current_input_tokens, current_output_tokens
 FROM sessions
 WHERE id = ? LIMIT 1
 `
@@ -110,12 +112,14 @@ func (q *Queries) GetSessionByID(ctx context.Context, id string) (Session, error
 		&i.LastReminderTurn,
 		&i.AssistantTurnCount,
 		&i.PlanMode,
+		&i.CurrentInputTokens,
+		&i.CurrentOutputTokens,
 	)
 	return i, err
 }
 
 const listSessions = `-- name: ListSessions :many
-SELECT id, parent_session_id, title, message_count, prompt_tokens, completion_tokens, cost, updated_at, created_at, summary_message_id, last_todo_write_turn, last_reminder_turn, assistant_turn_count, plan_mode
+SELECT id, parent_session_id, title, message_count, prompt_tokens, completion_tokens, cost, updated_at, created_at, summary_message_id, last_todo_write_turn, last_reminder_turn, assistant_turn_count, plan_mode, current_input_tokens, current_output_tokens
 FROM sessions
 WHERE parent_session_id is NULL
 ORDER BY created_at DESC
@@ -145,6 +149,8 @@ func (q *Queries) ListSessions(ctx context.Context) ([]Session, error) {
 			&i.LastReminderTurn,
 			&i.AssistantTurnCount,
 			&i.PlanMode,
+			&i.CurrentInputTokens,
+			&i.CurrentOutputTokens,
 		); err != nil {
 			return nil, err
 		}
@@ -165,6 +171,8 @@ SET
     title = ?,
     prompt_tokens = ?,
     completion_tokens = ?,
+    current_input_tokens = ?,
+    current_output_tokens = ?,
     summary_message_id = ?,
     cost = ?,
     last_todo_write_turn = ?,
@@ -172,20 +180,22 @@ SET
     assistant_turn_count = ?,
     plan_mode = ?
 WHERE id = ?
-RETURNING id, parent_session_id, title, message_count, prompt_tokens, completion_tokens, cost, updated_at, created_at, summary_message_id, last_todo_write_turn, last_reminder_turn, assistant_turn_count, plan_mode
+RETURNING id, parent_session_id, title, message_count, prompt_tokens, completion_tokens, cost, updated_at, created_at, summary_message_id, last_todo_write_turn, last_reminder_turn, assistant_turn_count, plan_mode, current_input_tokens, current_output_tokens
 `
 
 type UpdateSessionParams struct {
-	Title              string         `json:"title"`
-	PromptTokens       int64          `json:"prompt_tokens"`
-	CompletionTokens   int64          `json:"completion_tokens"`
-	SummaryMessageID   sql.NullString `json:"summary_message_id"`
-	Cost               float64        `json:"cost"`
-	LastTodoWriteTurn  int64          `json:"last_todo_write_turn"`
-	LastReminderTurn   int64          `json:"last_reminder_turn"`
-	AssistantTurnCount int64          `json:"assistant_turn_count"`
-	PlanMode           int64          `json:"plan_mode"`
-	ID                 string         `json:"id"`
+	Title               string         `json:"title"`
+	PromptTokens        int64          `json:"prompt_tokens"`
+	CompletionTokens    int64          `json:"completion_tokens"`
+	CurrentInputTokens  int64          `json:"current_input_tokens"`
+	CurrentOutputTokens int64          `json:"current_output_tokens"`
+	SummaryMessageID    sql.NullString `json:"summary_message_id"`
+	Cost                float64        `json:"cost"`
+	LastTodoWriteTurn   int64          `json:"last_todo_write_turn"`
+	LastReminderTurn    int64          `json:"last_reminder_turn"`
+	AssistantTurnCount  int64          `json:"assistant_turn_count"`
+	PlanMode            int64          `json:"plan_mode"`
+	ID                  string         `json:"id"`
 }
 
 func (q *Queries) UpdateSession(ctx context.Context, arg UpdateSessionParams) (Session, error) {
@@ -193,6 +203,8 @@ func (q *Queries) UpdateSession(ctx context.Context, arg UpdateSessionParams) (S
 		arg.Title,
 		arg.PromptTokens,
 		arg.CompletionTokens,
+		arg.CurrentInputTokens,
+		arg.CurrentOutputTokens,
 		arg.SummaryMessageID,
 		arg.Cost,
 		arg.LastTodoWriteTurn,
@@ -217,6 +229,8 @@ func (q *Queries) UpdateSession(ctx context.Context, arg UpdateSessionParams) (S
 		&i.LastReminderTurn,
 		&i.AssistantTurnCount,
 		&i.PlanMode,
+		&i.CurrentInputTokens,
+		&i.CurrentOutputTokens,
 	)
 	return i, err
 }

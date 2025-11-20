@@ -197,7 +197,7 @@ permissions. Use this with care.
 {
 	"$schema": "https://raw.githubusercontent.com/can1357/rush/main/schema.json",
 	"permissions": {
-		"allowed_tools": ["view", "ls", "grep", "edit", "mcp_context7_get-library-doc"]
+		"allowed_tools": ["View", "Ls", "Grep", "Edit", "mcp_context7_get-library-doc"]
 	}
 }
 ```

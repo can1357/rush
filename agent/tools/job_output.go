@@ -11,7 +11,7 @@ import (
 )
 
 const (
-	JobOutputToolName = "job_output"
+	JobOutputToolName = "JobOutput"
 )
 
 //go:embed job_output.md

@@ -40,6 +40,8 @@ SET
     title = ?,
     prompt_tokens = ?,
     completion_tokens = ?,
+    current_input_tokens = ?,
+    current_output_tokens = ?,
     summary_message_id = ?,
     cost = ?,
     last_todo_write_turn = ?,

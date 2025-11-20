@@ -41,7 +41,7 @@ type EditResponseMetadata struct {
 	NewContent string `json:"new_content,omitempty"`
 }
 
-const EditToolName = "edit"
+const EditToolName = "Edit"
 
 //go:embed edit.md
 var editDescription []byte
@@ -134,7 +134,7 @@ func createNewFile(edit editContext, filePath, content string, call genai.ToolCa
 			Path:        fsext.PathOrPrefix(filePath, edit.workingDir),
 			ToolCallID:  call.ID,
 			ToolName:    EditToolName,
-			Action:      "write",
+			Action:      "Write",
 			Description: fmt.Sprintf("Create file %s", filePath),
 			Params: EditPermissionsParams{
 				FilePath:   filePath,
@@ -255,7 +255,7 @@ func deleteContent(edit editContext, filePath, oldString string, replaceAll bool
 			Path:        fsext.PathOrPrefix(filePath, edit.workingDir),
 			ToolCallID:  call.ID,
 			ToolName:    EditToolName,
-			Action:      "write",
+			Action:      "Write",
 			Description: fmt.Sprintf("Delete content from file %s", filePath),
 			Params: EditPermissionsParams{
 				FilePath:   filePath,
@@ -390,7 +390,7 @@ func replaceContent(edit editContext, filePath, oldString, newString string, rep
 			Path:        fsext.PathOrPrefix(filePath, edit.workingDir),
 			ToolCallID:  call.ID,
 			ToolName:    EditToolName,
-			Action:      "write",
+			Action:      "Write",
 			Description: fmt.Sprintf("Replace content in file %s", filePath),
 			Params: EditPermissionsParams{
 				FilePath:   filePath,

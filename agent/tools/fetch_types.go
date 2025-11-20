@@ -1,7 +1,7 @@
 package tools
 
 // AgenticFetchToolName is the name of the agentic fetch tool.
-const AgenticFetchToolName = "agentic_fetch"
+const AgenticFetchToolName = "AgenticFetch"
 
 // WebFetchToolName is the name of the web_fetch tool.
 const WebFetchToolName = "web_fetch"

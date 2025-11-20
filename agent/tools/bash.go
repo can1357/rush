@@ -22,7 +22,7 @@ type BashParams struct {
 	Description     string `json:"description" description:"A brief description of what the command does, try to keep it under 30 characters or so"`
 	Command         string `json:"command" description:"The command to execute"`
 	WorkingDir      string `json:"working_dir,omitempty" description:"The working directory to execute the command in (defaults to current directory)"`
-	RunInBackground bool   `json:"run_in_background,omitempty" description:"Set to true (boolean) to run this command in the background. Use job_output to read the output later."`
+	RunInBackground bool   `json:"run_in_background,omitempty" description:"Set to true (boolean) to run this command in the background. Use JobOutput to read the output later."`
 }
 
 type BashPermissionsParams struct {
@@ -43,7 +43,7 @@ type BashResponseMetadata struct {
 }
 
 const (
-	BashToolName = "bash"
+	BashToolName = "Bash"
 
 	AutoBackgroundThreshold = 1 * time.Minute // Commands taking longer automatically become background jobs
 	MaxOutputLength         = 30000
@@ -216,7 +216,7 @@ func NewBashTool(permissions permission.Service, workingDir string) genai.AgentT
 						Path:        execWorkingDir,
 						ToolCallID:  call.ID,
 						ToolName:    BashToolName,
-						Action:      "execute",
+						Action:      "Execute",
 						Description: fmt.Sprintf("Execute command: %s", params.Command),
 						Params:      BashPermissionsParams(params),
 					},
@@ -277,7 +277,7 @@ func NewBashTool(permissions permission.Service, workingDir string) genai.AgentT
 					Background:       true,
 					ShellID:          bgShell.ID,
 				}
-				response := fmt.Sprintf("Background shell started with ID: %s\n\nUse job_output tool to view output or job_kill to terminate.", bgShell.ID)
+				response := fmt.Sprintf("Background shell started with ID: %s\n\nUse JobOutput tool to view output or JobKill to terminate.", bgShell.ID)
 				return genai.WithResponseMetadata(genai.NewTextResponse(response), metadata), nil
 			}
 
@@ -358,7 +358,7 @@ func NewBashTool(permissions permission.Service, workingDir string) genai.AgentT
 				Background:       true,
 				ShellID:          bgShell.ID,
 			}
-			response := fmt.Sprintf("Command is taking longer than expected and has been moved to background.\n\nBackground shell ID: %s\n\nUse job_output tool to view output or job_kill to terminate.", bgShell.ID)
+			response := fmt.Sprintf("Command is taking longer than expected and has been moved to background.\n\nBackground shell ID: %s\n\nUse JobOutput tool to view output or JobKill to terminate.", bgShell.ID)
 			return genai.WithResponseMetadata(genai.NewTextResponse(response), metadata), nil
 		})
 }

@@ -338,14 +338,14 @@ func (c *coordinator) buildTools(ctx context.Context, agent config.Agent) ([]gen
 	}
 
 	allTools = append(allTools,
-		tools.NewAskUserQuestionTool(c.questions),
+		tools.NewPromptUserTool(c.questions),
 		tools.NewBashTool(c.permissions, c.cfg.WorkingDir()),
 		tools.NewJobOutputTool(),
 		tools.NewJobKillTool(),
 		tools.NewDownloadTool(c.permissions, c.cfg.WorkingDir(), nil),
 		tools.NewEditTool(c.lspClients, c.permissions, c.history, c.cfg.WorkingDir()),
 		tools.NewMultiEditTool(c.lspClients, c.permissions, c.history, c.cfg.WorkingDir()),
-		tools.NewExitPlanModeTool(c.sessions),
+		tools.NewProposePlanTool(c.sessions),
 		tools.NewFetchTool(c.permissions, c.cfg.WorkingDir(), nil),
 		tools.NewGlobTool(c.cfg.WorkingDir()),
 		tools.NewGrepTool(c.cfg.WorkingDir()),
@@ -357,7 +357,7 @@ func (c *coordinator) buildTools(ctx context.Context, agent config.Agent) ([]gen
 	)
 
 	if len(c.cfg.LSP) > 0 {
-		allTools = append(allTools, tools.NewDiagnosticsTool(c.lspClients), tools.NewReferencesTool(c.lspClients))
+		allTools = append(allTools, tools.NewLintTool(c.lspClients), tools.NewXrefsTool(c.lspClients))
 	}
 
 	var filteredTools []genai.AgentTool
@@ -375,7 +375,7 @@ func (c *coordinator) buildTools(ctx context.Context, agent config.Agent) ([]gen
 		}
 		if len(agent.AllowedMCP) == 0 {
 			// No MCPs allowed
-			slog.Debug("no MCPs allowed", "tool", tool.Name(), "agent", agent.Name)
+			slog.Debug("no MCPs allowed", "tool", tool.Name(), "Agent", agent.Name)
 			break
 		}
 
@@ -387,7 +387,7 @@ func (c *coordinator) buildTools(ctx context.Context, agent config.Agent) ([]gen
 				filteredTools = append(filteredTools, tool)
 			}
 		}
-		slog.Debug("MCP not allowed", "tool", tool.Name(), "agent", agent.Name)
+		slog.Debug("MCP not allowed", "tool", tool.Name(), "Agent", agent.Name)
 	}
 	slices.SortFunc(filteredTools, func(a, b genai.AgentTool) int {
 		return strings.Compare(a.Info().Name, b.Info().Name)

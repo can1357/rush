@@ -15,7 +15,7 @@ import (
 //go:embed todo.md
 var todoDescription []byte
 
-const TodoToolName = "todo_write"
+const TodoToolName = "TodoWrite"
 
 type TodoParams struct {
 	Todos []TodoItem `json:"todos" description:"The updated todo list with all items"`

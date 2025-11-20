@@ -1,4 +1,4 @@
-Find all references to/usage of a symbol by name using the Language Server Protocol (LSP).
+Find all cross-references to/usage of a symbol by name using the Language Server Protocol (LSP).
 
 <usage>
 - Provide symbol name (e.g., "MyFunction", "myVariable", "MyType").

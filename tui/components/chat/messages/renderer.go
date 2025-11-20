@@ -178,7 +178,7 @@ func init() {
 	registry.register(tools.GrepToolName, func() renderer { return grepRenderer{} })
 	registry.register(tools.LSToolName, func() renderer { return lsRenderer{} })
 	registry.register(tools.SourcegraphToolName, func() renderer { return sourcegraphRenderer{} })
-	registry.register(tools.DiagnosticsToolName, func() renderer { return diagnosticsRenderer{} })
+	registry.register(tools.LintToolName, func() renderer { return diagnosticsRenderer{} })
 	registry.register(agent.AgentToolName, func() renderer { return agentRenderer{} })
 	registry.register(tools.TodoToolName, func() renderer { return todoRenderer{} })
 }
@@ -312,7 +312,7 @@ type bashOutputRenderer struct {
 func (bor bashOutputRenderer) Render(v *toolCallCmp) string {
 	var params tools.JobOutputParams
 	if err := bor.unmarshalParams(v.call.Input, &params); err != nil {
-		return bor.renderError(v, "Invalid job_output parameters")
+		return bor.renderError(v, "Invalid JobOutput parameters")
 	}
 
 	var meta tools.JobOutputResponseMetadata
@@ -355,7 +355,7 @@ type bashKillRenderer struct {
 func (bkr bashKillRenderer) Render(v *toolCallCmp) string {
 	var params tools.JobKillParams
 	if err := bkr.unmarshalParams(v.call.Input, &params); err != nil {
-		return bkr.renderError(v, "Invalid job_kill parameters")
+		return bkr.renderError(v, "Invalid JobKill parameters")
 	}
 
 	var meta tools.JobKillResponseMetadata
@@ -1401,9 +1401,9 @@ func prettifyToolName(name string) string {
 	switch name {
 	case agent.AgentToolName:
 		return "Agent"
-	case tools.AskUserQuestionToolName:
+	case tools.PromptUserToolName:
 		return "Ask"
-	case tools.ExitPlanModeToolName:
+	case tools.ProposePlanToolName:
 		return "Exit Plan Mode"
 	case tools.BashToolName:
 		return "Bash"

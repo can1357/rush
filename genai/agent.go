@@ -864,6 +864,9 @@ func (a *agent) Stream(ctx context.Context, opts AgentStreamCall) (*AgentResult,
 			return nil, err
 		}
 
+		// Debug dump
+		DebugDumpRequest(streamCall, &stepResult.Response, stepModel.Model().ID)
+
 		steps = append(steps, stepResult)
 		totalUsage = addUsage(totalUsage, stepResult.Usage)
 

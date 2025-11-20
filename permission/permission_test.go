@@ -17,37 +17,37 @@ func TestPermissionService_AllowedCommands(t *testing.T) {
 	}{
 		{
 			name:         "tool in allowlist",
-			allowedTools: []string{"bash", "view"},
-			toolName:     "bash",
-			action:       "execute",
+			allowedTools: []string{"Bash", "View"},
+			toolName:     "Bash",
+			action:       "Execute",
 			expected:     true,
 		},
 		{
 			name:         "tool:action in allowlist",
-			allowedTools: []string{"bash:execute", "edit:create"},
-			toolName:     "bash",
-			action:       "execute",
+			allowedTools: []string{"Bash:Execute", "Edit:create"},
+			toolName:     "Bash",
+			action:       "Execute",
 			expected:     true,
 		},
 		{
 			name:         "tool not in allowlist",
-			allowedTools: []string{"view", "ls"},
-			toolName:     "bash",
-			action:       "execute",
+			allowedTools: []string{"View", "Ls"},
+			toolName:     "Bash",
+			action:       "Execute",
 			expected:     false,
 		},
 		{
 			name:         "tool:action not in allowlist",
-			allowedTools: []string{"bash:read", "edit:create"},
-			toolName:     "bash",
-			action:       "execute",
+			allowedTools: []string{"Bash:read", "Edit:create"},
+			toolName:     "Bash",
+			action:       "Execute",
 			expected:     false,
 		},
 		{
 			name:         "empty allowlist",
 			allowedTools: []string{},
-			toolName:     "bash",
-			action:       "execute",
+			toolName:     "Bash",
+			action:       "Execute",
 			expected:     false,
 		},
 	}
@@ -83,8 +83,8 @@ func TestPermissionService_SkipMode(t *testing.T) {
 
 	result := service.Request(CreatePermissionRequest{
 		SessionID:   "test-session",
-		ToolName:    "bash",
-		Action:      "execute",
+		ToolName:    "Bash",
+		Action:      "Execute",
 		Description: "test command",
 		Path:        "/tmp",
 	})
@@ -146,7 +146,7 @@ func TestPermissionService_SequentialProperties(t *testing.T) {
 			SessionID:   "session2",
 			ToolName:    "file_tool",
 			Description: "Write file",
-			Action:      "write",
+			Action:      "Write",
 			Params:      map[string]string{"file": "test.txt"},
 			Path:        "/tmp/test.txt",
 		}

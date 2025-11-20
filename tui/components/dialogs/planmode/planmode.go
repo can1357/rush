@@ -103,7 +103,7 @@ func (d *planModeDialogCmp) View() string {
 		details = `This enables read-only mode where you can explore
 and analyze code, but cannot make changes.
 
-Use Ctrl+/ or exit_plan_mode tool to exit later.`
+Use Ctrl+/ or ProposePlan tool to exit later.`
 	} else {
 		question = "Exit Plan Mode?"
 		details = "This will restore full access to write and execute tools."

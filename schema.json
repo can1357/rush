@@ -433,8 +433,8 @@
           "items": {
             "type": "string",
             "examples": [
-              "bash",
-              "view"
+              "Bash",
+              "View"
             ]
           },
           "type": "array",

@@ -81,7 +81,7 @@ func (c *coordinator) agenticFetchTool(_ context.Context, client *http.Client) (
 					Path:        c.cfg.WorkingDir(),
 					ToolCallID:  call.ID,
 					ToolName:    tools.AgenticFetchToolName,
-					Action:      "fetch",
+					Action:      "Fetch",
 					Description: fmt.Sprintf("Fetch and analyze content from URL: %s", params.URL),
 					Params:      tools.AgenticFetchPermissionsParams(params),
 				},
@@ -118,7 +118,7 @@ func (c *coordinator) agenticFetchTool(_ context.Context, client *http.Client) (
 				}
 				tempFile.Close()
 
-				fullPrompt = fmt.Sprintf("%s\n\nThe web page from %s has been saved to: %s\n\nUse the view and grep tools to analyze this file and extract the requested information.", params.Prompt, params.URL, tempFilePath)
+				fullPrompt = fmt.Sprintf("%s\n\nThe web page from %s has been saved to: %s\n\nUse the View and Grep tools to analyze this file and extract the requested information.", params.Prompt, params.URL, tempFilePath)
 			} else {
 				fullPrompt = fmt.Sprintf("%s\n\nWeb page URL: %s\n\n<webpage_content>\n%s\n</webpage_content>", params.Prompt, params.URL, content)
 			}
@@ -127,7 +127,7 @@ func (c *coordinator) agenticFetchTool(_ context.Context, client *http.Client) (
 				prompt.WithWorkingDir(tmpDir),
 			}
 
-			promptTemplate, err := prompt.NewPrompt("agentic_fetch", string(agenticFetchPromptTmpl), promptOpts...)
+			promptTemplate, err := prompt.NewPrompt("AgenticFetch", string(agenticFetchPromptTmpl), promptOpts...)
 			if err != nil {
 				return genai.ToolResponse{}, fmt.Errorf("error creating prompt: %s", err)
 			}

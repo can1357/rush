@@ -10,7 +10,7 @@ import (
 )
 
 const (
-	JobKillToolName = "job_kill"
+	JobKillToolName = "JobKill"
 )
 
 //go:embed job_kill.md

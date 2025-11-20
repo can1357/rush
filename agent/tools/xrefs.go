@@ -20,25 +20,25 @@ import (
 	"github.com/charmbracelet/x/powernap/pkg/lsp/protocol"
 )
 
-type ReferencesParams struct {
+type XrefsParams struct {
 	Symbol string `json:"symbol" description:"The symbol name to search for (e.g., function name, variable name, type name)"`
 	Path   string `json:"path,omitempty" description:"The directory to search in. Use a directory/file to narrow down the symbol search. Defaults to the current working directory."`
 }
 
-type referencesTool struct {
+type xrefsTool struct {
 	lspClients *csync.Map[string, *lsp.Client]
 }
 
-const ReferencesToolName = "lsp_references"
+const XrefsToolName = "Xrefs"
 
-//go:embed references.md
-var referencesDescription []byte
+//go:embed xrefs.md
+var xrefsDescription []byte
 
-func NewReferencesTool(lspClients *csync.Map[string, *lsp.Client]) genai.AgentTool {
+func NewXrefsTool(lspClients *csync.Map[string, *lsp.Client]) genai.AgentTool {
 	return genai.NewAgentTool(
-		ReferencesToolName,
-		string(referencesDescription),
-		func(ctx context.Context, params ReferencesParams, call genai.ToolCall) (genai.ToolResponse, error) {
+		XrefsToolName,
+		string(xrefsDescription),
+		func(ctx context.Context, params XrefsParams, call genai.ToolCall) (genai.ToolResponse, error) {
 			if params.Symbol == "" {
 				return genai.NewTextErrorResponse("symbol is required"), nil
 			}
@@ -67,7 +67,7 @@ func NewReferencesTool(lspClients *csync.Map[string, *lsp.Client]) genai.AgentTo
 						// grep probably matched a comment, string value, or something else that's irrelevant
 						continue
 					}
-					slog.Error("Failed to find references", "error", err, "symbol", params.Symbol, "path", match.path, "line", match.lineNum, "char", match.charNum)
+					slog.Error("Failed to find xrefs", "error", err, "symbol", params.Symbol, "path", match.path, "line", match.lineNum, "char", match.charNum)
 					allErrs = errors.Join(allErrs, err)
 					continue
 				}
@@ -76,19 +76,19 @@ func NewReferencesTool(lspClients *csync.Map[string, *lsp.Client]) genai.AgentTo
 			}
 
 			if len(allLocations) > 0 {
-				output := formatReferences(cleanupLocations(allLocations))
+				output := formatXrefs(cleanupLocations(allLocations))
 				return genai.NewTextResponse(output), nil
 			}
 
 			if allErrs != nil {
 				return genai.NewTextErrorResponse(allErrs.Error()), nil
 			}
-			return genai.NewTextResponse(fmt.Sprintf("No references found for symbol '%s'", params.Symbol)), nil
+			return genai.NewTextResponse(fmt.Sprintf("No xrefs found for symbol '%s'", params.Symbol)), nil
 		})
 }
 
-func (r *referencesTool) Name() string {
-	return ReferencesToolName
+func (r *xrefsTool) Name() string {
+	return XrefsToolName
 }
 
 func find(ctx context.Context, lspClients *csync.Map[string, *lsp.Client], symbol string, match grepMatch) ([]protocol.Location, error) {
@@ -167,7 +167,7 @@ func groupByFilename(locations []protocol.Location) map[string][]protocol.Locati
 	return files
 }
 
-func formatReferences(locations []protocol.Location) string {
+func formatXrefs(locations []protocol.Location) string {
 	fileRefs := groupByFilename(locations)
 	files := slices.Collect(maps.Keys(fileRefs))
 	sort.Strings(files)

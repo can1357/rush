@@ -15,20 +15,20 @@ import (
 	"github.com/charmbracelet/x/powernap/pkg/lsp/protocol"
 )
 
-type DiagnosticsParams struct {
-	FilePath string `json:"file_path,omitempty" description:"The path to the file to get diagnostics for (leave w empty for project diagnostics)"`
+type LintParams struct {
+	FilePath string `json:"file_path,omitempty" description:"The path to the file to get diagnostics for (leave blank for project diagnostics)"`
 }
 
-const DiagnosticsToolName = "lsp_diagnostics"
+const LintToolName = "Lint"
 
-//go:embed diagnostics.md
-var diagnosticsDescription []byte
+//go:embed lint.md
+var lintDescription []byte
 
-func NewDiagnosticsTool(lspClients *csync.Map[string, *lsp.Client]) genai.AgentTool {
+func NewLintTool(lspClients *csync.Map[string, *lsp.Client]) genai.AgentTool {
 	return genai.NewAgentTool(
-		DiagnosticsToolName,
-		string(diagnosticsDescription),
-		func(ctx context.Context, params DiagnosticsParams, call genai.ToolCall) (genai.ToolResponse, error) {
+		LintToolName,
+		string(lintDescription),
+		func(ctx context.Context, params LintParams, call genai.ToolCall) (genai.ToolResponse, error) {
 			if lspClients.Len() == 0 {
 				return genai.NewTextErrorResponse("no LSP clients available"), nil
 			}

@@ -41,7 +41,7 @@ type WriteResponseMetadata struct {
 	Removals  int    `json:"removals"`
 }
 
-const WriteToolName = "write"
+const WriteToolName = "Write"
 
 func NewWriteTool(lspClients *csync.Map[string, *lsp.Client], permissions permission.Service, files history.Service, workingDir string) genai.AgentTool {
 	return genai.NewAgentTool(
@@ -109,7 +109,7 @@ func NewWriteTool(lspClients *csync.Map[string, *lsp.Client], permissions permis
 					Path:        fsext.PathOrPrefix(filePath, workingDir),
 					ToolCallID:  call.ID,
 					ToolName:    WriteToolName,
-					Action:      "write",
+					Action:      "Write",
 					Description: fmt.Sprintf("Create file %s", filePath),
 					Params: WritePermissionsParams{
 						FilePath:   filePath,

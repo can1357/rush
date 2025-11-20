@@ -274,7 +274,7 @@ func (c Completions) Limits() (depth, items int) {
 }
 
 type Permissions struct {
-	AllowedTools []string `json:"allowed_tools,omitempty" jsonschema:"description=List of tools that don't require permission prompts,example=bash,example=view"` // Tools that don't require permission prompts
+	AllowedTools []string `json:"allowed_tools,omitempty" jsonschema:"description=List of tools that don't require permission prompts,example=Bash,example=View"` // Tools that don't require permission prompts
 	SkipRequests bool     `json:"-"`                                                                                                                              // Automatically accept all permissions (YOLO mode)
 }
 
@@ -618,26 +618,26 @@ func (c *Config) recordRecentModel(modelType ModelType, model ModelSelection) er
 
 func allToolNames() []string {
 	return []string{
-		"agent",
-		"ask_user_question",
-		"bash",
-		"job_output",
-		"job_kill",
-		"download",
-		"edit",
-		"exit_plan_mode",
-		"multiedit",
-		"lsp_diagnostics",
-		"lsp_references",
-		"fetch",
-		"agentic_fetch",
-		"glob",
-		"grep",
-		"ls",
-		"sourcegraph",
-		"todo_write",
-		"view",
-		"write",
+		"Agent",
+		"PromptUser",
+		"Bash",
+		"JobOutput",
+		"JobKill",
+		"Download",
+		"Edit",
+		"ProposePlan",
+		"Multiedit",
+		"Lint",
+		"Xrefs",
+		"Fetch",
+		"AgenticFetch",
+		"Glob",
+		"Grep",
+		"Ls",
+		"Sourcegraph",
+		"TodoWrite",
+		"View",
+		"Write",
 	}
 }
 
@@ -650,7 +650,7 @@ func resolveAllowedTools(allTools []string, disabledTools []string) []string {
 }
 
 func resolveReadOnlyTools(tools []string) []string {
-	readOnlyTools := []string{"glob", "grep", "ls", "sourcegraph", "view"}
+	readOnlyTools := []string{"Glob", "Grep", "Ls", "Sourcegraph", "View"}
 	// filter to only include tools that are in allowedtools (include mode)
 	return filterSlice(tools, readOnlyTools, true)
 }

@@ -32,20 +32,22 @@ type Message struct {
 }
 
 type Session struct {
-	ID                 string         `json:"id"`
-	ParentSessionID    sql.NullString `json:"parent_session_id"`
-	Title              string         `json:"title"`
-	MessageCount       int64          `json:"message_count"`
-	PromptTokens       int64          `json:"prompt_tokens"`
-	CompletionTokens   int64          `json:"completion_tokens"`
-	Cost               float64        `json:"cost"`
-	UpdatedAt          int64          `json:"updated_at"`
-	CreatedAt          int64          `json:"created_at"`
-	SummaryMessageID   sql.NullString `json:"summary_message_id"`
-	LastTodoWriteTurn  int64          `json:"last_todo_write_turn"`
-	LastReminderTurn   int64          `json:"last_reminder_turn"`
-	AssistantTurnCount int64          `json:"assistant_turn_count"`
-	PlanMode           int64          `json:"plan_mode"`
+	ID                  string         `json:"id"`
+	ParentSessionID     sql.NullString `json:"parent_session_id"`
+	Title               string         `json:"title"`
+	MessageCount        int64          `json:"message_count"`
+	PromptTokens        int64          `json:"prompt_tokens"`
+	CompletionTokens    int64          `json:"completion_tokens"`
+	Cost                float64        `json:"cost"`
+	UpdatedAt           int64          `json:"updated_at"`
+	CreatedAt           int64          `json:"created_at"`
+	SummaryMessageID    sql.NullString `json:"summary_message_id"`
+	LastTodoWriteTurn   int64          `json:"last_todo_write_turn"`
+	LastReminderTurn    int64          `json:"last_reminder_turn"`
+	AssistantTurnCount  int64          `json:"assistant_turn_count"`
+	PlanMode            int64          `json:"plan_mode"`
+	CurrentInputTokens  int64          `json:"current_input_tokens"`
+	CurrentOutputTokens int64          `json:"current_output_tokens"`
 }
 
 type Todo struct {

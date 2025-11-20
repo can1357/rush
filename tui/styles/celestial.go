@@ -55,15 +55,15 @@ func NewCelestialTheme() *Theme {
 		Cherry:   ParseHex("#E95378"),
 
 		// Editor-specific colors
-		EditorLineNumber:       ParseHex("#D5D8DA1A"), // Line numbers
-		EditorLineNumberActive: ParseHex("#D5D8DA80"), // Active line number
-		EditorCursor:           ParseHex("#E95378"),   // Cursor color
-		EditorSelection:        ParseHex("#2E303EB3"), // Selection background
-		EditorSelectionHighlight:   ParseHex("#6C6F934D"), // Selection highlight
-		EditorWordHighlight:        ParseHex("#6C6F9380"), // Word highlight
-		EditorFindMatch:            ParseHex("#6C6F9380"), // Find match
-		EditorFindMatchHighlight:   ParseHex("#6C6F934D"), // Find match highlight
-		EditorLineHighlight:        ParseHex("#2E303E4D"), // Current line
+		EditorLineNumber:         ParseHex("#D5D8DA1A"), // Line numbers
+		EditorLineNumberActive:   ParseHex("#D5D8DA80"), // Active line number
+		EditorCursor:             ParseHex("#E95378"),   // Cursor color
+		EditorSelection:          ParseHex("#2E303EB3"), // Selection background
+		EditorSelectionHighlight: ParseHex("#6C6F934D"), // Selection highlight
+		EditorWordHighlight:      ParseHex("#6C6F9380"), // Word highlight
+		EditorFindMatch:          ParseHex("#6C6F9380"), // Find match
+		EditorFindMatchHighlight: ParseHex("#6C6F934D"), // Find match highlight
+		EditorLineHighlight:      ParseHex("#2E303E4D"), // Current line
 
 		// Diff colors
 		DiffInsertedTextBg:  ParseHex("#09F7A01A"), // Inserted text background

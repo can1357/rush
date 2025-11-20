@@ -469,16 +469,16 @@ func TestConfig_setupAgentsWithNoDisabledTools(t *testing.T) {
 
 	taskAgent, ok := cfg.Agents[AgentTask]
 	require.True(t, ok)
-	assert.Equal(t, []string{"glob", "grep", "ls", "sourcegraph", "view"}, taskAgent.AllowedTools)
+	assert.Equal(t, []string{"Glob", "Grep", "Ls", "Sourcegraph", "View"}, taskAgent.AllowedTools)
 }
 
 func TestConfig_setupAgentsWithDisabledTools(t *testing.T) {
 	cfg := &Config{
 		Options: &Options{
 			DisabledTools: []string{
-				"edit",
-				"download",
-				"grep",
+				"Edit",
+				"Download",
+				"Grep",
 			},
 		},
 	}
@@ -487,22 +487,22 @@ func TestConfig_setupAgentsWithDisabledTools(t *testing.T) {
 	coderAgent, ok := cfg.Agents[AgentMaestro]
 	require.True(t, ok)
 
-	assert.Equal(t, []string{"agent", "ask_user_question", "bash", "job_output", "job_kill", "exit_plan_mode", "multiedit", "lsp_diagnostics", "lsp_references", "fetch", "agentic_fetch", "glob", "ls", "sourcegraph", "todo_write", "view", "write"}, coderAgent.AllowedTools)
+	assert.Equal(t, []string{"Agent", "PromptUser", "Bash", "JobOutput", "JobKill", "ProposePlan", "Multiedit", "Lint", "Xrefs", "Fetch", "AgenticFetch", "Glob", "Ls", "Sourcegraph", "TodoWrite", "View", "Write"}, coderAgent.AllowedTools)
 
 	taskAgent, ok := cfg.Agents[AgentTask]
 	require.True(t, ok)
-	assert.Equal(t, []string{"glob", "ls", "sourcegraph", "view"}, taskAgent.AllowedTools)
+	assert.Equal(t, []string{"Glob", "Ls", "Sourcegraph", "View"}, taskAgent.AllowedTools)
 }
 
 func TestConfig_setupAgentsWithEveryReadOnlyToolDisabled(t *testing.T) {
 	cfg := &Config{
 		Options: &Options{
 			DisabledTools: []string{
-				"glob",
-				"grep",
-				"ls",
-				"sourcegraph",
-				"view",
+				"Glob",
+				"Grep",
+				"Ls",
+				"Sourcegraph",
+				"View",
 			},
 		},
 	}
@@ -510,7 +510,10 @@ func TestConfig_setupAgentsWithEveryReadOnlyToolDisabled(t *testing.T) {
 	cfg.SetupAgents()
 	coderAgent, ok := cfg.Agents[AgentMaestro]
 	require.True(t, ok)
-	assert.Equal(t, []string{"agent", "ask_user_question", "bash", "job_output", "job_kill", "download", "edit", "exit_plan_mode", "multiedit", "lsp_diagnostics", "lsp_references", "fetch", "agentic_fetch", "todo_write", "write"}, coderAgent.AllowedTools)
+	assert.Equal(t, []string{
+		"Agent", "PromptUser", "Bash", "JobOutput", "JobKill", "Download", "Edit",
+		"ProposePlan", "Multiedit", "Lint", "Xrefs", "Fetch", "AgenticFetch", "TodoWrite", "Write",
+	}, coderAgent.AllowedTools)
 
 	taskAgent, ok := cfg.Agents[AgentTask]
 	require.True(t, ok)

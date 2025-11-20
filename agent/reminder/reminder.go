@@ -46,13 +46,13 @@ func (r *Service) BuildReminders(ctx context.Context, sessionID string) (string,
 	var reminders []string
 
 	// Check for empty todo list
-	if r.shouldShowEmptyReminder(todos) {
+	if r.shouldShowEmptyReminder(todos, &sess) {
 		reminders = append(reminders, r.emptyReminderText())
 	}
 
 	// Check for stale todo list
 	if r.shouldShowStaleReminder(&sess) {
-		text, err := r.staleReminderText(todos)
+		text, err := r.staleReminderText(todos, &sess)
 		if err != nil {
 			return "", err
 		}
@@ -72,8 +72,9 @@ func (r *Service) BuildReminders(ctx context.Context, sessionID string) (string,
 	return r.wrapInSystemReminder(strings.Join(reminders, "\n\n")), nil
 }
 
-func (r *Service) shouldShowEmptyReminder(todos []todo.Todo) bool {
-	return len(todos) == 0
+func (r *Service) shouldShowEmptyReminder(todos []todo.Todo, sess *session.Session) bool {
+	// Only remind after conversation has started (3+ turns)
+	return len(todos) == 0 && sess.AssistantTurnCount >= 3
 }
 
 func (r *Service) shouldShowStaleReminder(sess *session.Session) bool {
@@ -92,12 +93,23 @@ func (r *Service) emptyReminderText() string {
 	return `This is a reminder that your todo list is currently empty. DO NOT mention this to the user explicitly because they are already aware. If you are working on tasks that would benefit from a todo list please use the TodoWrite tool to create one. If not, please feel free to ignore. Again do not mention this message to the user.`
 }
 
-func (r *Service) staleReminderText(todos []todo.Todo) (string, error) {
+func (r *Service) staleReminderText(todos []todo.Todo, sess *session.Session) (string, error) {
 	var b strings.Builder
 
 	b.WriteString(`The TodoWrite tool hasn't been used recently. If you're working on tasks that would benefit from tracking progress, consider using the TodoWrite tool to track progress. Also consider cleaning up the todo list if has become stale and no longer matches what you are working on. Only use it if it's relevant to the current work. This is just a gentle reminder - ignore if not applicable. Make sure that you NEVER mention this reminder to the user`)
 
-	if len(todos) > 0 {
+	// Filter: only show todos if there are active ones OR recent activity
+	turnsSinceWrite := sess.AssistantTurnCount - sess.LastTodoWriteTurn
+	hasActiveTodos := false
+	for _, t := range todos {
+		if t.Status != "completed" && t.Status != "cancelled" {
+			hasActiveTodos = true
+			break
+		}
+	}
+
+	// Don't show old completed todos from previous conversations (>10 turns inactive)
+	if len(todos) > 0 && (hasActiveTodos || turnsSinceWrite <= 10) {
 		b.WriteString("\n\n\nHere are the existing contents of your todo list:\n\n")
 		b.WriteString(r.FormatTodos(todos))
 	}

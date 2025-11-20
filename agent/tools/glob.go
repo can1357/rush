@@ -15,7 +15,7 @@ import (
 	"github.com/can1357/rush/genai"
 )
 
-const GlobToolName = "glob"
+const GlobToolName = "Glob"
 
 //go:embed glob.md
 var globDescription []byte

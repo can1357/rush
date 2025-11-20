@@ -12,20 +12,22 @@ import (
 )
 
 type Session struct {
-	ID                 string
-	ParentSessionID    string
-	Title              string
-	MessageCount       int64
-	PromptTokens       int64
-	CompletionTokens   int64
-	SummaryMessageID   string
-	Cost               float64
-	CreatedAt          int64
-	UpdatedAt          int64
-	LastTodoWriteTurn  int64
-	LastReminderTurn   int64
-	AssistantTurnCount int64
-	PlanMode           bool
+	ID                  string
+	ParentSessionID     string
+	Title               string
+	MessageCount        int64
+	PromptTokens        int64
+	CompletionTokens    int64
+	CurrentInputTokens  int64 // Last request input tokens (actual context window usage)
+	CurrentOutputTokens int64 // Last request output tokens
+	SummaryMessageID    string
+	Cost                float64
+	CreatedAt           int64
+	UpdatedAt           int64
+	LastTodoWriteTurn   int64
+	LastReminderTurn    int64
+	AssistantTurnCount  int64
+	PlanMode            bool
 }
 
 type Service interface {
@@ -117,10 +119,12 @@ func (s *service) Save(ctx context.Context, session Session) (Session, error) {
 		planModeInt = 1
 	}
 	dbSession, err := s.q.UpdateSession(ctx, db.UpdateSessionParams{
-		ID:               session.ID,
-		Title:            session.Title,
-		PromptTokens:     session.PromptTokens,
-		CompletionTokens: session.CompletionTokens,
+		ID:                  session.ID,
+		Title:               session.Title,
+		PromptTokens:        session.PromptTokens,
+		CompletionTokens:    session.CompletionTokens,
+		CurrentInputTokens:  session.CurrentInputTokens,
+		CurrentOutputTokens: session.CurrentOutputTokens,
 		SummaryMessageID: sql.NullString{
 			String: session.SummaryMessageID,
 			Valid:  session.SummaryMessageID != "",
@@ -153,20 +157,22 @@ func (s *service) List(ctx context.Context) ([]Session, error) {
 
 func (s service) fromDBItem(item db.Session) Session {
 	return Session{
-		ID:                 item.ID,
-		ParentSessionID:    item.ParentSessionID.String,
-		Title:              item.Title,
-		MessageCount:       item.MessageCount,
-		PromptTokens:       item.PromptTokens,
-		CompletionTokens:   item.CompletionTokens,
-		SummaryMessageID:   item.SummaryMessageID.String,
-		Cost:               item.Cost,
-		CreatedAt:          item.CreatedAt,
-		UpdatedAt:          item.UpdatedAt,
-		LastTodoWriteTurn:  item.LastTodoWriteTurn,
-		LastReminderTurn:   item.LastReminderTurn,
-		AssistantTurnCount: item.AssistantTurnCount,
-		PlanMode:           item.PlanMode == 1,
+		ID:                  item.ID,
+		ParentSessionID:     item.ParentSessionID.String,
+		Title:               item.Title,
+		MessageCount:        item.MessageCount,
+		PromptTokens:        item.PromptTokens,
+		CompletionTokens:    item.CompletionTokens,
+		CurrentInputTokens:  item.CurrentInputTokens,
+		CurrentOutputTokens: item.CurrentOutputTokens,
+		SummaryMessageID:    item.SummaryMessageID.String,
+		Cost:                item.Cost,
+		CreatedAt:           item.CreatedAt,
+		UpdatedAt:           item.UpdatedAt,
+		LastTodoWriteTurn:   item.LastTodoWriteTurn,
+		LastReminderTurn:    item.LastReminderTurn,
+		AssistantTurnCount:  item.AssistantTurnCount,
+		PlanMode:            item.PlanMode == 1,
 	}
 }
 

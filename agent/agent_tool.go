@@ -107,7 +107,7 @@ type AgentParams struct {
 }
 
 const (
-	AgentToolName = "agent"
+	AgentToolName = "Agent"
 )
 
 func (c *coordinator) agentTool(ctx context.Context, description string) (genai.AgentTool, error) {

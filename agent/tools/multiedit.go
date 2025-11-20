@@ -52,7 +52,7 @@ type MultiEditResponseMetadata struct {
 	EditsFailed  []FailedEdit `json:"edits_failed,omitempty"`
 }
 
-const MultiEditToolName = "multiedit"
+const MultiEditToolName = "Multiedit"
 
 //go:embed multiedit.md
 var multieditDescription []byte
@@ -170,7 +170,7 @@ func processMultiEditWithCreation(edit editContext, params MultiEditParams, call
 		Path:        fsext.PathOrPrefix(params.FilePath, edit.workingDir),
 		ToolCallID:  call.ID,
 		ToolName:    MultiEditToolName,
-		Action:      "write",
+		Action:      "Write",
 		Description: fmt.Sprintf("Create file %s with %d edits", params.FilePath, len(params.Edits)),
 		Params: MultiEditPermissionsParams{
 			FilePath:   params.FilePath,
@@ -304,7 +304,7 @@ func processMultiEditExistingFile(edit editContext, params MultiEditParams, call
 		Path:        fsext.PathOrPrefix(params.FilePath, edit.workingDir),
 		ToolCallID:  call.ID,
 		ToolName:    MultiEditToolName,
-		Action:      "write",
+		Action:      "Write",
 		Description: fmt.Sprintf("Apply %d edits to file %s", len(params.Edits), params.FilePath),
 		Params: MultiEditPermissionsParams{
 			FilePath:   params.FilePath,

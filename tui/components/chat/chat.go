@@ -17,6 +17,7 @@ import (
 	"github.com/can1357/rush/session"
 	"github.com/can1357/rush/tui/components/chat/messages"
 	"github.com/can1357/rush/tui/components/core/layout"
+	"github.com/can1357/rush/tui/components/dialogs/planmode"
 	"github.com/can1357/rush/tui/exp/list"
 	"github.com/can1357/rush/tui/styles"
 	"github.com/can1357/rush/tui/util"
@@ -400,14 +401,24 @@ func (m *messageListCmp) handleNewUserMessage(msg message.Message) tea.Cmd {
 // handleToolMessage updates existing tool calls with their results.
 func (m *messageListCmp) handleToolMessage(msg message.Message) tea.Cmd {
 	items := m.listCmp.Items()
+	var cmds []tea.Cmd
 	for _, tr := range msg.ToolResults() {
 		if toolCallIndex := m.findToolCallByID(items, tr.ToolCallID); toolCallIndex != NotFound {
 			toolCall := items[toolCallIndex].(messages.ToolCallCmp)
 			toolCall.SetToolResult(tr)
 			m.listCmp.UpdateItem(toolCall.ID(), toolCall)
+
+			// Check for ProposePlan tool results and trigger model switch
+			if tr.Name == tools.ProposePlanToolName && tr.Metadata != "" {
+				cmds = append(cmds, util.CmdHandler(planmode.PlanModeToggleMsg{
+					SessionID: m.session.ID,
+					Enable:    false,
+					Confirmed: true,
+				}))
+			}
 		}
 	}
-	return nil
+	return tea.Batch(cmds...)
 }
 
 // findToolCallByID searches for a tool call with the specified ID.

@@ -8,25 +8,25 @@ import (
 	"github.com/can1357/rush/session"
 )
 
-//go:embed exit_plan_mode.md
-var exitPlanModeDescription []byte
+//go:embed propose_plan.md
+var ProposePlanDescription []byte
 
-const ExitPlanModeToolName = "exit_plan_mode"
+const ProposePlanToolName = "ProposePlan"
 
-type ExitPlanModeParams struct {
+type ProposePlanParams struct {
 	Plan string `json:"plan" description:"The implementation plan that you're ready to execute"`
 }
 
-type ExitPlanModeResponseMetadata struct {
+type ProposePlanResponseMetadata struct {
 	SessionID string `json:"session_id"`
 	PlanMode  bool   `json:"plan_mode"`
 }
 
-func NewExitPlanModeTool(sessionService session.Service) genai.AgentTool {
+func NewProposePlanTool(sessionService session.Service) genai.AgentTool {
 	return genai.NewAgentTool(
-		ExitPlanModeToolName,
-		string(exitPlanModeDescription),
-		func(ctx context.Context, params ExitPlanModeParams, call genai.ToolCall) (genai.ToolResponse, error) {
+		ProposePlanToolName,
+		string(ProposePlanDescription),
+		func(ctx context.Context, params ProposePlanParams, call genai.ToolCall) (genai.ToolResponse, error) {
 			sessionID := GetSessionFromContext(ctx)
 			if sessionID == "" {
 				return genai.NewTextErrorResponse("session ID is required"), nil
@@ -51,8 +51,8 @@ func NewExitPlanModeTool(sessionService session.Service) genai.AgentTool {
 			}
 
 			return genai.WithResponseMetadata(
-				genai.NewTextResponse("Successfully exited plan mode. You now have full access to all tools including write, edit, and bash commands. You can begin implementing your plan."),
-				ExitPlanModeResponseMetadata{
+				genai.NewTextResponse("Successfully exited plan mode. You now have full access to all tools including Write, Edit, and Bash commands. You can begin implementing your plan."),
+				ProposePlanResponseMetadata{
 					SessionID: sessionID,
 					PlanMode:  false,
 				},

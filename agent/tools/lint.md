@@ -1,4 +1,4 @@
-Get diagnostics for file and/or project.
+Get lint/typecheck diagnostics for file and/or project.
 
 <usage>
 - Provide file path to get diagnostics for that file

@@ -29,7 +29,7 @@ type DownloadPermissionsParams struct {
 	Timeout  int    `json:"timeout,omitempty"`
 }
 
-const DownloadToolName = "download"
+const DownloadToolName = "Download"
 
 //go:embed download.md
 var downloadDescription []byte
@@ -75,7 +75,7 @@ func NewDownloadTool(permissions permission.Service, workingDir string, client *
 					SessionID:   sessionID,
 					Path:        filePath,
 					ToolName:    DownloadToolName,
-					Action:      "download",
+					Action:      "Download",
 					Description: fmt.Sprintf("Download file from URL: %s to %s", params.URL, filePath),
 					Params:      DownloadPermissionsParams(params),
 				},

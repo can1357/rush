@@ -95,7 +95,7 @@ func (m *Tool) Run(ctx context.Context, params genai.ToolCall) (genai.ToolRespon
 			ToolCallID:  params.ID,
 			Path:        m.workingDir,
 			ToolName:    m.Info().Name,
-			Action:      "execute",
+			Action:      "Execute",
 			Description: permissionDescription,
 			Params:      params.Input,
 		},

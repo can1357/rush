@@ -77,10 +77,10 @@ type Theme struct {
 	Cherry   color.Color
 
 	// Editor-specific colors
-	EditorLineNumber       color.Color
-	EditorLineNumberActive color.Color
-	EditorCursor           color.Color
-	EditorSelection        color.Color
+	EditorLineNumber         color.Color
+	EditorLineNumberActive   color.Color
+	EditorCursor             color.Color
+	EditorSelection          color.Color
 	EditorSelectionHighlight color.Color
 	EditorWordHighlight      color.Color
 	EditorFindMatch          color.Color
@@ -88,10 +88,10 @@ type Theme struct {
 	EditorLineHighlight      color.Color
 
 	// Diff colors
-	DiffInsertedTextBg color.Color
-	DiffRemovedTextBg  color.Color
-	DiffInsertLineBg   color.Color
-	DiffDeleteLineBg   color.Color
+	DiffInsertedTextBg  color.Color
+	DiffRemovedTextBg   color.Color
+	DiffInsertLineBg    color.Color
+	DiffDeleteLineBg    color.Color
 	DiffInsertLineNumBg color.Color
 	DiffDeleteLineNumBg color.Color
 
@@ -110,11 +110,11 @@ type Theme struct {
 	AnsiBrightYellow  color.Color
 
 	// Git decoration colors
-	GitAdded      color.Color
-	GitModified   color.Color
-	GitDeleted    color.Color
-	GitUntracked  color.Color
-	GitIgnored    color.Color
+	GitAdded     color.Color
+	GitModified  color.Color
+	GitDeleted   color.Color
+	GitUntracked color.Color
+	GitIgnored   color.Color
 
 	// Text selection.
 	TextSelection lipgloss.Style

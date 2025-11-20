@@ -10,12 +10,12 @@ import (
 	"github.com/can1357/rush/question"
 )
 
-//go:embed ask_user_question.md
-var askUserQuestionDescription []byte
+//go:embed prompt_user.md
+var PromptUserDescription []byte
 
-const AskUserQuestionToolName = "ask_user_question"
+const PromptUserToolName = "PromptUser"
 
-type AskUserQuestionParams struct {
+type PromptUserParams struct {
 	Questions []QuestionItem `json:"questions" description:"Array of 1-4 questions to ask the user"`
 }
 
@@ -31,16 +31,16 @@ type OptionItem struct {
 	Description string `json:"description" description:"Explanation of what this option means"`
 }
 
-type AskUserQuestionResponseMetadata struct {
+type PromptUserResponseMetadata struct {
 	SessionID string            `json:"session_id"`
 	Answers   map[string]string `json:"answers"`
 }
 
-func NewAskUserQuestionTool(questionService question.Service) genai.AgentTool {
+func NewPromptUserTool(questionService question.Service) genai.AgentTool {
 	return genai.NewAgentTool(
-		AskUserQuestionToolName,
-		string(askUserQuestionDescription),
-		func(ctx context.Context, params AskUserQuestionParams, call genai.ToolCall) (genai.ToolResponse, error) {
+		PromptUserToolName,
+		string(PromptUserDescription),
+		func(ctx context.Context, params PromptUserParams, call genai.ToolCall) (genai.ToolResponse, error) {
 			sessionID := GetSessionFromContext(ctx)
 			if sessionID == "" {
 				return genai.NewTextErrorResponse("session ID is required for asking questions"), nil
@@ -116,7 +116,7 @@ func NewAskUserQuestionTool(questionService question.Service) genai.AgentTool {
 
 			return genai.WithResponseMetadata(
 				genai.NewTextResponse(output.String()),
-				AskUserQuestionResponseMetadata{
+				PromptUserResponseMetadata{
 					SessionID: sessionID,
 					Answers:   answers,
 				},

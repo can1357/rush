@@ -26,7 +26,7 @@ type SourcegraphResponseMetadata struct {
 	Truncated       bool `json:"truncated"`
 }
 
-const SourcegraphToolName = "sourcegraph"
+const SourcegraphToolName = "Sourcegraph"
 
 //go:embed sourcegraph.md
 var sourcegraphDescription []byte

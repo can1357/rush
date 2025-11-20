@@ -16,7 +16,7 @@ import (
 	"github.com/can1357/rush/permission"
 )
 
-const FetchToolName = "fetch"
+const FetchToolName = "Fetch"
 
 //go:embed fetch.md
 var fetchDescription []byte
@@ -61,7 +61,7 @@ func NewFetchTool(permissions permission.Service, workingDir string, client *htt
 					Path:        workingDir,
 					ToolCallID:  call.ID,
 					ToolName:    FetchToolName,
-					Action:      "fetch",
+					Action:      "Fetch",
 					Description: fmt.Sprintf("Fetch content from URL: %s", params.URL),
 					Params:      FetchPermissionsParams(params),
 				},

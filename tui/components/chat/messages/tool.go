@@ -370,7 +370,7 @@ func (m *toolCallCmp) formatParametersForCopy() string {
 			}
 			return strings.Join(parts, "\n")
 		}
-	case tools.DiagnosticsToolName:
+	case tools.LintToolName:
 		return "**Project:** diagnostics"
 	case agent.AgentToolName:
 		var params agent.AgentParams
@@ -450,7 +450,7 @@ func (m *toolCallCmp) formatResultForCopy() string {
 		return m.formatAgentResultForCopy()
 	case tools.TodoToolName:
 		return m.formatTodoResultForCopy()
-	case tools.DownloadToolName, tools.GrepToolName, tools.GlobToolName, tools.LSToolName, tools.SourcegraphToolName, tools.DiagnosticsToolName:
+	case tools.DownloadToolName, tools.GrepToolName, tools.GlobToolName, tools.LSToolName, tools.SourcegraphToolName, tools.LintToolName:
 		return fmt.Sprintf("```\n%s\n```", m.result.Content)
 	default:
 		return m.result.Content
