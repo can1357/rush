@@ -24,7 +24,7 @@ func DefaultKeyMap() KeyMap {
 			key.WithHelp("↓/j", "move down"),
 		),
 		Space: key.NewBinding(
-			key.WithKeys(" "),
+			key.WithKeys(" ", "space"),
 			key.WithHelp("space", "toggle"),
 		),
 		Enter: key.NewBinding(

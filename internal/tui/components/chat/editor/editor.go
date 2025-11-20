@@ -18,6 +18,7 @@ import (
 	tea "charm.land/bubbletea/v2"
 	"charm.land/lipgloss/v2"
 	"github.com/charmbracelet/crush/internal/app"
+	"github.com/charmbracelet/crush/internal/config"
 	"github.com/charmbracelet/crush/internal/fsext"
 	"github.com/charmbracelet/crush/internal/message"
 	"github.com/charmbracelet/crush/internal/session"
@@ -438,6 +439,13 @@ func (m *editorCmp) randomizePlaceholders() {
 
 func (m *editorCmp) View() string {
 	t := styles.CurrentTheme()
+
+	// Check if extended thinking mode is enabled
+	cfg := m.app.Config()
+	agentCfg := cfg.Agents[config.AgentRoot]
+	currentModel := cfg.Models[agentCfg.Model]
+	thinkingEnabled := currentModel.Think
+
 	// Update placeholder
 	if m.app.AgentCoordinator != nil && m.app.AgentCoordinator.IsBusy() {
 		m.textarea.Placeholder = m.workingPlaceholder
@@ -447,6 +455,14 @@ func (m *editorCmp) View() string {
 	if m.app.Permissions.SkipRequests() {
 		m.textarea.Placeholder = "Yolo mode!"
 	}
+
+	// Update textarea prompt color based on thinking mode
+	if thinkingEnabled {
+		m.textarea.SetPromptFunc(4, thinkingPromptFunc)
+	} else {
+		m.setEditorPrompt()
+	}
+
 	if len(m.attachments) == 0 {
 		content := t.S().Base.Padding(1).Render(
 			m.textarea.View(),
@@ -588,6 +604,17 @@ func yoloPromptFunc(info textarea.PromptInfo) string {
 		return fmt.Sprintf("%s ", t.YoloDotsFocused)
 	}
 	return fmt.Sprintf("%s ", t.YoloDotsBlurred)
+}
+
+func thinkingPromptFunc(info textarea.PromptInfo) string {
+	t := styles.CurrentTheme()
+	if info.LineNumber == 0 {
+		return "  > "
+	}
+	if info.Focused {
+		return t.S().Base.Foreground(t.BlueDark).Render("::: ")
+	}
+	return t.S().Muted.Render("::: ")
 }
 
 func New(app *app.App) Editor {
