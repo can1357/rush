@@ -12,8 +12,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/can1357/rush/ai"
 	"github.com/can1357/rush/filepathext"
+	"github.com/can1357/rush/genai"
 	"github.com/can1357/rush/permission"
 )
 
@@ -34,7 +34,7 @@ const DownloadToolName = "download"
 //go:embed download.md
 var downloadDescription []byte
 
-func NewDownloadTool(permissions permission.Service, workingDir string, client *http.Client) fantasy.AgentTool {
+func NewDownloadTool(permissions permission.Service, workingDir string, client *http.Client) genai.AgentTool {
 	if client == nil {
 		client = &http.Client{
 			Timeout: 5 * time.Minute, // Default 5 minute timeout for downloads
@@ -45,20 +45,20 @@ func NewDownloadTool(permissions permission.Service, workingDir string, client *
 			},
 		}
 	}
-	return fantasy.NewAgentTool(
+	return genai.NewAgentTool(
 		DownloadToolName,
 		string(downloadDescription),
-		func(ctx context.Context, params DownloadParams, call fantasy.ToolCall) (fantasy.ToolResponse, error) {
+		func(ctx context.Context, params DownloadParams, call genai.ToolCall) (genai.ToolResponse, error) {
 			if params.URL == "" {
-				return fantasy.NewTextErrorResponse("URL parameter is required"), nil
+				return genai.NewTextErrorResponse("URL parameter is required"), nil
 			}
 
 			if params.FilePath == "" {
-				return fantasy.NewTextErrorResponse("file_path parameter is required"), nil
+				return genai.NewTextErrorResponse("file_path parameter is required"), nil
 			}
 
 			if !strings.HasPrefix(params.URL, "http://") && !strings.HasPrefix(params.URL, "https://") {
-				return fantasy.NewTextErrorResponse("URL must start with http:// or https://"), nil
+				return genai.NewTextErrorResponse("URL must start with http:// or https://"), nil
 			}
 
 			filePath := filepathext.SmartJoin(workingDir, params.FilePath)
@@ -67,7 +67,7 @@ func NewDownloadTool(permissions permission.Service, workingDir string, client *
 
 			sessionID := GetSessionFromContext(ctx)
 			if sessionID == "" {
-				return fantasy.ToolResponse{}, fmt.Errorf("session ID is required for downloading files")
+				return genai.ToolResponse{}, fmt.Errorf("session ID is required for downloading files")
 			}
 
 			p := permissions.Request(
@@ -82,7 +82,7 @@ func NewDownloadTool(permissions permission.Service, workingDir string, client *
 			)
 
 			if !p {
-				return fantasy.ToolResponse{}, permission.ErrorPermissionDenied
+				return genai.ToolResponse{}, permission.ErrorPermissionDenied
 			}
 
 			// Handle timeout with context
@@ -99,36 +99,36 @@ func NewDownloadTool(permissions permission.Service, workingDir string, client *
 
 			req, err := http.NewRequestWithContext(requestCtx, "GET", params.URL, nil)
 			if err != nil {
-				return fantasy.ToolResponse{}, fmt.Errorf("failed to create request: %w", err)
+				return genai.ToolResponse{}, fmt.Errorf("failed to create request: %w", err)
 			}
 
 			req.Header.Set("User-Agent", "rush/1.0")
 
 			resp, err := client.Do(req)
 			if err != nil {
-				return fantasy.ToolResponse{}, fmt.Errorf("failed to download from URL: %w", err)
+				return genai.ToolResponse{}, fmt.Errorf("failed to download from URL: %w", err)
 			}
 			defer resp.Body.Close()
 
 			if resp.StatusCode != http.StatusOK {
-				return fantasy.NewTextErrorResponse(fmt.Sprintf("Request failed with status code: %d", resp.StatusCode)), nil
+				return genai.NewTextErrorResponse(fmt.Sprintf("Request failed with status code: %d", resp.StatusCode)), nil
 			}
 
 			// Check content length if available
 			maxSize := int64(100 * 1024 * 1024) // 100MB
 			if resp.ContentLength > maxSize {
-				return fantasy.NewTextErrorResponse(fmt.Sprintf("File too large: %d bytes (max %d bytes)", resp.ContentLength, maxSize)), nil
+				return genai.NewTextErrorResponse(fmt.Sprintf("File too large: %d bytes (max %d bytes)", resp.ContentLength, maxSize)), nil
 			}
 
 			// Create parent directories if they don't exist
 			if err := os.MkdirAll(filepath.Dir(filePath), 0o755); err != nil {
-				return fantasy.ToolResponse{}, fmt.Errorf("failed to create parent directories: %w", err)
+				return genai.ToolResponse{}, fmt.Errorf("failed to create parent directories: %w", err)
 			}
 
 			// Create the output file
 			outFile, err := os.Create(filePath)
 			if err != nil {
-				return fantasy.ToolResponse{}, fmt.Errorf("failed to create output file: %w", err)
+				return genai.ToolResponse{}, fmt.Errorf("failed to create output file: %w", err)
 			}
 			defer outFile.Close()
 
@@ -136,14 +136,14 @@ func NewDownloadTool(permissions permission.Service, workingDir string, client *
 			limitedReader := io.LimitReader(resp.Body, maxSize)
 			bytesWritten, err := io.Copy(outFile, limitedReader)
 			if err != nil {
-				return fantasy.ToolResponse{}, fmt.Errorf("failed to write file: %w", err)
+				return genai.ToolResponse{}, fmt.Errorf("failed to write file: %w", err)
 			}
 
 			// Check if we hit the size limit
 			if bytesWritten == maxSize {
 				// Clean up the file since it might be incomplete
 				os.Remove(filePath)
-				return fantasy.NewTextErrorResponse(fmt.Sprintf("File too large: exceeded %d bytes limit", maxSize)), nil
+				return genai.NewTextErrorResponse(fmt.Sprintf("File too large: exceeded %d bytes limit", maxSize)), nil
 			}
 
 			contentType := resp.Header.Get("Content-Type")
@@ -152,6 +152,6 @@ func NewDownloadTool(permissions permission.Service, workingDir string, client *
 				responseMsg += fmt.Sprintf(" (Content-Type: %s)", contentType)
 			}
 
-			return fantasy.NewTextResponse(responseMsg), nil
+			return genai.NewTextResponse(responseMsg), nil
 		})
 }

@@ -18,8 +18,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/can1357/rush/ai"
 	"github.com/can1357/rush/fsext"
+	"github.com/can1357/rush/genai"
 )
 
 // regexCache provides thread-safe caching of compiled regex patterns
@@ -112,13 +112,13 @@ func escapeRegexPattern(pattern string) string {
 	return escaped
 }
 
-func NewGrepTool(workingDir string) fantasy.AgentTool {
-	return fantasy.NewAgentTool(
+func NewGrepTool(workingDir string) genai.AgentTool {
+	return genai.NewAgentTool(
 		GrepToolName,
 		string(grepDescription),
-		func(ctx context.Context, params GrepParams, call fantasy.ToolCall) (fantasy.ToolResponse, error) {
+		func(ctx context.Context, params GrepParams, call genai.ToolCall) (genai.ToolResponse, error) {
 			if params.Pattern == "" {
-				return fantasy.NewTextErrorResponse("pattern is required"), nil
+				return genai.NewTextErrorResponse("pattern is required"), nil
 			}
 
 			// If literal_text is true, escape the pattern
@@ -134,7 +134,7 @@ func NewGrepTool(workingDir string) fantasy.AgentTool {
 
 			matches, truncated, err := searchFiles(ctx, searchPattern, searchPath, params.Include, 100)
 			if err != nil {
-				return fantasy.NewTextErrorResponse(fmt.Sprintf("error searching files: %v", err)), nil
+				return genai.NewTextErrorResponse(fmt.Sprintf("error searching files: %v", err)), nil
 			}
 
 			var output strings.Builder
@@ -172,8 +172,8 @@ func NewGrepTool(workingDir string) fantasy.AgentTool {
 				}
 			}
 
-			return fantasy.WithResponseMetadata(
-				fantasy.NewTextResponse(output.String()),
+			return genai.WithResponseMetadata(
+				genai.NewTextResponse(output.String()),
 				GrepResponseMetadata{
 					NumberOfMatches: len(matches),
 					Truncated:       truncated,

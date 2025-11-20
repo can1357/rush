@@ -1,0 +1,417 @@
+// Copyright 2025 Charmbracelet, Inc.
+// Copyright 2025 Can Boluk
+//
+// Licensed under the Apache License, Version 2.0.
+// See LICENSE file for details.
+//
+// This is a fork of github.com/charmbracelet/fantasy modified for Rush.
+
+package openaicompat
+
+import (
+	"encoding/base64"
+	"encoding/json"
+	"fmt"
+	"strings"
+
+	"github.com/can1357/rush/genai"
+	"github.com/can1357/rush/genai/providers/openai"
+	openaisdk "github.com/openai/openai-go/v2"
+	"github.com/openai/openai-go/v2/packages/param"
+	"github.com/openai/openai-go/v2/shared"
+)
+
+const reasoningStartedCtx = "reasoning_started"
+
+// PrepareCallFunc prepares the call for the language model.
+func PrepareCallFunc(_ genai.LanguageModel, params *openaisdk.ChatCompletionNewParams, call genai.Call) ([]genai.CallWarning, error) {
+	providerOptions := &ProviderOptions{}
+	if v, ok := call.ProviderOptions[Name]; ok {
+		providerOptions, ok = v.(*ProviderOptions)
+		if !ok {
+			return nil, &genai.Error{Title: "invalid argument", Message: "openai-compat provider options should be *openaicompat.ProviderOptions"}
+		}
+	}
+
+	if providerOptions.ReasoningEffort != nil {
+		switch *providerOptions.ReasoningEffort {
+		case openai.ReasoningEffortMinimal:
+			params.ReasoningEffort = shared.ReasoningEffortMinimal
+		case openai.ReasoningEffortLow:
+			params.ReasoningEffort = shared.ReasoningEffortLow
+		case openai.ReasoningEffortMedium:
+			params.ReasoningEffort = shared.ReasoningEffortMedium
+		case openai.ReasoningEffortHigh:
+			params.ReasoningEffort = shared.ReasoningEffortHigh
+		default:
+			return nil, fmt.Errorf("reasoning model `%s` not supported", *providerOptions.ReasoningEffort)
+		}
+	}
+
+	if providerOptions.User != nil {
+		params.User = param.NewOpt(*providerOptions.User)
+	}
+	return nil, nil
+}
+
+// ExtraContentFunc adds extra content to the response.
+func ExtraContentFunc(choice openaisdk.ChatCompletionChoice) []genai.Content {
+	var content []genai.Content
+	reasoningData := ReasoningData{}
+	err := json.Unmarshal([]byte(choice.Message.RawJSON()), &reasoningData)
+	if err != nil {
+		return content
+	}
+	if reasoningData.ReasoningContent != "" {
+		content = append(content, genai.ReasoningContent{
+			Text: reasoningData.ReasoningContent,
+		})
+	}
+	return content
+}
+
+func extractReasoningContext(ctx map[string]any) bool {
+	reasoningStarted, ok := ctx[reasoningStartedCtx]
+	if !ok {
+		return false
+	}
+	b, ok := reasoningStarted.(bool)
+	if !ok {
+		return false
+	}
+	return b
+}
+
+// StreamExtraFunc handles extra functionality for streaming responses.
+func StreamExtraFunc(chunk openaisdk.ChatCompletionChunk, yield func(genai.StreamPart) bool, ctx map[string]any) (map[string]any, bool) {
+	if len(chunk.Choices) == 0 {
+		return ctx, true
+	}
+
+	reasoningStarted := extractReasoningContext(ctx)
+
+	for inx, choice := range chunk.Choices {
+		reasoningData := ReasoningData{}
+		err := json.Unmarshal([]byte(choice.Delta.RawJSON()), &reasoningData)
+		if err != nil {
+			yield(genai.StreamPart{
+				Type:  genai.StreamPartTypeError,
+				Error: &genai.Error{Title: "stream error", Message: "error unmarshalling delta", Cause: err},
+			})
+			return ctx, false
+		}
+
+		emitEvent := func(reasoningContent string) bool {
+			if !reasoningStarted {
+				shouldContinue := yield(genai.StreamPart{
+					Type: genai.StreamPartTypeReasoningStart,
+					ID:   fmt.Sprintf("%d", inx),
+				})
+				if !shouldContinue {
+					return false
+				}
+			}
+
+			return yield(genai.StreamPart{
+				Type:  genai.StreamPartTypeReasoningDelta,
+				ID:    fmt.Sprintf("%d", inx),
+				Delta: reasoningContent,
+			})
+		}
+		if reasoningData.ReasoningContent != "" {
+			if !reasoningStarted {
+				ctx[reasoningStartedCtx] = true
+			}
+			return ctx, emitEvent(reasoningData.ReasoningContent)
+		}
+		if reasoningStarted && (choice.Delta.Content != "" || len(choice.Delta.ToolCalls) > 0) {
+			ctx[reasoningStartedCtx] = false
+			return ctx, yield(genai.StreamPart{
+				Type: genai.StreamPartTypeReasoningEnd,
+				ID:   fmt.Sprintf("%d", inx),
+			})
+		}
+	}
+	return ctx, true
+}
+
+// ToPromptFunc converts a fantasy prompt to OpenAI format with reasoning support.
+// It handles genai.ContentTypeReasoning in assistant messages by adding the
+// reasoning_content field to the message JSON.
+func ToPromptFunc(prompt genai.Prompt, _, _ string) ([]openaisdk.ChatCompletionMessageParamUnion, []genai.CallWarning) {
+	var messages []openaisdk.ChatCompletionMessageParamUnion
+	var warnings []genai.CallWarning
+	for _, msg := range prompt {
+		switch msg.Role {
+		case genai.MessageRoleSystem:
+			var systemPromptParts []string
+			for _, c := range msg.Content {
+				if c.GetType() != genai.ContentTypeText {
+					warnings = append(warnings, genai.CallWarning{
+						Type:    genai.CallWarningTypeOther,
+						Message: "system prompt can only have text content",
+					})
+					continue
+				}
+				textPart, ok := genai.AsContentType[genai.TextPart](c)
+				if !ok {
+					warnings = append(warnings, genai.CallWarning{
+						Type:    genai.CallWarningTypeOther,
+						Message: "system prompt text part does not have the right type",
+					})
+					continue
+				}
+				text := textPart.Text
+				if strings.TrimSpace(text) != "" {
+					systemPromptParts = append(systemPromptParts, textPart.Text)
+				}
+			}
+			if len(systemPromptParts) == 0 {
+				warnings = append(warnings, genai.CallWarning{
+					Type:    genai.CallWarningTypeOther,
+					Message: "system prompt has no text parts",
+				})
+				continue
+			}
+			messages = append(messages, openaisdk.SystemMessage(strings.Join(systemPromptParts, "\n")))
+		case genai.MessageRoleUser:
+			// simple user message just text content
+			if len(msg.Content) == 1 && msg.Content[0].GetType() == genai.ContentTypeText {
+				textPart, ok := genai.AsContentType[genai.TextPart](msg.Content[0])
+				if !ok {
+					warnings = append(warnings, genai.CallWarning{
+						Type:    genai.CallWarningTypeOther,
+						Message: "user message text part does not have the right type",
+					})
+					continue
+				}
+				messages = append(messages, openaisdk.UserMessage(textPart.Text))
+				continue
+			}
+			// text content and attachments
+			var content []openaisdk.ChatCompletionContentPartUnionParam
+			for _, c := range msg.Content {
+				switch c.GetType() {
+				case genai.ContentTypeText:
+					textPart, ok := genai.AsContentType[genai.TextPart](c)
+					if !ok {
+						warnings = append(warnings, genai.CallWarning{
+							Type:    genai.CallWarningTypeOther,
+							Message: "user message text part does not have the right type",
+						})
+						continue
+					}
+					content = append(content, openaisdk.ChatCompletionContentPartUnionParam{
+						OfText: &openaisdk.ChatCompletionContentPartTextParam{
+							Text: textPart.Text,
+						},
+					})
+				case genai.ContentTypeFile:
+					filePart, ok := genai.AsContentType[genai.FilePart](c)
+					if !ok {
+						warnings = append(warnings, genai.CallWarning{
+							Type:    genai.CallWarningTypeOther,
+							Message: "user message file part does not have the right type",
+						})
+						continue
+					}
+
+					switch {
+					case strings.HasPrefix(filePart.MediaType, "image/"):
+						// Handle image files
+						base64Encoded := base64.StdEncoding.EncodeToString(filePart.Data)
+						data := "data:" + filePart.MediaType + ";base64," + base64Encoded
+						imageURL := openaisdk.ChatCompletionContentPartImageImageURLParam{URL: data}
+
+						// Check for provider-specific options like image detail
+						if providerOptions, ok := filePart.ProviderOptions[openai.Name]; ok {
+							if detail, ok := providerOptions.(*openai.ProviderFileOptions); ok {
+								imageURL.Detail = detail.ImageDetail
+							}
+						}
+
+						imageBlock := openaisdk.ChatCompletionContentPartImageParam{ImageURL: imageURL}
+						content = append(content, openaisdk.ChatCompletionContentPartUnionParam{OfImageURL: &imageBlock})
+
+					case filePart.MediaType == "audio/wav":
+						// Handle WAV audio files
+						base64Encoded := base64.StdEncoding.EncodeToString(filePart.Data)
+						audioBlock := openaisdk.ChatCompletionContentPartInputAudioParam{
+							InputAudio: openaisdk.ChatCompletionContentPartInputAudioInputAudioParam{
+								Data:   base64Encoded,
+								Format: "wav",
+							},
+						}
+						content = append(content, openaisdk.ChatCompletionContentPartUnionParam{OfInputAudio: &audioBlock})
+
+					case filePart.MediaType == "audio/mpeg" || filePart.MediaType == "audio/mp3":
+						// Handle MP3 audio files
+						base64Encoded := base64.StdEncoding.EncodeToString(filePart.Data)
+						audioBlock := openaisdk.ChatCompletionContentPartInputAudioParam{
+							InputAudio: openaisdk.ChatCompletionContentPartInputAudioInputAudioParam{
+								Data:   base64Encoded,
+								Format: "mp3",
+							},
+						}
+						content = append(content, openaisdk.ChatCompletionContentPartUnionParam{OfInputAudio: &audioBlock})
+
+					case filePart.MediaType == "application/pdf":
+						// Handle PDF files
+						dataStr := string(filePart.Data)
+
+						// Check if data looks like a file ID (starts with "file-")
+						if strings.HasPrefix(dataStr, "file-") {
+							fileBlock := openaisdk.ChatCompletionContentPartFileParam{
+								File: openaisdk.ChatCompletionContentPartFileFileParam{
+									FileID: param.NewOpt(dataStr),
+								},
+							}
+							content = append(content, openaisdk.ChatCompletionContentPartUnionParam{OfFile: &fileBlock})
+						} else {
+							// Handle as base64 data
+							base64Encoded := base64.StdEncoding.EncodeToString(filePart.Data)
+							data := "data:application/pdf;base64," + base64Encoded
+
+							filename := filePart.Filename
+							if filename == "" {
+								// Generate default filename based on content index
+								filename = fmt.Sprintf("part-%d.pdf", len(content))
+							}
+
+							fileBlock := openaisdk.ChatCompletionContentPartFileParam{
+								File: openaisdk.ChatCompletionContentPartFileFileParam{
+									Filename: param.NewOpt(filename),
+									FileData: param.NewOpt(data),
+								},
+							}
+							content = append(content, openaisdk.ChatCompletionContentPartUnionParam{OfFile: &fileBlock})
+						}
+
+					default:
+						warnings = append(warnings, genai.CallWarning{
+							Type:    genai.CallWarningTypeOther,
+							Message: fmt.Sprintf("file part media type %s not supported", filePart.MediaType),
+						})
+					}
+				}
+			}
+			messages = append(messages, openaisdk.UserMessage(content))
+		case genai.MessageRoleAssistant:
+			// simple assistant message just text content
+			if len(msg.Content) == 1 && msg.Content[0].GetType() == genai.ContentTypeText {
+				textPart, ok := genai.AsContentType[genai.TextPart](msg.Content[0])
+				if !ok {
+					warnings = append(warnings, genai.CallWarning{
+						Type:    genai.CallWarningTypeOther,
+						Message: "assistant message text part does not have the right type",
+					})
+					continue
+				}
+				messages = append(messages, openaisdk.AssistantMessage(textPart.Text))
+				continue
+			}
+			assistantMsg := openaisdk.ChatCompletionAssistantMessageParam{
+				Role: "assistant",
+			}
+			var reasoningText string
+			for _, c := range msg.Content {
+				switch c.GetType() {
+				case genai.ContentTypeText:
+					textPart, ok := genai.AsContentType[genai.TextPart](c)
+					if !ok {
+						warnings = append(warnings, genai.CallWarning{
+							Type:    genai.CallWarningTypeOther,
+							Message: "assistant message text part does not have the right type",
+						})
+						continue
+					}
+					assistantMsg.Content = openaisdk.ChatCompletionAssistantMessageParamContentUnion{
+						OfString: param.NewOpt(textPart.Text),
+					}
+				case genai.ContentTypeReasoning:
+					reasoningPart, ok := genai.AsContentType[genai.ReasoningPart](c)
+					if !ok {
+						warnings = append(warnings, genai.CallWarning{
+							Type:    genai.CallWarningTypeOther,
+							Message: "assistant message reasoning part does not have the right type",
+						})
+						continue
+					}
+					reasoningText = reasoningPart.Text
+				case genai.ContentTypeToolCall:
+					toolCallPart, ok := genai.AsContentType[genai.ToolCallPart](c)
+					if !ok {
+						warnings = append(warnings, genai.CallWarning{
+							Type:    genai.CallWarningTypeOther,
+							Message: "assistant message tool part does not have the right type",
+						})
+						continue
+					}
+					assistantMsg.ToolCalls = append(assistantMsg.ToolCalls,
+						openaisdk.ChatCompletionMessageToolCallUnionParam{
+							OfFunction: &openaisdk.ChatCompletionMessageFunctionToolCallParam{
+								ID:   toolCallPart.ToolCallID,
+								Type: "function",
+								Function: openaisdk.ChatCompletionMessageFunctionToolCallFunctionParam{
+									Name:      toolCallPart.ToolName,
+									Arguments: toolCallPart.Input,
+								},
+							},
+						})
+				}
+			}
+			// Add reasoning_content field if present
+			if reasoningText != "" {
+				assistantMsg.SetExtraFields(map[string]any{
+					"reasoning_content": reasoningText,
+				})
+			}
+			messages = append(messages, openaisdk.ChatCompletionMessageParamUnion{
+				OfAssistant: &assistantMsg,
+			})
+		case genai.MessageRoleTool:
+			for _, c := range msg.Content {
+				if c.GetType() != genai.ContentTypeToolResult {
+					warnings = append(warnings, genai.CallWarning{
+						Type:    genai.CallWarningTypeOther,
+						Message: "tool message can only have tool result content",
+					})
+					continue
+				}
+
+				toolResultPart, ok := genai.AsContentType[genai.ToolResultPart](c)
+				if !ok {
+					warnings = append(warnings, genai.CallWarning{
+						Type:    genai.CallWarningTypeOther,
+						Message: "tool message result part does not have the right type",
+					})
+					continue
+				}
+
+				switch toolResultPart.Output.GetType() {
+				case genai.ToolResultContentTypeText:
+					output, ok := genai.AsToolResultOutputType[genai.ToolResultOutputContentText](toolResultPart.Output)
+					if !ok {
+						warnings = append(warnings, genai.CallWarning{
+							Type:    genai.CallWarningTypeOther,
+							Message: "tool result output does not have the right type",
+						})
+						continue
+					}
+					messages = append(messages, openaisdk.ToolMessage(output.Text, toolResultPart.ToolCallID))
+				case genai.ToolResultContentTypeError:
+					output, ok := genai.AsToolResultOutputType[genai.ToolResultOutputContentError](toolResultPart.Output)
+					if !ok {
+						warnings = append(warnings, genai.CallWarning{
+							Type:    genai.CallWarningTypeOther,
+							Message: "tool result output does not have the right type",
+						})
+						continue
+					}
+					messages = append(messages, openaisdk.ToolMessage(output.Error.Error(), toolResultPart.ToolCallID))
+				}
+			}
+		}
+	}
+	return messages, warnings
+}

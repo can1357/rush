@@ -7,11 +7,10 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/can1357/rush/ai"
-
 	"github.com/can1357/rush/agent/prompt"
 	"github.com/can1357/rush/agent/tools"
 	"github.com/can1357/rush/config"
+	"github.com/can1357/rush/genai"
 )
 
 //go:embed templates/agent_tool.md
@@ -116,20 +115,20 @@ const (
 	AgentToolName = "agent"
 )
 
-func (c *coordinator) agentTool(ctx context.Context, description string) (fantasy.AgentTool, error) {
-	return fantasy.NewAgentTool(
+func (c *coordinator) agentTool(ctx context.Context, description string) (genai.AgentTool, error) {
+	return genai.NewAgentTool(
 		AgentToolName,
 		description,
-		func(ctx context.Context, params AgentParams, call fantasy.ToolCall) (fantasy.ToolResponse, error) {
+		func(ctx context.Context, params AgentParams, call genai.ToolCall) (genai.ToolResponse, error) {
 			// Validate required parameters
 			if params.Prompt == "" {
-				return fantasy.NewTextErrorResponse("prompt is required"), nil
+				return genai.NewTextErrorResponse("prompt is required"), nil
 			}
 			if params.Description == "" {
-				return fantasy.NewTextErrorResponse("description is required"), nil
+				return genai.NewTextErrorResponse("description is required"), nil
 			}
 			if params.SubagentType == "" {
-				return fantasy.NewTextErrorResponse("subagent_type is required"), nil
+				return genai.NewTextErrorResponse("subagent_type is required"), nil
 			}
 
 			// Route to the correct agent based on subagent_type
@@ -142,42 +141,42 @@ func (c *coordinator) agentTool(ctx context.Context, description string) (fantas
 				var ok bool
 				agentCfg, ok = c.cfg.Agents[config.AgentTask]
 				if !ok {
-					return fantasy.NewTextErrorResponse("task agent not configured"), nil
+					return genai.NewTextErrorResponse("task agent not configured"), nil
 				}
 				agentPrompt, err = taskPrompt(prompt.WithWorkingDir(c.cfg.WorkingDir()))
 				if err != nil {
-					return fantasy.ToolResponse{}, fmt.Errorf("error creating task prompt: %w", err)
+					return genai.ToolResponse{}, fmt.Errorf("error creating task prompt: %w", err)
 				}
 
 			case config.AgentExplore:
 				var ok bool
 				agentCfg, ok = c.cfg.Agents[config.AgentExplore]
 				if !ok {
-					return fantasy.NewTextErrorResponse("explore agent not configured"), nil
+					return genai.NewTextErrorResponse("explore agent not configured"), nil
 				}
 				agentPrompt, err = explorePrompt(prompt.WithWorkingDir(c.cfg.WorkingDir()))
 				if err != nil {
-					return fantasy.ToolResponse{}, fmt.Errorf("error creating explore prompt: %w", err)
+					return genai.ToolResponse{}, fmt.Errorf("error creating explore prompt: %w", err)
 				}
 
 			default:
-				return fantasy.NewTextErrorResponse(fmt.Sprintf("unknown subagent_type: %s. Valid types are: task, explore", params.SubagentType)), nil
+				return genai.NewTextErrorResponse(fmt.Sprintf("unknown subagent_type: %s. Valid types are: task, explore", params.SubagentType)), nil
 			}
 
 			// Build the agent for this specific call
 			agent, err := c.buildAgent(ctx, agentPrompt, agentCfg)
 			if err != nil {
-				return fantasy.ToolResponse{}, fmt.Errorf("error building agent: %w", err)
+				return genai.ToolResponse{}, fmt.Errorf("error building agent: %w", err)
 			}
 
 			sessionID := tools.GetSessionFromContext(ctx)
 			if sessionID == "" {
-				return fantasy.ToolResponse{}, errors.New("session id missing from context")
+				return genai.ToolResponse{}, errors.New("session id missing from context")
 			}
 
 			agentMessageID := tools.GetMessageFromContext(ctx)
 			if agentMessageID == "" {
-				return fantasy.ToolResponse{}, errors.New("agent message id missing from context")
+				return genai.ToolResponse{}, errors.New("agent message id missing from context")
 			}
 
 			agentToolSessionID := c.sessions.CreateAgentToolSessionID(agentMessageID, call.ID)
@@ -185,7 +184,7 @@ func (c *coordinator) agentTool(ctx context.Context, description string) (fantas
 			sessionTitle := fmt.Sprintf("[%s] %s", params.SubagentType, params.Description)
 			session, err := c.sessions.CreateTaskSession(ctx, agentToolSessionID, sessionID, sessionTitle)
 			if err != nil {
-				return fantasy.ToolResponse{}, fmt.Errorf("error creating session: %s", err)
+				return genai.ToolResponse{}, fmt.Errorf("error creating session: %s", err)
 			}
 
 			model := agent.Model()
@@ -196,7 +195,7 @@ func (c *coordinator) agentTool(ctx context.Context, description string) (fantas
 
 			providerCfg, ok := c.cfg.Providers.Get(model.ModelCfg.Provider)
 			if !ok {
-				return fantasy.ToolResponse{}, errors.New("model provider not configured")
+				return genai.ToolResponse{}, errors.New("model provider not configured")
 			}
 
 			result, err := agent.Run(ctx, SessionAgentCall{
@@ -211,26 +210,26 @@ func (c *coordinator) agentTool(ctx context.Context, description string) (fantas
 				PresencePenalty:  model.ModelCfg.PresencePenalty,
 			})
 			if err != nil {
-				return fantasy.NewTextErrorResponse("error generating response"), nil
+				return genai.NewTextErrorResponse("error generating response"), nil
 			}
 
 			updatedSession, err := c.sessions.Get(ctx, session.ID)
 			if err != nil {
-				return fantasy.ToolResponse{}, fmt.Errorf("error getting session: %s", err)
+				return genai.ToolResponse{}, fmt.Errorf("error getting session: %s", err)
 			}
 
 			parentSession, err := c.sessions.Get(ctx, sessionID)
 			if err != nil {
-				return fantasy.ToolResponse{}, fmt.Errorf("error getting parent session: %s", err)
+				return genai.ToolResponse{}, fmt.Errorf("error getting parent session: %s", err)
 			}
 
 			parentSession.Cost += updatedSession.Cost
 
 			_, err = c.sessions.Save(ctx, parentSession)
 			if err != nil {
-				return fantasy.ToolResponse{}, fmt.Errorf("error saving parent session: %s", err)
+				return genai.ToolResponse{}, fmt.Errorf("error saving parent session: %s", err)
 			}
 
-			return fantasy.NewTextResponse(result.Response.Content.Text()), nil
+			return genai.NewTextResponse(result.Response.Content.Text()), nil
 		}), nil
 }

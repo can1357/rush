@@ -14,8 +14,8 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/can1357/rush/ai"
 	"github.com/can1357/rush/csync"
+	"github.com/can1357/rush/genai"
 	"github.com/can1357/rush/lsp"
 	"github.com/charmbracelet/x/powernap/pkg/lsp/protocol"
 )
@@ -34,28 +34,28 @@ const ReferencesToolName = "lsp_references"
 //go:embed references.md
 var referencesDescription []byte
 
-func NewReferencesTool(lspClients *csync.Map[string, *lsp.Client]) fantasy.AgentTool {
-	return fantasy.NewAgentTool(
+func NewReferencesTool(lspClients *csync.Map[string, *lsp.Client]) genai.AgentTool {
+	return genai.NewAgentTool(
 		ReferencesToolName,
 		string(referencesDescription),
-		func(ctx context.Context, params ReferencesParams, call fantasy.ToolCall) (fantasy.ToolResponse, error) {
+		func(ctx context.Context, params ReferencesParams, call genai.ToolCall) (genai.ToolResponse, error) {
 			if params.Symbol == "" {
-				return fantasy.NewTextErrorResponse("symbol is required"), nil
+				return genai.NewTextErrorResponse("symbol is required"), nil
 			}
 
 			if lspClients.Len() == 0 {
-				return fantasy.NewTextErrorResponse("no LSP clients available"), nil
+				return genai.NewTextErrorResponse("no LSP clients available"), nil
 			}
 
 			workingDir := cmp.Or(params.Path, ".")
 
 			matches, _, err := searchFiles(ctx, regexp.QuoteMeta(params.Symbol), workingDir, "", 100)
 			if err != nil {
-				return fantasy.NewTextErrorResponse(fmt.Sprintf("failed to search for symbol: %s", err)), nil
+				return genai.NewTextErrorResponse(fmt.Sprintf("failed to search for symbol: %s", err)), nil
 			}
 
 			if len(matches) == 0 {
-				return fantasy.NewTextResponse(fmt.Sprintf("Symbol '%s' not found", params.Symbol)), nil
+				return genai.NewTextResponse(fmt.Sprintf("Symbol '%s' not found", params.Symbol)), nil
 			}
 
 			var allLocations []protocol.Location
@@ -77,13 +77,13 @@ func NewReferencesTool(lspClients *csync.Map[string, *lsp.Client]) fantasy.Agent
 
 			if len(allLocations) > 0 {
 				output := formatReferences(cleanupLocations(allLocations))
-				return fantasy.NewTextResponse(output), nil
+				return genai.NewTextResponse(output), nil
 			}
 
 			if allErrs != nil {
-				return fantasy.NewTextErrorResponse(allErrs.Error()), nil
+				return genai.NewTextErrorResponse(allErrs.Error()), nil
 			}
-			return fantasy.NewTextResponse(fmt.Sprintf("No references found for symbol '%s'", params.Symbol)), nil
+			return genai.NewTextResponse(fmt.Sprintf("No references found for symbol '%s'", params.Symbol)), nil
 		})
 }
 

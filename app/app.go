@@ -14,7 +14,6 @@ import (
 	"time"
 
 	tea "charm.land/bubbletea/v2"
-	"github.com/can1357/rush/ai"
 	"charm.land/lipgloss/v2"
 	"github.com/can1357/rush/agent"
 	"github.com/can1357/rush/agent/tools/mcp"
@@ -22,6 +21,7 @@ import (
 	"github.com/can1357/rush/csync"
 	"github.com/can1357/rush/db"
 	"github.com/can1357/rush/format"
+	"github.com/can1357/rush/genai"
 	"github.com/can1357/rush/history"
 	"github.com/can1357/rush/log"
 	"github.com/can1357/rush/lsp"
@@ -192,7 +192,7 @@ func (app *App) RunNonInteractive(ctx context.Context, output io.Writer, prompt 
 	app.Permissions.AutoApproveSession(sess.ID)
 
 	type response struct {
-		result *fantasy.AgentResult
+		result *genai.AgentResult
 		err    error
 	}
 	done := make(chan response, 1)

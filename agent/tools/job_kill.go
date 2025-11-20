@@ -5,7 +5,7 @@ import (
 	_ "embed"
 	"fmt"
 
-	"github.com/can1357/rush/ai"
+	"github.com/can1357/rush/genai"
 	"github.com/can1357/rush/shell"
 )
 
@@ -26,20 +26,20 @@ type JobKillResponseMetadata struct {
 	Description string `json:"description"`
 }
 
-func NewJobKillTool() fantasy.AgentTool {
-	return fantasy.NewAgentTool(
+func NewJobKillTool() genai.AgentTool {
+	return genai.NewAgentTool(
 		JobKillToolName,
 		string(jobKillDescription),
-		func(ctx context.Context, params JobKillParams, call fantasy.ToolCall) (fantasy.ToolResponse, error) {
+		func(ctx context.Context, params JobKillParams, call genai.ToolCall) (genai.ToolResponse, error) {
 			if params.ShellID == "" {
-				return fantasy.NewTextErrorResponse("missing shell_id"), nil
+				return genai.NewTextErrorResponse("missing shell_id"), nil
 			}
 
 			bgManager := shell.GetBackgroundShellManager()
 
 			bgShell, ok := bgManager.Get(params.ShellID)
 			if !ok {
-				return fantasy.NewTextErrorResponse(fmt.Sprintf("background shell not found: %s", params.ShellID)), nil
+				return genai.NewTextErrorResponse(fmt.Sprintf("background shell not found: %s", params.ShellID)), nil
 			}
 
 			metadata := JobKillResponseMetadata{
@@ -50,10 +50,10 @@ func NewJobKillTool() fantasy.AgentTool {
 
 			err := bgManager.Kill(params.ShellID)
 			if err != nil {
-				return fantasy.NewTextErrorResponse(err.Error()), nil
+				return genai.NewTextErrorResponse(err.Error()), nil
 			}
 
 			result := fmt.Sprintf("Background shell %s terminated successfully", params.ShellID)
-			return fantasy.WithResponseMetadata(fantasy.NewTextResponse(result), metadata), nil
+			return genai.WithResponseMetadata(genai.NewTextResponse(result), metadata), nil
 		})
 }

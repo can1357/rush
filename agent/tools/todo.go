@@ -7,7 +7,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/can1357/rush/ai"
+	"github.com/can1357/rush/genai"
 	"github.com/can1357/rush/session"
 	"github.com/can1357/rush/todo"
 )
@@ -36,31 +36,31 @@ type TodoResponseMetadata struct {
 	Todos     []todo.Todo `json:"todos"`
 }
 
-func NewTodoTool(todoService todo.Service, sessionService session.Service) fantasy.AgentTool {
-	return fantasy.NewAgentTool(
+func NewTodoTool(todoService todo.Service, sessionService session.Service) genai.AgentTool {
+	return genai.NewAgentTool(
 		TodoToolName,
 		string(todoDescription),
-		func(ctx context.Context, params TodoParams, call fantasy.ToolCall) (fantasy.ToolResponse, error) {
+		func(ctx context.Context, params TodoParams, call genai.ToolCall) (genai.ToolResponse, error) {
 			sessionID := GetSessionFromContext(ctx)
 			if sessionID == "" {
-				return fantasy.NewTextErrorResponse("session ID is required for todo operations"), nil
+				return genai.NewTextErrorResponse("session ID is required for todo operations"), nil
 			}
 
 			// Validate todos
 			if len(params.Todos) == 0 {
-				return fantasy.NewTextErrorResponse("todos list cannot be empty"), nil
+				return genai.NewTextErrorResponse("todos list cannot be empty"), nil
 			}
 
 			// Validate statuses and forms
 			for i, item := range params.Todos {
 				if item.Content == "" {
-					return fantasy.NewTextErrorResponse(fmt.Sprintf("todo at index %d: content is required", i)), nil
+					return genai.NewTextErrorResponse(fmt.Sprintf("todo at index %d: content is required", i)), nil
 				}
 				if item.ActiveForm == "" {
-					return fantasy.NewTextErrorResponse(fmt.Sprintf("todo at index %d: activeForm is required", i)), nil
+					return genai.NewTextErrorResponse(fmt.Sprintf("todo at index %d: activeForm is required", i)), nil
 				}
 				if item.Status != "pending" && item.Status != "in_progress" && item.Status != "completed" {
-					return fantasy.NewTextErrorResponse(fmt.Sprintf("todo at index %d: status must be 'pending', 'in_progress', or 'completed'", i)), nil
+					return genai.NewTextErrorResponse(fmt.Sprintf("todo at index %d: status must be 'pending', 'in_progress', or 'completed'", i)), nil
 				}
 			}
 
@@ -78,7 +78,7 @@ func NewTodoTool(todoService todo.Service, sessionService session.Service) fanta
 
 			// Validate at most one in_progress
 			if inProgressCount > 1 {
-				return fantasy.NewTextErrorResponse("at most one task must be 'in_progress' at any time"), nil
+				return genai.NewTextErrorResponse("at most one task must be 'in_progress' at any time"), nil
 			}
 
 			// Convert to todo inputs
@@ -94,7 +94,7 @@ func NewTodoTool(todoService todo.Service, sessionService session.Service) fanta
 			// Replace all todos for this session
 			todos, err := todoService.ReplaceAll(ctx, sessionID, inputs)
 			if err != nil {
-				return fantasy.ToolResponse{}, fmt.Errorf("failed to update todos: %w", err)
+				return genai.ToolResponse{}, fmt.Errorf("failed to update todos: %w", err)
 			}
 
 			// Update session to track TodoWrite usage
@@ -108,8 +108,8 @@ func NewTodoTool(todoService todo.Service, sessionService session.Service) fanta
 			var output strings.Builder
 			output.WriteString("Todos have been modified successfully. Ensure that you continue to use the todo list to track your progress. Please proceed with the current tasks if applicable")
 
-			return fantasy.WithResponseMetadata(
-				fantasy.NewTextResponse(output.String()),
+			return genai.WithResponseMetadata(
+				genai.NewTextResponse(output.String()),
 				TodoResponseMetadata{
 					SessionID: sessionID,
 					Todos:     todos,

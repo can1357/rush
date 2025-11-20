@@ -7,10 +7,10 @@ import (
 	"strings"
 	"time"
 
-	"github.com/can1357/rush/ai"
-	"github.com/can1357/rush/ai/providers/anthropic"
-	"github.com/can1357/rush/ai/providers/google"
-	"github.com/can1357/rush/ai/providers/openai"
+	"github.com/can1357/rush/genai"
+	"github.com/can1357/rush/genai/providers/anthropic"
+	"github.com/can1357/rush/genai/providers/google"
+	"github.com/can1357/rush/genai/providers/openai"
 	"github.com/charmbracelet/catwalk/pkg/catwalk"
 )
 
@@ -447,35 +447,35 @@ func (m *Message) AddBinary(mimeType string, data []byte) {
 	m.Parts = append(m.Parts, BinaryContent{MIMEType: mimeType, Data: data})
 }
 
-func (m *Message) ToAIMessage() []fantasy.Message {
-	var messages []fantasy.Message
+func (m *Message) ToAIMessage() []genai.Message {
+	var messages []genai.Message
 	switch m.Role {
 	case User:
-		var parts []fantasy.MessagePart
+		var parts []genai.MessagePart
 		text := strings.TrimSpace(m.Content().Text)
 		if text != "" {
-			parts = append(parts, fantasy.TextPart{Text: text})
+			parts = append(parts, genai.TextPart{Text: text})
 		}
 		for _, content := range m.BinaryContent() {
-			parts = append(parts, fantasy.FilePart{
+			parts = append(parts, genai.FilePart{
 				Filename:  content.Path,
 				Data:      content.Data,
 				MediaType: content.MIMEType,
 			})
 		}
-		messages = append(messages, fantasy.Message{
-			Role:    fantasy.MessageRoleUser,
+		messages = append(messages, genai.Message{
+			Role:    genai.MessageRoleUser,
 			Content: parts,
 		})
 	case Assistant:
-		var parts []fantasy.MessagePart
+		var parts []genai.MessagePart
 		text := strings.TrimSpace(m.Content().Text)
 		if text != "" {
-			parts = append(parts, fantasy.TextPart{Text: text})
+			parts = append(parts, genai.TextPart{Text: text})
 		}
 		reasoning := m.ReasoningContent()
 		if reasoning.Thinking != "" {
-			reasoningPart := fantasy.ReasoningPart{Text: reasoning.Thinking, ProviderOptions: fantasy.ProviderOptions{}}
+			reasoningPart := genai.ReasoningPart{Text: reasoning.Thinking, ProviderOptions: genai.ProviderOptions{}}
 			if reasoning.Signature != "" {
 				reasoningPart.ProviderOptions[anthropic.Name] = &anthropic.ReasoningOptionMetadata{
 					Signature: reasoning.Signature,
@@ -493,42 +493,42 @@ func (m *Message) ToAIMessage() []fantasy.Message {
 			parts = append(parts, reasoningPart)
 		}
 		for _, call := range m.ToolCalls() {
-			parts = append(parts, fantasy.ToolCallPart{
+			parts = append(parts, genai.ToolCallPart{
 				ToolCallID:       call.ID,
 				ToolName:         call.Name,
 				Input:            call.Input,
 				ProviderExecuted: call.ProviderExecuted,
 			})
 		}
-		messages = append(messages, fantasy.Message{
-			Role:    fantasy.MessageRoleAssistant,
+		messages = append(messages, genai.Message{
+			Role:    genai.MessageRoleAssistant,
 			Content: parts,
 		})
 	case Tool:
-		var parts []fantasy.MessagePart
+		var parts []genai.MessagePart
 		for _, result := range m.ToolResults() {
-			var content fantasy.ToolResultOutputContent
+			var content genai.ToolResultOutputContent
 			if result.IsError {
-				content = fantasy.ToolResultOutputContentError{
+				content = genai.ToolResultOutputContentError{
 					Error: errors.New(result.Content),
 				}
 			} else if result.Data != "" {
-				content = fantasy.ToolResultOutputContentMedia{
+				content = genai.ToolResultOutputContentMedia{
 					Data:      result.Data,
 					MediaType: result.MIMEType,
 				}
 			} else {
-				content = fantasy.ToolResultOutputContentText{
+				content = genai.ToolResultOutputContentText{
 					Text: result.Content,
 				}
 			}
-			parts = append(parts, fantasy.ToolResultPart{
+			parts = append(parts, genai.ToolResultPart{
 				ToolCallID: result.ToolCallID,
 				Output:     content,
 			})
 		}
-		messages = append(messages, fantasy.Message{
-			Role:    fantasy.MessageRoleTool,
+		messages = append(messages, genai.Message{
+			Role:    genai.MessageRoleTool,
 			Content: parts,
 		})
 	}

@@ -4,8 +4,8 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/can1357/rush/ai"
 	"github.com/can1357/rush/agent/tools/mcp"
+	"github.com/can1357/rush/genai"
 	"github.com/can1357/rush/permission"
 )
 
@@ -31,14 +31,14 @@ type Tool struct {
 	tool            *mcp.Tool
 	permissions     permission.Service
 	workingDir      string
-	providerOptions fantasy.ProviderOptions
+	providerOptions genai.ProviderOptions
 }
 
-func (m *Tool) SetProviderOptions(opts fantasy.ProviderOptions) {
+func (m *Tool) SetProviderOptions(opts genai.ProviderOptions) {
 	m.providerOptions = opts
 }
 
-func (m *Tool) ProviderOptions() fantasy.ProviderOptions {
+func (m *Tool) ProviderOptions() genai.ProviderOptions {
 	return m.providerOptions
 }
 
@@ -54,7 +54,7 @@ func (m *Tool) MCPToolName() string {
 	return m.tool.Name
 }
 
-func (m *Tool) Info() fantasy.ToolInfo {
+func (m *Tool) Info() genai.ToolInfo {
 	parameters := make(map[string]any)
 	required := make([]string, 0)
 
@@ -75,7 +75,7 @@ func (m *Tool) Info() fantasy.ToolInfo {
 		}
 	}
 
-	return fantasy.ToolInfo{
+	return genai.ToolInfo{
 		Name:        m.Name(),
 		Description: m.tool.Description,
 		Parameters:  parameters,
@@ -83,10 +83,10 @@ func (m *Tool) Info() fantasy.ToolInfo {
 	}
 }
 
-func (m *Tool) Run(ctx context.Context, params fantasy.ToolCall) (fantasy.ToolResponse, error) {
+func (m *Tool) Run(ctx context.Context, params genai.ToolCall) (genai.ToolResponse, error) {
 	sessionID := GetSessionFromContext(ctx)
 	if sessionID == "" {
-		return fantasy.ToolResponse{}, fmt.Errorf("session ID is required for creating a new file")
+		return genai.ToolResponse{}, fmt.Errorf("session ID is required for creating a new file")
 	}
 	permissionDescription := fmt.Sprintf("execute %s with the following parameters:", m.Info().Name)
 	p := m.permissions.Request(
@@ -101,12 +101,12 @@ func (m *Tool) Run(ctx context.Context, params fantasy.ToolCall) (fantasy.ToolRe
 		},
 	)
 	if !p {
-		return fantasy.ToolResponse{}, permission.ErrorPermissionDenied
+		return genai.ToolResponse{}, permission.ErrorPermissionDenied
 	}
 
 	content, err := mcp.RunTool(ctx, m.mcpName, m.tool.Name, params.Input)
 	if err != nil {
-		return fantasy.NewTextErrorResponse(err.Error()), nil
+		return genai.NewTextErrorResponse(err.Error()), nil
 	}
-	return fantasy.NewTextResponse(content), nil
+	return genai.NewTextResponse(content), nil
 }

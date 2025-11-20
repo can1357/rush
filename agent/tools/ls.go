@@ -9,10 +9,10 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/can1357/rush/ai"
 	"github.com/can1357/rush/config"
 	"github.com/can1357/rush/filepathext"
 	"github.com/can1357/rush/fsext"
+	"github.com/can1357/rush/genai"
 	"github.com/can1357/rush/permission"
 )
 
@@ -48,14 +48,14 @@ const (
 //go:embed ls.md
 var lsDescription []byte
 
-func NewLsTool(permissions permission.Service, workingDir string, lsConfig config.ToolLs) fantasy.AgentTool {
-	return fantasy.NewAgentTool(
+func NewLsTool(permissions permission.Service, workingDir string, lsConfig config.ToolLs) genai.AgentTool {
+	return genai.NewAgentTool(
 		LSToolName,
 		string(lsDescription),
-		func(ctx context.Context, params LSParams, call fantasy.ToolCall) (fantasy.ToolResponse, error) {
+		func(ctx context.Context, params LSParams, call genai.ToolCall) (genai.ToolResponse, error) {
 			searchPath, err := fsext.Expand(cmp.Or(params.Path, workingDir))
 			if err != nil {
-				return fantasy.NewTextErrorResponse(fmt.Sprintf("error expanding path: %v", err)), nil
+				return genai.NewTextErrorResponse(fmt.Sprintf("error expanding path: %v", err)), nil
 			}
 
 			searchPath = filepathext.SmartJoin(workingDir, searchPath)
@@ -63,12 +63,12 @@ func NewLsTool(permissions permission.Service, workingDir string, lsConfig confi
 			// Check if directory is outside working directory and request permission if needed
 			absWorkingDir, err := filepath.Abs(workingDir)
 			if err != nil {
-				return fantasy.NewTextErrorResponse(fmt.Sprintf("error resolving working directory: %v", err)), nil
+				return genai.NewTextErrorResponse(fmt.Sprintf("error resolving working directory: %v", err)), nil
 			}
 
 			absSearchPath, err := filepath.Abs(searchPath)
 			if err != nil {
-				return fantasy.NewTextErrorResponse(fmt.Sprintf("error resolving search path: %v", err)), nil
+				return genai.NewTextErrorResponse(fmt.Sprintf("error resolving search path: %v", err)), nil
 			}
 
 			relPath, err := filepath.Rel(absWorkingDir, absSearchPath)
@@ -76,7 +76,7 @@ func NewLsTool(permissions permission.Service, workingDir string, lsConfig confi
 				// Directory is outside working directory, request permission
 				sessionID := GetSessionFromContext(ctx)
 				if sessionID == "" {
-					return fantasy.ToolResponse{}, fmt.Errorf("session ID is required for accessing directories outside working directory")
+					return genai.ToolResponse{}, fmt.Errorf("session ID is required for accessing directories outside working directory")
 				}
 
 				granted := permissions.Request(
@@ -92,17 +92,17 @@ func NewLsTool(permissions permission.Service, workingDir string, lsConfig confi
 				)
 
 				if !granted {
-					return fantasy.ToolResponse{}, permission.ErrorPermissionDenied
+					return genai.ToolResponse{}, permission.ErrorPermissionDenied
 				}
 			}
 
 			output, metadata, err := ListDirectoryTree(searchPath, params, lsConfig)
 			if err != nil {
-				return fantasy.NewTextErrorResponse(err.Error()), err
+				return genai.NewTextErrorResponse(err.Error()), err
 			}
 
-			return fantasy.WithResponseMetadata(
-				fantasy.NewTextResponse(output),
+			return genai.WithResponseMetadata(
+				genai.NewTextResponse(output),
 				metadata,
 			), nil
 		})

@@ -13,7 +13,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/can1357/rush/ai"
+	"github.com/can1357/rush/genai"
 	"github.com/can1357/rush/permission"
 	"github.com/can1357/rush/shell"
 )
@@ -181,13 +181,13 @@ func blockFuncs() []shell.BlockFunc {
 	}
 }
 
-func NewBashTool(permissions permission.Service, workingDir string) fantasy.AgentTool {
-	return fantasy.NewAgentTool(
+func NewBashTool(permissions permission.Service, workingDir string) genai.AgentTool {
+	return genai.NewAgentTool(
 		BashToolName,
 		string(bashDescription()),
-		func(ctx context.Context, params BashParams, call fantasy.ToolCall) (fantasy.ToolResponse, error) {
+		func(ctx context.Context, params BashParams, call genai.ToolCall) (genai.ToolResponse, error) {
 			if params.Command == "" {
-				return fantasy.NewTextErrorResponse("missing command"), nil
+				return genai.NewTextErrorResponse("missing command"), nil
 			}
 
 			// Determine working directory
@@ -207,7 +207,7 @@ func NewBashTool(permissions permission.Service, workingDir string) fantasy.Agen
 
 			sessionID := GetSessionFromContext(ctx)
 			if sessionID == "" {
-				return fantasy.ToolResponse{}, fmt.Errorf("session ID is required for executing shell command")
+				return genai.ToolResponse{}, fmt.Errorf("session ID is required for executing shell command")
 			}
 			if !isSafeReadOnly {
 				p := permissions.Request(
@@ -222,7 +222,7 @@ func NewBashTool(permissions permission.Service, workingDir string) fantasy.Agen
 					},
 				)
 				if !p {
-					return fantasy.ToolResponse{}, permission.ErrorPermissionDenied
+					return genai.ToolResponse{}, permission.ErrorPermissionDenied
 				}
 			}
 
@@ -234,7 +234,7 @@ func NewBashTool(permissions permission.Service, workingDir string) fantasy.Agen
 				// Use background context so it continues after tool returns
 				bgShell, err := bgManager.Start(context.Background(), execWorkingDir, blockFuncs(), params.Command, params.Description)
 				if err != nil {
-					return fantasy.ToolResponse{}, fmt.Errorf("error starting background shell: %w", err)
+					return genai.ToolResponse{}, fmt.Errorf("error starting background shell: %w", err)
 				}
 
 				// Wait a short time to detect fast failures (blocked commands, syntax errors, etc.)
@@ -248,7 +248,7 @@ func NewBashTool(permissions permission.Service, workingDir string) fantasy.Agen
 					interrupted := shell.IsInterrupt(execErr)
 					exitCode := shell.ExitCode(execErr)
 					if exitCode == 0 && !interrupted && execErr != nil {
-						return fantasy.ToolResponse{}, fmt.Errorf("[Job %s] error executing command: %w", bgShell.ID, execErr)
+						return genai.ToolResponse{}, fmt.Errorf("[Job %s] error executing command: %w", bgShell.ID, execErr)
 					}
 
 					stdout = formatOutput(stdout, stderr, execErr)
@@ -262,10 +262,10 @@ func NewBashTool(permissions permission.Service, workingDir string) fantasy.Agen
 						WorkingDirectory: bgShell.WorkingDir,
 					}
 					if stdout == "" {
-						return fantasy.WithResponseMetadata(fantasy.NewTextResponse(BashNoOutput), metadata), nil
+						return genai.WithResponseMetadata(genai.NewTextResponse(BashNoOutput), metadata), nil
 					}
 					stdout += fmt.Sprintf("\n\n<cwd>%s</cwd>", normalizeWorkingDir(bgShell.WorkingDir))
-					return fantasy.WithResponseMetadata(fantasy.NewTextResponse(stdout), metadata), nil
+					return genai.WithResponseMetadata(genai.NewTextResponse(stdout), metadata), nil
 				}
 
 				// Still running after fast-failure check - return as background job
@@ -278,7 +278,7 @@ func NewBashTool(permissions permission.Service, workingDir string) fantasy.Agen
 					ShellID:          bgShell.ID,
 				}
 				response := fmt.Sprintf("Background shell started with ID: %s\n\nUse job_output tool to view output or job_kill to terminate.", bgShell.ID)
-				return fantasy.WithResponseMetadata(fantasy.NewTextResponse(response), metadata), nil
+				return genai.WithResponseMetadata(genai.NewTextResponse(response), metadata), nil
 			}
 
 			// Start synchronous execution with auto-background support
@@ -289,7 +289,7 @@ func NewBashTool(permissions permission.Service, workingDir string) fantasy.Agen
 			bgManager.Cleanup()
 			bgShell, err := bgManager.Start(context.Background(), execWorkingDir, blockFuncs(), params.Command, params.Description)
 			if err != nil {
-				return fantasy.ToolResponse{}, fmt.Errorf("error starting shell: %w", err)
+				return genai.ToolResponse{}, fmt.Errorf("error starting shell: %w", err)
 			}
 
 			// Wait for either completion, auto-background threshold, or context cancellation
@@ -316,7 +316,7 @@ func NewBashTool(permissions permission.Service, workingDir string) fantasy.Agen
 					// Incoming context was cancelled before we moved to background
 					// Kill the shell and return error
 					bgManager.Kill(bgShell.ID)
-					return fantasy.ToolResponse{}, ctx.Err()
+					return genai.ToolResponse{}, ctx.Err()
 				}
 			}
 
@@ -329,7 +329,7 @@ func NewBashTool(permissions permission.Service, workingDir string) fantasy.Agen
 				interrupted := shell.IsInterrupt(execErr)
 				exitCode := shell.ExitCode(execErr)
 				if exitCode == 0 && !interrupted && execErr != nil {
-					return fantasy.ToolResponse{}, fmt.Errorf("[Job %s] error executing command: %w", bgShell.ID, execErr)
+					return genai.ToolResponse{}, fmt.Errorf("[Job %s] error executing command: %w", bgShell.ID, execErr)
 				}
 
 				stdout = formatOutput(stdout, stderr, execErr)
@@ -343,10 +343,10 @@ func NewBashTool(permissions permission.Service, workingDir string) fantasy.Agen
 					WorkingDirectory: bgShell.WorkingDir,
 				}
 				if stdout == "" {
-					return fantasy.WithResponseMetadata(fantasy.NewTextResponse(BashNoOutput), metadata), nil
+					return genai.WithResponseMetadata(genai.NewTextResponse(BashNoOutput), metadata), nil
 				}
 				stdout += fmt.Sprintf("\n\n<cwd>%s</cwd>", normalizeWorkingDir(bgShell.WorkingDir))
-				return fantasy.WithResponseMetadata(fantasy.NewTextResponse(stdout), metadata), nil
+				return genai.WithResponseMetadata(genai.NewTextResponse(stdout), metadata), nil
 			}
 
 			// Still running - keep as background job
@@ -359,7 +359,7 @@ func NewBashTool(permissions permission.Service, workingDir string) fantasy.Agen
 				ShellID:          bgShell.ID,
 			}
 			response := fmt.Sprintf("Command is taking longer than expected and has been moved to background.\n\nBackground shell ID: %s\n\nUse job_output tool to view output or job_kill to terminate.", bgShell.ID)
-			return fantasy.WithResponseMetadata(fantasy.NewTextResponse(response), metadata), nil
+			return genai.WithResponseMetadata(genai.NewTextResponse(response), metadata), nil
 		})
 }
 

@@ -8,17 +8,17 @@ import (
 	"testing"
 	"time"
 
-	"github.com/can1357/rush/ai"
-	"github.com/can1357/rush/ai/providers/anthropic"
-	"github.com/can1357/rush/ai/providers/openai"
-	"github.com/can1357/rush/ai/providers/openaicompat"
-	"github.com/can1357/rush/ai/providers/openrouter"
 	"charm.land/x/vcr"
 	"github.com/can1357/rush/agent/prompt"
 	"github.com/can1357/rush/agent/tools"
 	"github.com/can1357/rush/config"
 	"github.com/can1357/rush/csync"
 	"github.com/can1357/rush/db"
+	"github.com/can1357/rush/genai"
+	"github.com/can1357/rush/genai/providers/anthropic"
+	"github.com/can1357/rush/genai/providers/openai"
+	"github.com/can1357/rush/genai/providers/openaicompat"
+	"github.com/can1357/rush/genai/providers/openrouter"
 	"github.com/can1357/rush/history"
 	"github.com/can1357/rush/lsp"
 	"github.com/can1357/rush/message"
@@ -40,7 +40,7 @@ type fakeEnv struct {
 	lspClients  *csync.Map[string, *lsp.Client]
 }
 
-type builderFunc func(t *testing.T, r *vcr.Recorder) (fantasy.LanguageModel, error)
+type builderFunc func(t *testing.T, r *vcr.Recorder) (genai.LanguageModel, error)
 
 type modelPair struct {
 	name       string
@@ -49,7 +49,7 @@ type modelPair struct {
 }
 
 func anthropicBuilder(model string) builderFunc {
-	return func(t *testing.T, r *vcr.Recorder) (fantasy.LanguageModel, error) {
+	return func(t *testing.T, r *vcr.Recorder) (genai.LanguageModel, error) {
 		provider, err := anthropic.New(
 			anthropic.WithAPIKey(os.Getenv("RUSH_ANTHROPIC_API_KEY")),
 			anthropic.WithHTTPClient(&http.Client{Transport: r}),
@@ -62,7 +62,7 @@ func anthropicBuilder(model string) builderFunc {
 }
 
 func openaiBuilder(model string) builderFunc {
-	return func(t *testing.T, r *vcr.Recorder) (fantasy.LanguageModel, error) {
+	return func(t *testing.T, r *vcr.Recorder) (genai.LanguageModel, error) {
 		provider, err := openai.New(
 			openai.WithAPIKey(os.Getenv("RUSH_OPENAI_API_KEY")),
 			openai.WithHTTPClient(&http.Client{Transport: r}),
@@ -75,7 +75,7 @@ func openaiBuilder(model string) builderFunc {
 }
 
 func openRouterBuilder(model string) builderFunc {
-	return func(t *testing.T, r *vcr.Recorder) (fantasy.LanguageModel, error) {
+	return func(t *testing.T, r *vcr.Recorder) (genai.LanguageModel, error) {
 		provider, err := openrouter.New(
 			openrouter.WithAPIKey(os.Getenv("RUSH_OPENROUTER_API_KEY")),
 			openrouter.WithHTTPClient(&http.Client{Transport: r}),
@@ -88,7 +88,7 @@ func openRouterBuilder(model string) builderFunc {
 }
 
 func zAIBuilder(model string) builderFunc {
-	return func(t *testing.T, r *vcr.Recorder) (fantasy.LanguageModel, error) {
+	return func(t *testing.T, r *vcr.Recorder) (genai.LanguageModel, error) {
 		provider, err := openaicompat.New(
 			openaicompat.WithBaseURL("https://api.z.ai/api/coding/paas/v4"),
 			openaicompat.WithAPIKey(os.Getenv("RUSH_ZAI_API_KEY")),
@@ -134,7 +134,7 @@ func testEnv(t *testing.T) fakeEnv {
 	}
 }
 
-func testSessionAgent(env fakeEnv, large, small fantasy.LanguageModel, systemPrompt string, tools ...fantasy.AgentTool) SessionAgent {
+func testSessionAgent(env fakeEnv, large, small genai.LanguageModel, systemPrompt string, tools ...genai.AgentTool) SessionAgent {
 	largeModel := Model{
 		Model: large,
 		CatwalkCfg: catwalk.Model{
@@ -164,7 +164,7 @@ func testSessionAgent(env fakeEnv, large, small fantasy.LanguageModel, systemPro
 	return agent
 }
 
-func coderAgent(r *vcr.Recorder, env fakeEnv, large, small fantasy.LanguageModel) (SessionAgent, error) {
+func coderAgent(r *vcr.Recorder, env fakeEnv, large, small genai.LanguageModel) (SessionAgent, error) {
 	fixedTime := func() time.Time {
 		t, _ := time.Parse("1/2/2006", "1/1/2025")
 		return t
@@ -187,7 +187,7 @@ func coderAgent(r *vcr.Recorder, env fakeEnv, large, small fantasy.LanguageModel
 		return nil, err
 	}
 
-	allTools := []fantasy.AgentTool{
+	allTools := []genai.AgentTool{
 		tools.NewBashTool(env.permissions, env.workingDir),
 		tools.NewDownloadTool(env.permissions, env.workingDir, r.GetDefaultClient()),
 		tools.NewEditTool(env.lspClients, env.permissions, env.history, env.workingDir),

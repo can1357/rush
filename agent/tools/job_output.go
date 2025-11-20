@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/can1357/rush/ai"
+	"github.com/can1357/rush/genai"
 	"github.com/can1357/rush/shell"
 )
 
@@ -29,19 +29,19 @@ type JobOutputResponseMetadata struct {
 	WorkingDirectory string `json:"working_directory"`
 }
 
-func NewJobOutputTool() fantasy.AgentTool {
-	return fantasy.NewAgentTool(
+func NewJobOutputTool() genai.AgentTool {
+	return genai.NewAgentTool(
 		JobOutputToolName,
 		string(jobOutputDescription),
-		func(ctx context.Context, params JobOutputParams, call fantasy.ToolCall) (fantasy.ToolResponse, error) {
+		func(ctx context.Context, params JobOutputParams, call genai.ToolCall) (genai.ToolResponse, error) {
 			if params.ShellID == "" {
-				return fantasy.NewTextErrorResponse("missing shell_id"), nil
+				return genai.NewTextErrorResponse("missing shell_id"), nil
 			}
 
 			bgManager := shell.GetBackgroundShellManager()
 			bgShell, ok := bgManager.Get(params.ShellID)
 			if !ok {
-				return fantasy.NewTextErrorResponse(fmt.Sprintf("background shell not found: %s", params.ShellID)), nil
+				return genai.NewTextErrorResponse(fmt.Sprintf("background shell not found: %s", params.ShellID)), nil
 			}
 
 			stdout, stderr, done, err := bgShell.GetOutput()
@@ -80,6 +80,6 @@ func NewJobOutputTool() fantasy.AgentTool {
 			}
 
 			result := fmt.Sprintf("Status: %s\n\n%s", status, output)
-			return fantasy.WithResponseMetadata(fantasy.NewTextResponse(result), metadata), nil
+			return genai.WithResponseMetadata(genai.NewTextResponse(result), metadata), nil
 		})
 }

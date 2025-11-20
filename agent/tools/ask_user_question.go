@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/can1357/rush/ai"
+	"github.com/can1357/rush/genai"
 	"github.com/can1357/rush/question"
 )
 
@@ -36,19 +36,19 @@ type AskUserQuestionResponseMetadata struct {
 	Answers   map[string]string `json:"answers"`
 }
 
-func NewAskUserQuestionTool(questionService question.Service) fantasy.AgentTool {
-	return fantasy.NewAgentTool(
+func NewAskUserQuestionTool(questionService question.Service) genai.AgentTool {
+	return genai.NewAgentTool(
 		AskUserQuestionToolName,
 		string(askUserQuestionDescription),
-		func(ctx context.Context, params AskUserQuestionParams, call fantasy.ToolCall) (fantasy.ToolResponse, error) {
+		func(ctx context.Context, params AskUserQuestionParams, call genai.ToolCall) (genai.ToolResponse, error) {
 			sessionID := GetSessionFromContext(ctx)
 			if sessionID == "" {
-				return fantasy.NewTextErrorResponse("session ID is required for asking questions"), nil
+				return genai.NewTextErrorResponse("session ID is required for asking questions"), nil
 			}
 
 			// Validate params
 			if len(params.Questions) == 0 || len(params.Questions) > 4 {
-				return fantasy.NewTextErrorResponse(fmt.Sprintf("must provide 1-4 questions, got %d", len(params.Questions))), nil
+				return genai.NewTextErrorResponse(fmt.Sprintf("must provide 1-4 questions, got %d", len(params.Questions))), nil
 			}
 
 			// Convert to internal format
@@ -56,25 +56,25 @@ func NewAskUserQuestionTool(questionService question.Service) fantasy.AgentTool 
 			for i, q := range params.Questions {
 				// Validate question
 				if q.Question == "" {
-					return fantasy.NewTextErrorResponse(fmt.Sprintf("question %d: question text is required", i)), nil
+					return genai.NewTextErrorResponse(fmt.Sprintf("question %d: question text is required", i)), nil
 				}
 				if q.Header == "" {
-					return fantasy.NewTextErrorResponse(fmt.Sprintf("question %d: header is required", i)), nil
+					return genai.NewTextErrorResponse(fmt.Sprintf("question %d: header is required", i)), nil
 				}
 				if len(q.Header) > 12 {
-					return fantasy.NewTextErrorResponse(fmt.Sprintf("question %d: header too long (%d chars, max 12)", i, len(q.Header))), nil
+					return genai.NewTextErrorResponse(fmt.Sprintf("question %d: header too long (%d chars, max 12)", i, len(q.Header))), nil
 				}
 				if len(q.Options) < 2 || len(q.Options) > 4 {
-					return fantasy.NewTextErrorResponse(fmt.Sprintf("question %d: must have 2-4 options, got %d", i, len(q.Options))), nil
+					return genai.NewTextErrorResponse(fmt.Sprintf("question %d: must have 2-4 options, got %d", i, len(q.Options))), nil
 				}
 
 				options := make([]question.Option, len(q.Options))
 				for j, opt := range q.Options {
 					if opt.Label == "" {
-						return fantasy.NewTextErrorResponse(fmt.Sprintf("question %d, option %d: label is required", i, j)), nil
+						return genai.NewTextErrorResponse(fmt.Sprintf("question %d, option %d: label is required", i, j)), nil
 					}
 					if opt.Description == "" {
-						return fantasy.NewTextErrorResponse(fmt.Sprintf("question %d, option %d: description is required", i, j)), nil
+						return genai.NewTextErrorResponse(fmt.Sprintf("question %d, option %d: description is required", i, j)), nil
 					}
 					options[j] = question.Option{
 						Label:       opt.Label,
@@ -94,9 +94,9 @@ func NewAskUserQuestionTool(questionService question.Service) fantasy.AgentTool 
 			answers, err := questionService.Ask(ctx, sessionID, questions)
 			if err != nil {
 				if strings.Contains(err.Error(), "canceled") {
-					return fantasy.NewTextErrorResponse("User canceled the question"), nil
+					return genai.NewTextErrorResponse("User canceled the question"), nil
 				}
-				return fantasy.ToolResponse{}, fmt.Errorf("failed to ask question: %w", err)
+				return genai.ToolResponse{}, fmt.Errorf("failed to ask question: %w", err)
 			}
 
 			// Format response
@@ -114,8 +114,8 @@ func NewAskUserQuestionTool(questionService question.Service) fantasy.AgentTool 
 				output.WriteString(fmt.Sprintf("Answer: %s\n\n", answer))
 			}
 
-			return fantasy.WithResponseMetadata(
-				fantasy.NewTextResponse(output.String()),
+			return genai.WithResponseMetadata(
+				genai.NewTextResponse(output.String()),
 				AskUserQuestionResponseMetadata{
 					SessionID: sessionID,
 					Answers:   answers,

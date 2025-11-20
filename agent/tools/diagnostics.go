@@ -9,8 +9,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/can1357/rush/ai"
 	"github.com/can1357/rush/csync"
+	"github.com/can1357/rush/genai"
 	"github.com/can1357/rush/lsp"
 	"github.com/charmbracelet/x/powernap/pkg/lsp/protocol"
 )
@@ -24,17 +24,17 @@ const DiagnosticsToolName = "lsp_diagnostics"
 //go:embed diagnostics.md
 var diagnosticsDescription []byte
 
-func NewDiagnosticsTool(lspClients *csync.Map[string, *lsp.Client]) fantasy.AgentTool {
-	return fantasy.NewAgentTool(
+func NewDiagnosticsTool(lspClients *csync.Map[string, *lsp.Client]) genai.AgentTool {
+	return genai.NewAgentTool(
 		DiagnosticsToolName,
 		string(diagnosticsDescription),
-		func(ctx context.Context, params DiagnosticsParams, call fantasy.ToolCall) (fantasy.ToolResponse, error) {
+		func(ctx context.Context, params DiagnosticsParams, call genai.ToolCall) (genai.ToolResponse, error) {
 			if lspClients.Len() == 0 {
-				return fantasy.NewTextErrorResponse("no LSP clients available"), nil
+				return genai.NewTextErrorResponse("no LSP clients available"), nil
 			}
 			notifyLSPs(ctx, lspClients, params.FilePath)
 			output := getDiagnostics(params.FilePath, lspClients)
-			return fantasy.NewTextResponse(output), nil
+			return genai.NewTextResponse(output), nil
 		})
 }
 

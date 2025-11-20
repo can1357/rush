@@ -14,12 +14,12 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/can1357/rush/ai"
 	"github.com/can1357/rush/agent/prompt"
 	"github.com/can1357/rush/agent/reminder"
 	"github.com/can1357/rush/agent/tools"
 	"github.com/can1357/rush/config"
 	"github.com/can1357/rush/csync"
+	"github.com/can1357/rush/genai"
 	"github.com/can1357/rush/history"
 	"github.com/can1357/rush/log"
 	"github.com/can1357/rush/lsp"
@@ -31,13 +31,13 @@ import (
 	"github.com/charmbracelet/catwalk/pkg/catwalk"
 	"golang.org/x/sync/errgroup"
 
-	"github.com/can1357/rush/ai/providers/anthropic"
-	"github.com/can1357/rush/ai/providers/azure"
-	"github.com/can1357/rush/ai/providers/bedrock"
-	"github.com/can1357/rush/ai/providers/google"
-	"github.com/can1357/rush/ai/providers/openai"
-	"github.com/can1357/rush/ai/providers/openaicompat"
-	"github.com/can1357/rush/ai/providers/openrouter"
+	"github.com/can1357/rush/genai/providers/anthropic"
+	"github.com/can1357/rush/genai/providers/azure"
+	"github.com/can1357/rush/genai/providers/bedrock"
+	"github.com/can1357/rush/genai/providers/google"
+	"github.com/can1357/rush/genai/providers/openai"
+	"github.com/can1357/rush/genai/providers/openaicompat"
+	"github.com/can1357/rush/genai/providers/openrouter"
 	openaisdk "github.com/openai/openai-go/v2/option"
 	"github.com/qjebbs/go-jsons"
 )
@@ -45,7 +45,7 @@ import (
 type Coordinator interface {
 	// INFO: (kujtim) this is not used yet we will use this when we have multiple agents
 	// SetMainAgent(string)
-	Run(ctx context.Context, sessionID, prompt string, attachments ...message.Attachment) (*fantasy.AgentResult, error)
+	Run(ctx context.Context, sessionID, prompt string, attachments ...message.Attachment) (*genai.AgentResult, error)
 	Cancel(sessionID string)
 	CancelAll()
 	IsSessionBusy(sessionID string) bool
@@ -117,7 +117,7 @@ func NewCoordinator(
 }
 
 // Run implements Coordinator.
-func (c *coordinator) Run(ctx context.Context, sessionID string, prompt string, attachments ...message.Attachment) (*fantasy.AgentResult, error) {
+func (c *coordinator) Run(ctx context.Context, sessionID string, prompt string, attachments ...message.Attachment) (*genai.AgentResult, error) {
 	if err := c.readyWg.Wait(); err != nil {
 		return nil, err
 	}
@@ -153,8 +153,8 @@ func (c *coordinator) Run(ctx context.Context, sessionID string, prompt string, 
 	})
 }
 
-func getProviderOptions(model Model, providerCfg config.ProviderConfig) fantasy.ProviderOptions {
-	options := fantasy.ProviderOptions{}
+func getProviderOptions(model Model, providerCfg config.ProviderConfig) genai.ProviderOptions {
+	options := genai.ProviderOptions{}
 
 	cfgOpts := []byte("{}")
 	providerCfgOpts := []byte("{}")
@@ -273,7 +273,7 @@ func getProviderOptions(model Model, providerCfg config.ProviderConfig) fantasy.
 	return options
 }
 
-func mergeCallOptions(model Model, cfg config.ProviderConfig) (fantasy.ProviderOptions, *float64, *float64, *int64, *float64, *float64) {
+func mergeCallOptions(model Model, cfg config.ProviderConfig) (genai.ProviderOptions, *float64, *float64, *int64, *float64, *float64) {
 	modelOptions := getProviderOptions(model, cfg)
 	temp := cmp.Or(model.ModelCfg.Temperature, model.CatwalkCfg.Options.Temperature)
 	topP := cmp.Or(model.ModelCfg.TopP, model.CatwalkCfg.Options.TopP)
@@ -320,8 +320,8 @@ func (c *coordinator) buildAgent(ctx context.Context, prompt *prompt.Prompt, age
 	return result, nil
 }
 
-func (c *coordinator) buildTools(ctx context.Context, agent config.Agent) ([]fantasy.AgentTool, error) {
-	var allTools []fantasy.AgentTool
+func (c *coordinator) buildTools(ctx context.Context, agent config.Agent) ([]genai.AgentTool, error) {
+	var allTools []genai.AgentTool
 	if slices.Contains(agent.AllowedTools, AgentToolName) {
 		// Generate dynamic description based on available agents
 		description := generateAgentToolDescription(c.cfg.Agents)
@@ -363,7 +363,7 @@ func (c *coordinator) buildTools(ctx context.Context, agent config.Agent) ([]fan
 		allTools = append(allTools, tools.NewDiagnosticsTool(c.lspClients), tools.NewReferencesTool(c.lspClients))
 	}
 
-	var filteredTools []fantasy.AgentTool
+	var filteredTools []genai.AgentTool
 	for _, tool := range allTools {
 		if slices.Contains(agent.AllowedTools, tool.Info().Name) {
 			filteredTools = append(filteredTools, tool)
@@ -392,7 +392,7 @@ func (c *coordinator) buildTools(ctx context.Context, agent config.Agent) ([]fan
 		}
 		slog.Debug("MCP not allowed", "tool", tool.Name(), "agent", agent.Name)
 	}
-	slices.SortFunc(filteredTools, func(a, b fantasy.AgentTool) int {
+	slices.SortFunc(filteredTools, func(a, b genai.AgentTool) int {
 		return strings.Compare(a.Info().Name, b.Info().Name)
 	})
 	return filteredTools, nil
@@ -482,7 +482,7 @@ func (c *coordinator) buildAgentModels(ctx context.Context) (Model, Model, error
 		}, nil
 }
 
-func (c *coordinator) buildAnthropicProvider(baseURL, apiKey string, headers map[string]string) (fantasy.Provider, error) {
+func (c *coordinator) buildAnthropicProvider(baseURL, apiKey string, headers map[string]string) (genai.Provider, error) {
 	hasBearerAuth := false
 	for key := range headers {
 		if strings.ToLower(key) == "authorization" {
@@ -523,7 +523,7 @@ func (c *coordinator) buildAnthropicProvider(baseURL, apiKey string, headers map
 	return anthropic.New(opts...)
 }
 
-func (c *coordinator) buildOpenaiProvider(baseURL, apiKey string, headers map[string]string) (fantasy.Provider, error) {
+func (c *coordinator) buildOpenaiProvider(baseURL, apiKey string, headers map[string]string) (genai.Provider, error) {
 	opts := []openai.Option{
 		openai.WithAPIKey(apiKey),
 		openai.WithUseResponsesAPI(),
@@ -541,7 +541,7 @@ func (c *coordinator) buildOpenaiProvider(baseURL, apiKey string, headers map[st
 	return openai.New(opts...)
 }
 
-func (c *coordinator) buildOpenrouterProvider(_, apiKey string, headers map[string]string) (fantasy.Provider, error) {
+func (c *coordinator) buildOpenrouterProvider(_, apiKey string, headers map[string]string) (genai.Provider, error) {
 	opts := []openrouter.Option{
 		openrouter.WithAPIKey(apiKey),
 	}
@@ -555,7 +555,7 @@ func (c *coordinator) buildOpenrouterProvider(_, apiKey string, headers map[stri
 	return openrouter.New(opts...)
 }
 
-func (c *coordinator) buildOpenaiCompatProvider(baseURL, apiKey string, headers map[string]string, extraBody map[string]any) (fantasy.Provider, error) {
+func (c *coordinator) buildOpenaiCompatProvider(baseURL, apiKey string, headers map[string]string, extraBody map[string]any) (genai.Provider, error) {
 	opts := []openaicompat.Option{
 		openaicompat.WithBaseURL(baseURL),
 		openaicompat.WithAPIKey(apiKey),
@@ -575,7 +575,7 @@ func (c *coordinator) buildOpenaiCompatProvider(baseURL, apiKey string, headers 
 	return openaicompat.New(opts...)
 }
 
-func (c *coordinator) buildAzureProvider(baseURL, apiKey string, headers map[string]string, options map[string]string) (fantasy.Provider, error) {
+func (c *coordinator) buildAzureProvider(baseURL, apiKey string, headers map[string]string, options map[string]string) (genai.Provider, error) {
 	opts := []azure.Option{
 		azure.WithBaseURL(baseURL),
 		azure.WithAPIKey(apiKey),
@@ -598,7 +598,7 @@ func (c *coordinator) buildAzureProvider(baseURL, apiKey string, headers map[str
 	return azure.New(opts...)
 }
 
-func (c *coordinator) buildBedrockProvider(headers map[string]string) (fantasy.Provider, error) {
+func (c *coordinator) buildBedrockProvider(headers map[string]string) (genai.Provider, error) {
 	var opts []bedrock.Option
 	if c.cfg.Options.Debug {
 		httpClient := log.NewHTTPClient()
@@ -614,7 +614,7 @@ func (c *coordinator) buildBedrockProvider(headers map[string]string) (fantasy.P
 	return bedrock.New(opts...)
 }
 
-func (c *coordinator) buildGoogleProvider(baseURL, apiKey string, headers map[string]string) (fantasy.Provider, error) {
+func (c *coordinator) buildGoogleProvider(baseURL, apiKey string, headers map[string]string) (genai.Provider, error) {
 	opts := []google.Option{
 		google.WithBaseURL(baseURL),
 		google.WithGeminiAPIKey(apiKey),
@@ -629,7 +629,7 @@ func (c *coordinator) buildGoogleProvider(baseURL, apiKey string, headers map[st
 	return google.New(opts...)
 }
 
-func (c *coordinator) buildGoogleVertexProvider(headers map[string]string, options map[string]string) (fantasy.Provider, error) {
+func (c *coordinator) buildGoogleVertexProvider(headers map[string]string, options map[string]string) (genai.Provider, error) {
 	opts := []google.Option{}
 	if c.cfg.Options.Debug {
 		httpClient := log.NewHTTPClient()
@@ -666,7 +666,7 @@ func (c *coordinator) isAnthropicThinking(model config.SelectedModel) bool {
 	return false
 }
 
-func (c *coordinator) buildProvider(providerCfg config.ProviderConfig, model config.SelectedModel) (fantasy.Provider, error) {
+func (c *coordinator) buildProvider(providerCfg config.ProviderConfig, model config.SelectedModel) (genai.Provider, error) {
 	headers := maps.Clone(providerCfg.ExtraHeaders)
 	if headers == nil {
 		headers = make(map[string]string)

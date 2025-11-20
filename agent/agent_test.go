@@ -7,9 +7,9 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/can1357/rush/ai"
 	"charm.land/x/vcr"
 	"github.com/can1357/rush/agent/tools"
+	"github.com/can1357/rush/genai"
 	"github.com/can1357/rush/message"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -24,7 +24,7 @@ var modelPairs = []modelPair{
 	{"zai-glm4.6", zAIBuilder("glm-4.6"), zAIBuilder("glm-4.5-air")},
 }
 
-func getModels(t *testing.T, r *vcr.Recorder, pair modelPair) (fantasy.LanguageModel, fantasy.LanguageModel) {
+func getModels(t *testing.T, r *vcr.Recorder, pair modelPair) (genai.LanguageModel, genai.LanguageModel) {
 	large, err := pair.largeModel(t, r)
 	require.NoError(t, err)
 	small, err := pair.smallModel(t, r)

@@ -20,16 +20,16 @@ import (
 	"sync"
 	"time"
 
-	"github.com/can1357/rush/ai"
-	"github.com/can1357/rush/ai/providers/anthropic"
-	"github.com/can1357/rush/ai/providers/bedrock"
-	"github.com/can1357/rush/ai/providers/google"
-	"github.com/can1357/rush/ai/providers/openai"
-	"github.com/can1357/rush/ai/providers/openrouter"
 	"github.com/can1357/rush/agent/reminder"
 	"github.com/can1357/rush/agent/tools"
 	"github.com/can1357/rush/config"
 	"github.com/can1357/rush/csync"
+	"github.com/can1357/rush/genai"
+	"github.com/can1357/rush/genai/providers/anthropic"
+	"github.com/can1357/rush/genai/providers/bedrock"
+	"github.com/can1357/rush/genai/providers/google"
+	"github.com/can1357/rush/genai/providers/openai"
+	"github.com/can1357/rush/genai/providers/openrouter"
 	"github.com/can1357/rush/message"
 	"github.com/can1357/rush/permission"
 	"github.com/can1357/rush/session"
@@ -46,7 +46,7 @@ var summaryPrompt []byte
 type SessionAgentCall struct {
 	SessionID        string
 	Prompt           string
-	ProviderOptions  fantasy.ProviderOptions
+	ProviderOptions  genai.ProviderOptions
 	Attachments      []message.Attachment
 	MaxOutputTokens  int64
 	Temperature      *float64
@@ -57,21 +57,21 @@ type SessionAgentCall struct {
 }
 
 type SessionAgent interface {
-	Run(context.Context, SessionAgentCall) (*fantasy.AgentResult, error)
+	Run(context.Context, SessionAgentCall) (*genai.AgentResult, error)
 	SetModels(large Model, small Model)
-	SetTools(tools []fantasy.AgentTool)
+	SetTools(tools []genai.AgentTool)
 	Cancel(sessionID string)
 	CancelAll()
 	IsSessionBusy(sessionID string) bool
 	IsBusy() bool
 	QueuedPrompts(sessionID string) int
 	ClearQueue(sessionID string)
-	Summarize(context.Context, string, fantasy.ProviderOptions) error
+	Summarize(context.Context, string, genai.ProviderOptions) error
 	Model() Model
 }
 
 type Model struct {
-	Model      fantasy.LanguageModel
+	Model      genai.LanguageModel
 	CatwalkCfg catwalk.Model
 	ModelCfg   config.SelectedModel
 }
@@ -81,7 +81,7 @@ type sessionAgent struct {
 	smallModel           Model
 	systemPromptPrefix   string
 	systemPrompt         string
-	tools                []fantasy.AgentTool
+	tools                []genai.AgentTool
 	sessions             session.Service
 	messages             message.Service
 	reminders            *reminder.Service
@@ -102,7 +102,7 @@ type SessionAgentOptions struct {
 	Sessions             session.Service
 	Messages             message.Service
 	Reminders            *reminder.Service
-	Tools                []fantasy.AgentTool
+	Tools                []genai.AgentTool
 }
 
 func NewSessionAgent(
@@ -124,7 +124,7 @@ func NewSessionAgent(
 	}
 }
 
-func (a *sessionAgent) Run(ctx context.Context, call SessionAgentCall) (*fantasy.AgentResult, error) {
+func (a *sessionAgent) Run(ctx context.Context, call SessionAgentCall) (*genai.AgentResult, error) {
 	if call.Prompt == "" {
 		return nil, ErrEmptyPrompt
 	}
@@ -148,10 +148,10 @@ func (a *sessionAgent) Run(ctx context.Context, call SessionAgentCall) (*fantasy
 		a.tools[len(a.tools)-1].SetProviderOptions(a.getCacheControlOptions())
 	}
 
-	agent := fantasy.NewAgent(
+	agent := genai.NewAgent(
 		a.largeModel.Model,
-		fantasy.WithSystemPrompt(a.systemPrompt),
-		fantasy.WithTools(a.tools...),
+		genai.WithSystemPrompt(a.systemPrompt),
+		genai.WithTools(a.tools...),
 	)
 
 	sessionLock := sync.Mutex{}
@@ -194,7 +194,7 @@ func (a *sessionAgent) Run(ctx context.Context, call SessionAgentCall) (*fantasy
 
 	var currentAssistant *message.Message
 	var shouldSummarize bool
-	result, err := agent.Stream(genCtx, fantasy.AgentStreamCall{
+	result, err := agent.Stream(genCtx, genai.AgentStreamCall{
 		Prompt:           call.Prompt,
 		Files:            files,
 		Messages:         history,
@@ -206,7 +206,7 @@ func (a *sessionAgent) Run(ctx context.Context, call SessionAgentCall) (*fantasy
 		TopK:             call.TopK,
 		FrequencyPenalty: call.FrequencyPenalty,
 		// Before each step create a new assistant message.
-		PrepareStep: func(callContext context.Context, options fantasy.PrepareStepFunctionOptions) (_ context.Context, prepared fantasy.PrepareStepResult, err error) {
+		PrepareStep: func(callContext context.Context, options genai.PrepareStepFunctionOptions) (_ context.Context, prepared genai.PrepareStepResult, err error) {
 			prepared.Messages = options.Messages
 			// Reset all cached items.
 			for i := range prepared.Messages {
@@ -227,7 +227,7 @@ func (a *sessionAgent) Run(ctx context.Context, call SessionAgentCall) (*fantasy
 			systemMessageUpdated := false
 			for i, msg := range prepared.Messages {
 				// Only add cache control to the last message.
-				if msg.Role == fantasy.MessageRoleSystem {
+				if msg.Role == genai.MessageRoleSystem {
 					lastSystemRoleInx = i
 				} else if !systemMessageUpdated {
 					prepared.Messages[lastSystemRoleInx].ProviderOptions = a.getCacheControlOptions()
@@ -268,7 +268,7 @@ Plan mode is active. The user indicated that they do not want you to execute yet
 			}
 
 			if combinedPrefix != "" {
-				prepared.Messages = append([]fantasy.Message{fantasy.NewSystemMessage(combinedPrefix)}, prepared.Messages...)
+				prepared.Messages = append([]genai.Message{genai.NewSystemMessage(combinedPrefix)}, prepared.Messages...)
 			}
 
 			var assistantMsg message.Message
@@ -285,7 +285,7 @@ Plan mode is active. The user indicated that they do not want you to execute yet
 			currentAssistant = &assistantMsg
 			return callContext, prepared, err
 		},
-		OnReasoningStart: func(id string, reasoning fantasy.ReasoningContent) error {
+		OnReasoningStart: func(id string, reasoning genai.ReasoningContent) error {
 			currentAssistant.AppendReasoningContent(reasoning.Text)
 			return a.messages.Update(genCtx, *currentAssistant)
 		},
@@ -293,7 +293,7 @@ Plan mode is active. The user indicated that they do not want you to execute yet
 			currentAssistant.AppendReasoningContent(text)
 			return a.messages.Update(genCtx, *currentAssistant)
 		},
-		OnReasoningEnd: func(id string, reasoning fantasy.ReasoningContent) error {
+		OnReasoningEnd: func(id string, reasoning genai.ReasoningContent) error {
 			// handle anthropic signature
 			if anthropicData, ok := reasoning.ProviderMetadata[anthropic.Name]; ok {
 				if reasoning, ok := anthropicData.(*anthropic.ReasoningOptionMetadata); ok {
@@ -334,10 +334,10 @@ Plan mode is active. The user indicated that they do not want you to execute yet
 			currentAssistant.AddToolCall(toolCall)
 			return a.messages.Update(genCtx, *currentAssistant)
 		},
-		OnRetry: func(err *fantasy.ProviderError, delay time.Duration) {
+		OnRetry: func(err *genai.ProviderError, delay time.Duration) {
 			// TODO: implement
 		},
-		OnToolCall: func(tc fantasy.ToolCallContent) error {
+		OnToolCall: func(tc genai.ToolCallContent) error {
 			toolCall := message.ToolCall{
 				ID:               tc.ToolCallID,
 				Name:             tc.ToolName,
@@ -348,22 +348,22 @@ Plan mode is active. The user indicated that they do not want you to execute yet
 			currentAssistant.AddToolCall(toolCall)
 			return a.messages.Update(genCtx, *currentAssistant)
 		},
-		OnToolResult: func(result fantasy.ToolResultContent) error {
+		OnToolResult: func(result genai.ToolResultContent) error {
 			var resultContent string
 			isError := false
 			switch result.Result.GetType() {
-			case fantasy.ToolResultContentTypeText:
-				r, ok := fantasy.AsToolResultOutputType[fantasy.ToolResultOutputContentText](result.Result)
+			case genai.ToolResultContentTypeText:
+				r, ok := genai.AsToolResultOutputType[genai.ToolResultOutputContentText](result.Result)
 				if ok {
 					resultContent = r.Text
 				}
-			case fantasy.ToolResultContentTypeError:
-				r, ok := fantasy.AsToolResultOutputType[fantasy.ToolResultOutputContentError](result.Result)
+			case genai.ToolResultContentTypeError:
+				r, ok := genai.AsToolResultOutputType[genai.ToolResultOutputContentError](result.Result)
 				if ok {
 					isError = true
 					resultContent = r.Error.Error()
 				}
-			case fantasy.ToolResultContentTypeMedia:
+			case genai.ToolResultContentTypeMedia:
 				// TODO: handle this message type
 			}
 			toolResult := message.ToolResult{
@@ -384,14 +384,14 @@ Plan mode is active. The user indicated that they do not want you to execute yet
 			}
 			return nil
 		},
-		OnStepFinish: func(stepResult fantasy.StepResult) error {
+		OnStepFinish: func(stepResult genai.StepResult) error {
 			finishReason := message.FinishReasonUnknown
 			switch stepResult.FinishReason {
-			case fantasy.FinishReasonLength:
+			case genai.FinishReasonLength:
 				finishReason = message.FinishReasonMaxTokens
-			case fantasy.FinishReasonStop:
+			case genai.FinishReasonStop:
 				finishReason = message.FinishReasonEndTurn
-			case fantasy.FinishReasonToolCalls:
+			case genai.FinishReasonToolCalls:
 				finishReason = message.FinishReasonToolUse
 			}
 			currentAssistant.AddFinish(finishReason, "", "")
@@ -410,8 +410,8 @@ Plan mode is active. The user indicated that they do not want you to execute yet
 			}
 			return a.messages.Update(genCtx, *currentAssistant)
 		},
-		StopWhen: []fantasy.StopCondition{
-			func(_ []fantasy.StepResult) bool {
+		StopWhen: []genai.StopCondition{
+			func(_ []genai.StepResult) bool {
 				cw := int64(a.largeModel.CatwalkCfg.ContextWindow)
 				tokens := currentSession.CompletionTokens + currentSession.PromptTokens
 				remaining := cw - tokens
@@ -494,8 +494,8 @@ Plan mode is active. The user indicated that they do not want you to execute yet
 				return nil, createErr
 			}
 		}
-		var fantasyErr *fantasy.Error
-		var providerErr *fantasy.ProviderError
+		var fantasyErr *genai.Error
+		var providerErr *genai.ProviderError
 		const defaultTitle = "Provider Error"
 		if isCancelErr {
 			currentAssistant.AddFinish(message.FinishReasonCanceled, "User canceled request", "")
@@ -549,7 +549,7 @@ Plan mode is active. The user indicated that they do not want you to execute yet
 	return a.Run(ctx, firstQueuedMessage)
 }
 
-func (a *sessionAgent) Summarize(ctx context.Context, sessionID string, opts fantasy.ProviderOptions) error {
+func (a *sessionAgent) Summarize(ctx context.Context, sessionID string, opts genai.ProviderOptions) error {
 	if a.IsSessionBusy(sessionID) {
 		return ErrSessionBusy
 	}
@@ -574,8 +574,8 @@ func (a *sessionAgent) Summarize(ctx context.Context, sessionID string, opts fan
 	defer a.activeRequests.Del(sessionID)
 	defer cancel()
 
-	agent := fantasy.NewAgent(a.largeModel.Model,
-		fantasy.WithSystemPrompt(string(summaryPrompt)),
+	agent := genai.NewAgent(a.largeModel.Model,
+		genai.WithSystemPrompt(string(summaryPrompt)),
 	)
 	summaryMessage, err := a.messages.Create(ctx, sessionID, message.CreateMessageParams{
 		Role:             message.Assistant,
@@ -587,14 +587,14 @@ func (a *sessionAgent) Summarize(ctx context.Context, sessionID string, opts fan
 		return err
 	}
 
-	resp, err := agent.Stream(genCtx, fantasy.AgentStreamCall{
+	resp, err := agent.Stream(genCtx, genai.AgentStreamCall{
 		Prompt:          "Provide a detailed summary of our conversation above.",
 		Messages:        aiMsgs,
 		ProviderOptions: opts,
-		PrepareStep: func(callContext context.Context, options fantasy.PrepareStepFunctionOptions) (_ context.Context, prepared fantasy.PrepareStepResult, err error) {
+		PrepareStep: func(callContext context.Context, options genai.PrepareStepFunctionOptions) (_ context.Context, prepared genai.PrepareStepResult, err error) {
 			prepared.Messages = options.Messages
 			if a.systemPromptPrefix != "" {
-				prepared.Messages = append([]fantasy.Message{fantasy.NewSystemMessage(a.systemPromptPrefix)}, prepared.Messages...)
+				prepared.Messages = append([]genai.Message{genai.NewSystemMessage(a.systemPromptPrefix)}, prepared.Messages...)
 			}
 			return callContext, prepared, nil
 		},
@@ -602,7 +602,7 @@ func (a *sessionAgent) Summarize(ctx context.Context, sessionID string, opts fan
 			summaryMessage.AppendReasoningContent(text)
 			return a.messages.Update(genCtx, summaryMessage)
 		},
-		OnReasoningEnd: func(id string, reasoning fantasy.ReasoningContent) error {
+		OnReasoningEnd: func(id string, reasoning genai.ReasoningContent) error {
 			// Handle anthropic signature.
 			if anthropicData, ok := reasoning.ProviderMetadata["anthropic"]; ok {
 				if signature, ok := anthropicData.(*anthropic.ReasoningOptionMetadata); ok && signature.Signature != "" {
@@ -656,11 +656,11 @@ func (a *sessionAgent) Summarize(ctx context.Context, sessionID string, opts fan
 	return err
 }
 
-func (a *sessionAgent) getCacheControlOptions() fantasy.ProviderOptions {
+func (a *sessionAgent) getCacheControlOptions() genai.ProviderOptions {
 	if t, _ := strconv.ParseBool(os.Getenv("RUSH_DISABLE_ANTHROPIC_CACHE")); t {
-		return fantasy.ProviderOptions{}
+		return genai.ProviderOptions{}
 	}
-	return fantasy.ProviderOptions{
+	return genai.ProviderOptions{
 		anthropic.Name: &anthropic.ProviderCacheControlOptions{
 			CacheControl: anthropic.CacheControl{Type: "ephemeral"},
 		},
@@ -687,8 +687,8 @@ func (a *sessionAgent) createUserMessage(ctx context.Context, call SessionAgentC
 	return msg, nil
 }
 
-func (a *sessionAgent) preparePrompt(msgs []message.Message, attachments ...message.Attachment) ([]fantasy.Message, []fantasy.FilePart) {
-	var history []fantasy.Message
+func (a *sessionAgent) preparePrompt(msgs []message.Message, attachments ...message.Attachment) ([]genai.Message, []genai.FilePart) {
+	var history []genai.Message
 	for _, m := range msgs {
 		if len(m.Parts) == 0 {
 			continue
@@ -701,9 +701,9 @@ func (a *sessionAgent) preparePrompt(msgs []message.Message, attachments ...mess
 		history = append(history, m.ToAIMessage()...)
 	}
 
-	var files []fantasy.FilePart
+	var files []genai.FilePart
 	for _, attachment := range attachments {
-		files = append(files, fantasy.FilePart{
+		files = append(files, genai.FilePart{
 			Filename:  attachment.FileName,
 			Data:      attachment.Content,
 			MediaType: attachment.MimeType,
@@ -745,17 +745,17 @@ func (a *sessionAgent) generateTitle(ctx context.Context, session *session.Sessi
 		maxOutput = a.smallModel.CatwalkCfg.DefaultMaxTokens
 	}
 
-	agent := fantasy.NewAgent(a.smallModel.Model,
-		fantasy.WithSystemPrompt(string(titlePrompt)+"\n /no_think"),
-		fantasy.WithMaxOutputTokens(maxOutput),
+	agent := genai.NewAgent(a.smallModel.Model,
+		genai.WithSystemPrompt(string(titlePrompt)+"\n /no_think"),
+		genai.WithMaxOutputTokens(maxOutput),
 	)
 
-	resp, err := agent.Stream(ctx, fantasy.AgentStreamCall{
+	resp, err := agent.Stream(ctx, genai.AgentStreamCall{
 		Prompt: fmt.Sprintf("Generate a concise title for the following content:\n\n%s\n <think>\n\n</think>", prompt),
-		PrepareStep: func(callContext context.Context, options fantasy.PrepareStepFunctionOptions) (_ context.Context, prepared fantasy.PrepareStepResult, err error) {
+		PrepareStep: func(callContext context.Context, options genai.PrepareStepFunctionOptions) (_ context.Context, prepared genai.PrepareStepResult, err error) {
 			prepared.Messages = options.Messages
 			if a.systemPromptPrefix != "" {
-				prepared.Messages = append([]fantasy.Message{fantasy.NewSystemMessage(a.systemPromptPrefix)}, prepared.Messages...)
+				prepared.Messages = append([]genai.Message{genai.NewSystemMessage(a.systemPromptPrefix)}, prepared.Messages...)
 			}
 			return callContext, prepared, nil
 		},
@@ -802,7 +802,7 @@ func (a *sessionAgent) generateTitle(ctx context.Context, session *session.Sessi
 	}
 }
 
-func (a *sessionAgent) openrouterCost(metadata fantasy.ProviderMetadata) *float64 {
+func (a *sessionAgent) openrouterCost(metadata genai.ProviderMetadata) *float64 {
 	openrouterMetadata, ok := metadata[openrouter.Name]
 	if !ok {
 		return nil
@@ -815,7 +815,7 @@ func (a *sessionAgent) openrouterCost(metadata fantasy.ProviderMetadata) *float6
 	return &opts.Usage.Cost
 }
 
-func (a *sessionAgent) updateSessionUsage(model Model, session *session.Session, usage fantasy.Usage, overrideCost *float64) {
+func (a *sessionAgent) updateSessionUsage(model Model, session *session.Session, usage genai.Usage, overrideCost *float64) {
 	modelConfig := model.CatwalkCfg
 	cost := modelConfig.CostPer1MInCached/1e6*float64(usage.CacheCreationTokens) +
 		modelConfig.CostPer1MOutCached/1e6*float64(usage.CacheReadTokens) +
@@ -906,7 +906,7 @@ func (a *sessionAgent) SetModels(large Model, small Model) {
 	a.smallModel = small
 }
 
-func (a *sessionAgent) SetTools(tools []fantasy.AgentTool) {
+func (a *sessionAgent) SetTools(tools []genai.AgentTool) {
 	a.tools = tools
 }
 

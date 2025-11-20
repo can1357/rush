@@ -9,10 +9,9 @@ import (
 	"os"
 	"time"
 
-	"github.com/can1357/rush/ai"
-
 	"github.com/can1357/rush/agent/prompt"
 	"github.com/can1357/rush/agent/tools"
+	"github.com/can1357/rush/genai"
 	"github.com/can1357/rush/permission"
 )
 
@@ -54,7 +53,7 @@ func validateAgenticFetchParams(ctx context.Context, params tools.AgenticFetchPa
 //go:embed templates/agentic_fetch_prompt.md.tpl
 var agenticFetchPromptTmpl []byte
 
-func (c *coordinator) agenticFetchTool(_ context.Context, client *http.Client) (fantasy.AgentTool, error) {
+func (c *coordinator) agenticFetchTool(_ context.Context, client *http.Client) (genai.AgentTool, error) {
 	if client == nil {
 		client = &http.Client{
 			Timeout: 30 * time.Second,
@@ -66,13 +65,13 @@ func (c *coordinator) agenticFetchTool(_ context.Context, client *http.Client) (
 		}
 	}
 
-	return fantasy.NewAgentTool(
+	return genai.NewAgentTool(
 		tools.AgenticFetchToolName,
 		string(agenticFetchToolDescription),
-		func(ctx context.Context, params tools.AgenticFetchParams, call fantasy.ToolCall) (fantasy.ToolResponse, error) {
+		func(ctx context.Context, params tools.AgenticFetchParams, call genai.ToolCall) (genai.ToolResponse, error) {
 			validationResult, err := validateAgenticFetchParams(ctx, params)
 			if err != nil {
-				return fantasy.NewTextErrorResponse(err.Error()), nil
+				return genai.NewTextErrorResponse(err.Error()), nil
 			}
 
 			p := c.permissions.Request(
@@ -88,17 +87,17 @@ func (c *coordinator) agenticFetchTool(_ context.Context, client *http.Client) (
 			)
 
 			if !p {
-				return fantasy.ToolResponse{}, permission.ErrorPermissionDenied
+				return genai.ToolResponse{}, permission.ErrorPermissionDenied
 			}
 
 			content, err := tools.FetchURLAndConvert(ctx, client, params.URL)
 			if err != nil {
-				return fantasy.NewTextErrorResponse(fmt.Sprintf("Failed to fetch URL: %s", err)), nil
+				return genai.NewTextErrorResponse(fmt.Sprintf("Failed to fetch URL: %s", err)), nil
 			}
 
 			tmpDir, err := os.MkdirTemp(c.cfg.Options.DataDirectory, "rush-fetch-*")
 			if err != nil {
-				return fantasy.NewTextErrorResponse(fmt.Sprintf("Failed to create temporary directory: %s", err)), nil
+				return genai.NewTextErrorResponse(fmt.Sprintf("Failed to create temporary directory: %s", err)), nil
 			}
 			defer os.RemoveAll(tmpDir)
 
@@ -108,13 +107,13 @@ func (c *coordinator) agenticFetchTool(_ context.Context, client *http.Client) (
 			if hasLargeContent {
 				tempFile, err := os.CreateTemp(tmpDir, "page-*.md")
 				if err != nil {
-					return fantasy.NewTextErrorResponse(fmt.Sprintf("Failed to create temporary file: %s", err)), nil
+					return genai.NewTextErrorResponse(fmt.Sprintf("Failed to create temporary file: %s", err)), nil
 				}
 				tempFilePath := tempFile.Name()
 
 				if _, err := tempFile.WriteString(content); err != nil {
 					tempFile.Close()
-					return fantasy.NewTextErrorResponse(fmt.Sprintf("Failed to write content to file: %s", err)), nil
+					return genai.NewTextErrorResponse(fmt.Sprintf("Failed to write content to file: %s", err)), nil
 				}
 				tempFile.Close()
 
@@ -129,26 +128,26 @@ func (c *coordinator) agenticFetchTool(_ context.Context, client *http.Client) (
 
 			promptTemplate, err := prompt.NewPrompt("agentic_fetch", string(agenticFetchPromptTmpl), promptOpts...)
 			if err != nil {
-				return fantasy.ToolResponse{}, fmt.Errorf("error creating prompt: %s", err)
+				return genai.ToolResponse{}, fmt.Errorf("error creating prompt: %s", err)
 			}
 
 			_, small, err := c.buildAgentModels(ctx)
 			if err != nil {
-				return fantasy.ToolResponse{}, fmt.Errorf("error building models: %s", err)
+				return genai.ToolResponse{}, fmt.Errorf("error building models: %s", err)
 			}
 
 			systemPrompt, err := promptTemplate.Build(ctx, small.Model.Provider(), small.Model.Model(), *c.cfg)
 			if err != nil {
-				return fantasy.ToolResponse{}, fmt.Errorf("error building system prompt: %s", err)
+				return genai.ToolResponse{}, fmt.Errorf("error building system prompt: %s", err)
 			}
 
 			smallProviderCfg, ok := c.cfg.Providers.Get(small.ModelCfg.Provider)
 			if !ok {
-				return fantasy.ToolResponse{}, errors.New("small model provider not configured")
+				return genai.ToolResponse{}, errors.New("small model provider not configured")
 			}
 
 			webFetchTool := tools.NewWebFetchTool(tmpDir, client)
-			fetchTools := []fantasy.AgentTool{
+			fetchTools := []genai.AgentTool{
 				webFetchTool,
 				tools.NewGlobTool(tmpDir),
 				tools.NewGrepTool(tmpDir),
@@ -171,7 +170,7 @@ func (c *coordinator) agenticFetchTool(_ context.Context, client *http.Client) (
 			agentToolSessionID := c.sessions.CreateAgentToolSessionID(validationResult.AgentMessageID, call.ID)
 			session, err := c.sessions.CreateTaskSession(ctx, agentToolSessionID, validationResult.SessionID, "Fetch Analysis")
 			if err != nil {
-				return fantasy.ToolResponse{}, fmt.Errorf("error creating session: %s", err)
+				return genai.ToolResponse{}, fmt.Errorf("error creating session: %s", err)
 			}
 
 			c.permissions.AutoApproveSession(session.ID)
@@ -194,25 +193,25 @@ func (c *coordinator) agenticFetchTool(_ context.Context, client *http.Client) (
 				PresencePenalty:  small.ModelCfg.PresencePenalty,
 			})
 			if err != nil {
-				return fantasy.NewTextErrorResponse("error generating response"), nil
+				return genai.NewTextErrorResponse("error generating response"), nil
 			}
 
 			updatedSession, err := c.sessions.Get(ctx, session.ID)
 			if err != nil {
-				return fantasy.ToolResponse{}, fmt.Errorf("error getting session: %s", err)
+				return genai.ToolResponse{}, fmt.Errorf("error getting session: %s", err)
 			}
 			parentSession, err := c.sessions.Get(ctx, validationResult.SessionID)
 			if err != nil {
-				return fantasy.ToolResponse{}, fmt.Errorf("error getting parent session: %s", err)
+				return genai.ToolResponse{}, fmt.Errorf("error getting parent session: %s", err)
 			}
 
 			parentSession.Cost += updatedSession.Cost
 
 			_, err = c.sessions.Save(ctx, parentSession)
 			if err != nil {
-				return fantasy.ToolResponse{}, fmt.Errorf("error saving parent session: %s", err)
+				return genai.ToolResponse{}, fmt.Errorf("error saving parent session: %s", err)
 			}
 
-			return fantasy.NewTextResponse(result.Response.Content.Text()), nil
+			return genai.NewTextResponse(result.Response.Content.Text()), nil
 		}), nil
 }
