@@ -693,12 +693,13 @@ func (c *coordinator) Model() Model {
 }
 
 func (c *coordinator) UpdateMaestroModel(ctx context.Context, model config.ModelSelection) error {
-	currentModel := c.currentAgent.Model()
-	c.currentAgent.SetModel(Model{
-		Model:     currentModel.Model,
-		Props:     currentModel.Props,
-		Selection: model,
-	})
+	// Rebuild the model from scratch to ensure Model, Props, and Selection are all consistent
+	newModel, err := c.buildAgentModel(ctx, model)
+	if err != nil {
+		return fmt.Errorf("failed to build model: %w", err)
+	}
+
+	c.currentAgent.SetModel(newModel)
 
 	agentCfg, ok := c.cfg.Agents[config.AgentMaestro]
 	if !ok {
