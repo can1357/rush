@@ -1165,6 +1165,8 @@ func prettifyToolName(name string) string {
 	switch name {
 	case agent.AgentToolName:
 		return "Agent"
+	case tools.AskUserQuestionToolName:
+		return "Ask"
 	case tools.BashToolName:
 		return "Bash"
 	case tools.JobOutputToolName:
@@ -1191,6 +1193,8 @@ func prettifyToolName(name string) string {
 		return "List"
 	case tools.SourcegraphToolName:
 		return "Sourcegraph"
+	case tools.TodoToolName:
+		return "Todo"
 	case tools.ViewToolName:
 		return "View"
 	case tools.WriteToolName:
