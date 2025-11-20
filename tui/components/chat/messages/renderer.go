@@ -1356,6 +1356,8 @@ func prettifyToolName(name string) string {
 		return "Agent"
 	case tools.AskUserQuestionToolName:
 		return "Ask"
+	case tools.ExitPlanModeToolName:
+		return "Exit Plan Mode"
 	case tools.BashToolName:
 		return "Bash"
 	case tools.JobOutputToolName:
