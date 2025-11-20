@@ -3,6 +3,7 @@ package models
 import (
 	"fmt"
 
+	"charm.land/bubbles/v2/key"
 	"charm.land/bubbles/v2/spinner"
 	"charm.land/bubbles/v2/textinput"
 	tea "charm.land/bubbletea/v2"
@@ -45,6 +46,18 @@ func NewAPIKeyInput() *APIKeyInput {
 	ti.Prompt = "> "
 	ti.SetStyles(t.S().TextInput)
 	ti.Focus()
+
+	// Customize keymap to support both Ctrl and Alt for word navigation
+	keyMap := textinput.DefaultKeyMap()
+	keyMap.WordForward = key.NewBinding(
+		key.WithKeys("alt+right", "ctrl+right"),
+		key.WithHelp("alt+→/ctrl+→", "word forward"),
+	)
+	keyMap.WordBackward = key.NewBinding(
+		key.WithKeys("alt+left", "ctrl+left"),
+		key.WithHelp("alt+←/ctrl+←", "word backward"),
+	)
+	ti.KeyMap = keyMap
 
 	return &APIKeyInput{
 		input: ti,

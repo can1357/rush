@@ -113,6 +113,19 @@ func NewFilterableList[T FilterableItem](items []T, opts ...filterableListOption
 	ti.SetVirtualCursor(false)
 	ti.Focus()
 	ti.SetStyles(t.S().TextInput)
+
+	// Customize keymap to support both Ctrl and Alt for word navigation
+	keyMap := textinput.DefaultKeyMap()
+	keyMap.WordForward = key.NewBinding(
+		key.WithKeys("alt+right", "ctrl+right"),
+		key.WithHelp("alt+→/ctrl+→", "word forward"),
+	)
+	keyMap.WordBackward = key.NewBinding(
+		key.WithKeys("alt+left", "ctrl+left"),
+		key.WithHelp("alt+←/ctrl+←", "word backward"),
+	)
+	ti.KeyMap = keyMap
+
 	f.input = ti
 	return f
 }

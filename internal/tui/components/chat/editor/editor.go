@@ -315,6 +315,7 @@ func (m *editorCmp) Update(msg tea.Msg) (util.Model, tea.Cmd) {
 		if key.Matches(msg, m.keyMap.Newline) {
 			m.textarea.InsertRune('\n')
 			cmds = append(cmds, util.CmdHandler(completions.CloseCompletionsMsg{}))
+			return m, tea.Batch(cmds...)
 		}
 		// Handle Enter key
 		if m.textarea.Focused() && key.Matches(msg, m.keyMap.SendMessage) {
@@ -580,6 +581,21 @@ func New(app *app.App) Editor {
 	ta.CharLimit = -1
 	ta.SetVirtualCursor(false)
 	ta.Focus()
+
+	// Customize textarea keymap to support both Ctrl and Alt for word navigation
+	keyMap := textarea.DefaultKeyMap()
+	keyMap.WordForward = key.NewBinding(
+		key.WithKeys("alt+right", "ctrl+right"),
+		key.WithHelp("alt+→/ctrl+→", "word forward"),
+	)
+	keyMap.WordBackward = key.NewBinding(
+		key.WithKeys("alt+left", "ctrl+left"),
+		key.WithHelp("alt+←/ctrl+←", "word backward"),
+	)
+	// Disable the textarea's InsertNewline binding since we handle it in the editor
+	keyMap.InsertNewline.SetEnabled(false)
+	ta.KeyMap = keyMap
+
 	e := &editorCmp{
 		// TODO: remove the app instance from here
 		app:      app,
