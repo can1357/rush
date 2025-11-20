@@ -349,9 +349,9 @@ func (c *coordinator) buildTools(ctx context.Context, agent config.Agent) ([]gen
 		tools.NewFetchTool(c.permissions, c.cfg.WorkingDir(), nil),
 		tools.NewGlobTool(c.cfg.WorkingDir()),
 		tools.NewGrepTool(c.cfg.WorkingDir()),
-		tools.NewLsTool(c.permissions, c.cfg.WorkingDir(), c.cfg.Tools.Ls),
+		tools.NewReadDirTool(c.permissions, c.cfg.WorkingDir(), c.cfg.Tools.Ls),
 		tools.NewSourcegraphTool(nil),
-		tools.NewTodoTool(c.todos, c.sessions),
+		tools.NewTodoWriteTool(c.todos, c.sessions),
 		tools.NewViewTool(c.lspClients, c.permissions, c.cfg.WorkingDir()),
 		tools.NewWriteTool(c.lspClients, c.permissions, c.history, c.cfg.WorkingDir()),
 	)
@@ -375,7 +375,7 @@ func (c *coordinator) buildTools(ctx context.Context, agent config.Agent) ([]gen
 		}
 		if len(agent.AllowedMCP) == 0 {
 			// No MCPs allowed
-			slog.Debug("no MCPs allowed", "tool", tool.Name(), "Agent", agent.Name)
+			slog.Debug("no MCPs allowed", "tool", tool.Name(), "agent", agent.Name)
 			break
 		}
 
@@ -387,7 +387,7 @@ func (c *coordinator) buildTools(ctx context.Context, agent config.Agent) ([]gen
 				filteredTools = append(filteredTools, tool)
 			}
 		}
-		slog.Debug("MCP not allowed", "tool", tool.Name(), "Agent", agent.Name)
+		slog.Debug("MCP not allowed", "tool", tool.Name(), "agent", agent.Name)
 	}
 	slices.SortFunc(filteredTools, func(a, b genai.AgentTool) int {
 		return strings.Compare(a.Info().Name, b.Info().Name)

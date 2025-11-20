@@ -12,12 +12,12 @@ import (
 	"github.com/can1357/rush/todo"
 )
 
-//go:embed todo.md
-var todoDescription []byte
+//go:embed todo_write.md
+var todoWriteDescription []byte
 
-const TodoToolName = "TodoWrite"
+const TodoWriteToolName = "TodoWrite"
 
-type TodoParams struct {
+type TodoWriteParams struct {
 	Todos []TodoItem `json:"todos" description:"The updated todo list with all items"`
 }
 
@@ -36,11 +36,11 @@ type TodoResponseMetadata struct {
 	Todos     []todo.Todo `json:"todos"`
 }
 
-func NewTodoTool(todoService todo.Service, sessionService session.Service) genai.AgentTool {
+func NewTodoWriteTool(todoService todo.Service, sessionService session.Service) genai.AgentTool {
 	return genai.NewAgentTool(
-		TodoToolName,
-		string(todoDescription),
-		func(ctx context.Context, params TodoParams, call genai.ToolCall) (genai.ToolResponse, error) {
+		TodoWriteToolName,
+		string(todoWriteDescription),
+		func(ctx context.Context, params TodoWriteParams, call genai.ToolCall) (genai.ToolResponse, error) {
 			sessionID := GetSessionFromContext(ctx)
 			if sessionID == "" {
 				return genai.NewTextErrorResponse("session ID is required for todo operations"), nil

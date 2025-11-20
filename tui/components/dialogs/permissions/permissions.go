@@ -405,8 +405,8 @@ func (p *permissionDialogCmp) renderHeader() string {
 			),
 			baseStyle.Render(strings.Repeat(" ", p.width)),
 		)
-	case tools.LSToolName:
-		params := p.permission.Params.(tools.LSPermissionsParams)
+	case tools.ReadDirToolName:
+		params := p.permission.Params.(tools.ReadDirPermissionsParams)
 		pathKey := t.S().Muted.Render("Directory")
 		pathValue := t.S().Text.
 			Width(p.width - lipgloss.Width(pathKey)).
@@ -449,7 +449,7 @@ func (p *permissionDialogCmp) getOrGenerateContent() string {
 		content = p.generateAgenticFetchContent()
 	case tools.ViewToolName:
 		content = p.generateViewContent()
-	case tools.LSToolName:
+	case tools.ReadDirToolName:
 		content = p.generateLSContent()
 	default:
 		content = p.generateDefaultContent()
@@ -639,7 +639,7 @@ func (p *permissionDialogCmp) generateViewContent() string {
 func (p *permissionDialogCmp) generateLSContent() string {
 	t := styles.CurrentTheme()
 	baseStyle := t.S().Base.Background(t.BgSubtle)
-	if pr, ok := p.permission.Params.(tools.LSPermissionsParams); ok {
+	if pr, ok := p.permission.Params.(tools.ReadDirPermissionsParams); ok {
 		content := fmt.Sprintf("Directory: %s", fsext.PrettyPath(pr.Path))
 		if len(pr.Ignore) > 0 {
 			content += fmt.Sprintf("\nIgnore patterns: %s", strings.Join(pr.Ignore, ", "))
@@ -827,7 +827,7 @@ func (p *permissionDialogCmp) SetSize() tea.Cmd {
 	case tools.ViewToolName:
 		p.width = int(float64(p.wWidth) * 0.8)
 		p.height = int(float64(p.wHeight) * 0.4)
-	case tools.LSToolName:
+	case tools.ReadDirToolName:
 		p.width = int(float64(p.wWidth) * 0.8)
 		p.height = int(float64(p.wHeight) * 0.4)
 	default:

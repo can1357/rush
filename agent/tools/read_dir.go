@@ -16,13 +16,13 @@ import (
 	"github.com/can1357/rush/permission"
 )
 
-type LSParams struct {
+type ReadDirParams struct {
 	Path   string   `json:"path,omitempty" description:"The path to the directory to list (defaults to current working directory)"`
 	Ignore []string `json:"ignore,omitempty" description:"List of glob patterns to ignore"`
 	Depth  int      `json:"depth,omitempty" description:"The maximum depth to traverse"`
 }
 
-type LSPermissionsParams struct {
+type ReadDirPermissionsParams struct {
 	Path   string   `json:"path"`
 	Ignore []string `json:"ignore"`
 	Depth  int      `json:"depth"`
@@ -35,24 +35,24 @@ type TreeNode struct {
 	Children []*TreeNode `json:"children,omitempty"`
 }
 
-type LSResponseMetadata struct {
+type ReadDirResponseMeta struct {
 	NumberOfFiles int  `json:"number_of_files"`
 	Truncated     bool `json:"truncated"`
 }
 
 const (
-	LSToolName = "Ls"
-	maxLSFiles = 1000
+	ReadDirToolName = "ReadDir"
+	maxEntries      = 1000
 )
 
-//go:embed ls.md
-var lsDescription []byte
+//go:embed read_dir.md
+var readDirDescription []byte
 
-func NewLsTool(permissions permission.Service, workingDir string, lsConfig config.ToolLs) genai.AgentTool {
+func NewReadDirTool(permissions permission.Service, workingDir string, lsConfig config.ToolLs) genai.AgentTool {
 	return genai.NewAgentTool(
-		LSToolName,
-		string(lsDescription),
-		func(ctx context.Context, params LSParams, call genai.ToolCall) (genai.ToolResponse, error) {
+		ReadDirToolName,
+		string(readDirDescription),
+		func(ctx context.Context, params ReadDirParams, call genai.ToolCall) (genai.ToolResponse, error) {
 			searchPath, err := fsext.Expand(cmp.Or(params.Path, workingDir))
 			if err != nil {
 				return genai.NewTextErrorResponse(fmt.Sprintf("error expanding path: %v", err)), nil
@@ -84,10 +84,10 @@ func NewLsTool(permissions permission.Service, workingDir string, lsConfig confi
 						SessionID:   sessionID,
 						Path:        absSearchPath,
 						ToolCallID:  call.ID,
-						ToolName:    LSToolName,
-						Action:      "list",
+						ToolName:    ReadDirToolName,
+						Action:      "List",
 						Description: fmt.Sprintf("List directory outside working directory: %s", absSearchPath),
-						Params:      LSPermissionsParams(params),
+						Params:      ReadDirPermissionsParams(params),
 					},
 				)
 
@@ -108,13 +108,13 @@ func NewLsTool(permissions permission.Service, workingDir string, lsConfig confi
 		})
 }
 
-func ListDirectoryTree(searchPath string, params LSParams, lsConfig config.ToolLs) (string, LSResponseMetadata, error) {
+func ListDirectoryTree(searchPath string, params ReadDirParams, lsConfig config.ToolLs) (string, ReadDirResponseMeta, error) {
 	if _, err := os.Stat(searchPath); os.IsNotExist(err) {
-		return "", LSResponseMetadata{}, fmt.Errorf("path does not exist: %s", searchPath)
+		return "", ReadDirResponseMeta{}, fmt.Errorf("path does not exist: %s", searchPath)
 	}
 
 	depth, limit := lsConfig.Limits()
-	maxFiles := cmp.Or(limit, maxLSFiles)
+	maxFiles := cmp.Or(limit, maxEntries)
 	files, truncated, err := fsext.ListDirectory(
 		searchPath,
 		params.Ignore,
@@ -122,10 +122,10 @@ func ListDirectoryTree(searchPath string, params LSParams, lsConfig config.ToolL
 		maxFiles,
 	)
 	if err != nil {
-		return "", LSResponseMetadata{}, fmt.Errorf("error listing directory: %w", err)
+		return "", ReadDirResponseMeta{}, fmt.Errorf("error listing directory: %w", err)
 	}
 
-	metadata := LSResponseMetadata{
+	metadata := ReadDirResponseMeta{
 		NumberOfFiles: len(files),
 		Truncated:     truncated,
 	}

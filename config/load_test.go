@@ -469,7 +469,7 @@ func TestConfig_setupAgentsWithNoDisabledTools(t *testing.T) {
 
 	taskAgent, ok := cfg.Agents[AgentTask]
 	require.True(t, ok)
-	assert.Equal(t, []string{"Glob", "Grep", "Ls", "Sourcegraph", "View"}, taskAgent.AllowedTools)
+	assert.Equal(t, []string{"Glob", "Grep", "ReadDir", "Sourcegraph", "View"}, taskAgent.AllowedTools)
 }
 
 func TestConfig_setupAgentsWithDisabledTools(t *testing.T) {
@@ -487,11 +487,11 @@ func TestConfig_setupAgentsWithDisabledTools(t *testing.T) {
 	coderAgent, ok := cfg.Agents[AgentMaestro]
 	require.True(t, ok)
 
-	assert.Equal(t, []string{"Agent", "PromptUser", "Bash", "JobOutput", "JobKill", "ProposePlan", "Multiedit", "Lint", "Xrefs", "Fetch", "AgenticFetch", "Glob", "Ls", "Sourcegraph", "TodoWrite", "View", "Write"}, coderAgent.AllowedTools)
+	assert.Equal(t, []string{"Agent", "PromptUser", "Bash", "JobOutput", "JobKill", "ProposePlan", "MultiEdit", "Lint", "Xrefs", "Fetch", "AgenticFetch", "Glob", "ReadDir", "Sourcegraph", "TodoWrite", "View", "Write"}, coderAgent.AllowedTools)
 
 	taskAgent, ok := cfg.Agents[AgentTask]
 	require.True(t, ok)
-	assert.Equal(t, []string{"Glob", "Ls", "Sourcegraph", "View"}, taskAgent.AllowedTools)
+	assert.Equal(t, []string{"Glob", "ReadDir", "Sourcegraph", "View"}, taskAgent.AllowedTools)
 }
 
 func TestConfig_setupAgentsWithEveryReadOnlyToolDisabled(t *testing.T) {
@@ -500,7 +500,7 @@ func TestConfig_setupAgentsWithEveryReadOnlyToolDisabled(t *testing.T) {
 			DisabledTools: []string{
 				"Glob",
 				"Grep",
-				"Ls",
+				"ReadDir",
 				"Sourcegraph",
 				"View",
 			},
@@ -512,7 +512,7 @@ func TestConfig_setupAgentsWithEveryReadOnlyToolDisabled(t *testing.T) {
 	require.True(t, ok)
 	assert.Equal(t, []string{
 		"Agent", "PromptUser", "Bash", "JobOutput", "JobKill", "Download", "Edit",
-		"ProposePlan", "Multiedit", "Lint", "Xrefs", "Fetch", "AgenticFetch", "TodoWrite", "Write",
+		"ProposePlan", "MultiEdit", "Lint", "Xrefs", "Fetch", "AgenticFetch", "TodoWrite", "Write",
 	}, coderAgent.AllowedTools)
 
 	taskAgent, ok := cfg.Agents[AgentTask]

@@ -19,35 +19,35 @@ func TestPermissionService_AllowedCommands(t *testing.T) {
 			name:         "tool in allowlist",
 			allowedTools: []string{"Bash", "View"},
 			toolName:     "Bash",
-			action:       "Execute",
+			action:       "Run",
 			expected:     true,
 		},
 		{
 			name:         "tool:action in allowlist",
-			allowedTools: []string{"Bash:Execute", "Edit:create"},
+			allowedTools: []string{"Bash:Run", "Edit:Create"},
 			toolName:     "Bash",
-			action:       "Execute",
+			action:       "Run",
 			expected:     true,
 		},
 		{
 			name:         "tool not in allowlist",
-			allowedTools: []string{"View", "Ls"},
+			allowedTools: []string{"View", "ReadDir"},
 			toolName:     "Bash",
-			action:       "Execute",
+			action:       "Run",
 			expected:     false,
 		},
 		{
 			name:         "tool:action not in allowlist",
-			allowedTools: []string{"Bash:read", "Edit:create"},
+			allowedTools: []string{"Bash:Read", "Edit:Create"},
 			toolName:     "Bash",
-			action:       "Execute",
+			action:       "Run",
 			expected:     false,
 		},
 		{
 			name:         "empty allowlist",
 			allowedTools: []string{},
 			toolName:     "Bash",
-			action:       "Execute",
+			action:       "Run",
 			expected:     false,
 		},
 	}
@@ -84,7 +84,7 @@ func TestPermissionService_SkipMode(t *testing.T) {
 	result := service.Request(CreatePermissionRequest{
 		SessionID:   "test-session",
 		ToolName:    "Bash",
-		Action:      "Execute",
+		Action:      "Run",
 		Description: "test command",
 		Path:        "/tmp",
 	})
@@ -100,9 +100,9 @@ func TestPermissionService_SequentialProperties(t *testing.T) {
 
 		req1 := CreatePermissionRequest{
 			SessionID:   "session1",
-			ToolName:    "file_tool",
+			ToolName:    "FileTool",
 			Description: "Read file",
-			Action:      "read",
+			Action:      "Read",
 			Params:      map[string]string{"file": "test.txt"},
 			Path:        "/tmp/test.txt",
 		}
@@ -130,9 +130,9 @@ func TestPermissionService_SequentialProperties(t *testing.T) {
 		// Second identical request should be automatically approved due to persistent permission
 		req2 := CreatePermissionRequest{
 			SessionID:   "session1",
-			ToolName:    "file_tool",
+			ToolName:    "FileTool",
 			Description: "Read file again",
-			Action:      "read",
+			Action:      "Read",
 			Params:      map[string]string{"file": "test.txt"},
 			Path:        "/tmp/test.txt",
 		}
@@ -144,7 +144,7 @@ func TestPermissionService_SequentialProperties(t *testing.T) {
 
 		req := CreatePermissionRequest{
 			SessionID:   "session2",
-			ToolName:    "file_tool",
+			ToolName:    "FileTool",
 			Description: "Write file",
 			Action:      "Write",
 			Params:      map[string]string{"file": "test.txt"},
@@ -190,22 +190,22 @@ func TestPermissionService_SequentialProperties(t *testing.T) {
 		requests := []CreatePermissionRequest{
 			{
 				SessionID:   "concurrent1",
-				ToolName:    "tool1",
-				Action:      "action1",
+				ToolName:    "Tool1",
+				Action:      "Action1",
 				Path:        "/tmp/file1.txt",
 				Description: "First concurrent request",
 			},
 			{
 				SessionID:   "concurrent2",
-				ToolName:    "tool2",
-				Action:      "action2",
+				ToolName:    "Tool2",
+				Action:      "Action2",
 				Path:        "/tmp/file2.txt",
 				Description: "Second concurrent request",
 			},
 			{
 				SessionID:   "concurrent3",
-				ToolName:    "tool3",
-				Action:      "action3",
+				ToolName:    "Tool3",
+				Action:      "Action3",
 				Path:        "/tmp/file3.txt",
 				Description: "Third concurrent request",
 			},
@@ -222,11 +222,11 @@ func TestPermissionService_SequentialProperties(t *testing.T) {
 		for range 3 {
 			event := <-events
 			switch event.Payload.ToolName {
-			case "tool1":
+			case "Tool1":
 				service.Grant(event.Payload)
-			case "tool2":
+			case "Tool2":
 				service.GrantPersistent(event.Payload)
-			case "tool3":
+			case "Tool3":
 				service.Deny(event.Payload)
 			}
 		}

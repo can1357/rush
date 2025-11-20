@@ -216,8 +216,8 @@ func NewBashTool(permissions permission.Service, workingDir string) genai.AgentT
 						Path:        execWorkingDir,
 						ToolCallID:  call.ID,
 						ToolName:    BashToolName,
-						Action:      "Execute",
-						Description: fmt.Sprintf("Execute command: %s", params.Command),
+						Action:      "Run",
+						Description: fmt.Sprintf("Run command: %s", params.Command),
 						Params:      BashPermissionsParams(params),
 					},
 				)

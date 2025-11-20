@@ -82,7 +82,7 @@ func NewViewTool(lspClients *csync.Map[string, *lsp.Client], permissions permiss
 						Path:        absFilePath,
 						ToolCallID:  call.ID,
 						ToolName:    ViewToolName,
-						Action:      "read",
+						Action:      "Read",
 						Description: fmt.Sprintf("Read file outside working directory: %s", absFilePath),
 						Params:      ViewPermissionsParams(params),
 					},

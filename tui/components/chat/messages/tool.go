@@ -337,8 +337,8 @@ func (m *toolCallCmp) formatParametersForCopy() string {
 			}
 			return strings.Join(parts, "\n")
 		}
-	case tools.LSToolName:
-		var params tools.LSParams
+	case tools.ReadDirToolName:
+		var params tools.ReadDirParams
 		if json.Unmarshal([]byte(m.call.Input), &params) == nil {
 			path := params.Path
 			if path == "" {
@@ -377,8 +377,8 @@ func (m *toolCallCmp) formatParametersForCopy() string {
 		if json.Unmarshal([]byte(m.call.Input), &params) == nil {
 			return fmt.Sprintf("**Task:**\n%s", params.Prompt)
 		}
-	case tools.TodoToolName:
-		var params tools.TodoParams
+	case tools.TodoWriteToolName:
+		var params tools.TodoWriteParams
 		if json.Unmarshal([]byte(m.call.Input), &params) == nil {
 			var parts []string
 			parts = append(parts, fmt.Sprintf("**Total Tasks:** %d", len(params.Todos)))
@@ -448,9 +448,9 @@ func (m *toolCallCmp) formatResultForCopy() string {
 		return m.formatWebFetchResultForCopy()
 	case agent.AgentToolName:
 		return m.formatAgentResultForCopy()
-	case tools.TodoToolName:
+	case tools.TodoWriteToolName:
 		return m.formatTodoResultForCopy()
-	case tools.DownloadToolName, tools.GrepToolName, tools.GlobToolName, tools.LSToolName, tools.SourcegraphToolName, tools.LintToolName:
+	case tools.DownloadToolName, tools.GrepToolName, tools.GlobToolName, tools.ReadDirToolName, tools.SourcegraphToolName, tools.LintToolName:
 		return fmt.Sprintf("```\n%s\n```", m.result.Content)
 	default:
 		return m.result.Content

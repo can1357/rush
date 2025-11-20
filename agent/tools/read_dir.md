@@ -20,13 +20,6 @@ Shows files and subdirectories in tree structure for exploring project organizat
 - Cannot recursively list all directories in large projects
 </limitations>
 
-<cross_platform>
-- Hidden file detection uses Unix convention (files starting with '.')
-- Windows hidden files (with hidden attribute) not auto-skipped
-- Common Windows directories (System32, Program Files) not in default ignore
-- Path separators handled automatically (/ and \ work)
-</cross_platform>
-
 <tips>
 - Use Glob for finding files by name patterns instead of browsing
 - Use Grep for searching file contents

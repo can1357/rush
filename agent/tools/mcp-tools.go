@@ -88,14 +88,14 @@ func (m *Tool) Run(ctx context.Context, params genai.ToolCall) (genai.ToolRespon
 	if sessionID == "" {
 		return genai.ToolResponse{}, fmt.Errorf("session ID is required for creating a new file")
 	}
-	permissionDescription := fmt.Sprintf("execute %s with the following parameters:", m.Info().Name)
+	permissionDescription := fmt.Sprintf("call %s with the following parameters:", m.Info().Name)
 	p := m.permissions.Request(
 		permission.CreatePermissionRequest{
 			SessionID:   sessionID,
 			ToolCallID:  params.ID,
 			Path:        m.workingDir,
 			ToolName:    m.Info().Name,
-			Action:      "Execute",
+			Action:      "Call",
 			Description: permissionDescription,
 			Params:      params.Input,
 		},

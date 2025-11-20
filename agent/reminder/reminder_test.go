@@ -32,7 +32,8 @@ func TestShouldShowEmptyReminder(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got := svc.shouldShowEmptyReminder(tt.todos)
+			sess := &session.Session{AssistantTurnCount: 5}
+			got := svc.shouldShowEmptyReminder(tt.todos, sess)
 			if got != tt.want {
 				t.Errorf("shouldShowEmptyReminder() = %v, want %v", got, tt.want)
 			}
@@ -153,8 +154,9 @@ func TestStaleReminderText(t *testing.T) {
 			{Content: "Task 1", Status: "pending"},
 			{Content: "Task 2", Status: "in_progress"},
 		}
+		sess := &session.Session{AssistantTurnCount: 10, LastTodoWriteTurn: 3}
 
-		text, err := svc.staleReminderText(todos)
+		text, err := svc.staleReminderText(todos, sess)
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
@@ -173,7 +175,8 @@ func TestStaleReminderText(t *testing.T) {
 	})
 
 	t.Run("empty todos", func(t *testing.T) {
-		text, err := svc.staleReminderText([]todo.Todo{})
+		sess := &session.Session{AssistantTurnCount: 10, LastTodoWriteTurn: 3}
+		text, err := svc.staleReminderText([]todo.Todo{}, sess)
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}

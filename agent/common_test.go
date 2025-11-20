@@ -196,7 +196,7 @@ func coderAgent(r *vcr.Recorder, env fakeEnv, large, small genai.LanguageModel) 
 		tools.NewFetchTool(env.permissions, env.workingDir, r.GetDefaultClient()),
 		tools.NewGlobTool(env.workingDir),
 		tools.NewGrepTool(env.workingDir),
-		tools.NewLsTool(env.permissions, env.workingDir, cfg.Tools.Ls),
+		tools.NewReadDirTool(env.permissions, env.workingDir, cfg.Tools.Ls),
 		tools.NewSourcegraphTool(r.GetDefaultClient()),
 		tools.NewViewTool(env.lspClients, env.permissions, env.workingDir),
 		tools.NewWriteTool(env.lspClients, env.permissions, env.history, env.workingDir),

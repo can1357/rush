@@ -390,7 +390,7 @@ func TestCoderAgent(t *testing.T) {
 				for _, msg := range msgs {
 					if msg.Role == message.Assistant {
 						for _, tc := range msg.ToolCalls() {
-							if tc.Name == tools.LSToolName {
+							if tc.Name == tools.ReadDirToolName {
 								lsTCID = tc.ID
 							}
 						}
@@ -580,7 +580,7 @@ func TestCoderAgent(t *testing.T) {
 						foundGlob = true
 						globTCID = tc.ID
 					}
-					if tc.Name == tools.LSToolName {
+					if tc.Name == tools.ReadDirToolName {
 						foundLS = true
 						lsTCID = tc.ID
 					}

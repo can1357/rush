@@ -626,14 +626,14 @@ func allToolNames() []string {
 		"Download",
 		"Edit",
 		"ProposePlan",
-		"Multiedit",
+		"MultiEdit",
 		"Lint",
 		"Xrefs",
 		"Fetch",
 		"AgenticFetch",
 		"Glob",
 		"Grep",
-		"Ls",
+		"ReadDir",
 		"Sourcegraph",
 		"TodoWrite",
 		"View",
@@ -650,7 +650,7 @@ func resolveAllowedTools(allTools []string, disabledTools []string) []string {
 }
 
 func resolveReadOnlyTools(tools []string) []string {
-	readOnlyTools := []string{"Glob", "Grep", "Ls", "Sourcegraph", "View"}
+	readOnlyTools := []string{"Glob", "Grep", "ReadDir", "Sourcegraph", "View"}
 	// filter to only include tools that are in allowedtools (include mode)
 	return filterSlice(tools, readOnlyTools, true)
 }

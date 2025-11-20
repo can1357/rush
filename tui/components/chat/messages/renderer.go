@@ -176,11 +176,11 @@ func init() {
 	registry.register(tools.WebFetchToolName, func() renderer { return webFetchRenderer{} })
 	registry.register(tools.GlobToolName, func() renderer { return globRenderer{} })
 	registry.register(tools.GrepToolName, func() renderer { return grepRenderer{} })
-	registry.register(tools.LSToolName, func() renderer { return lsRenderer{} })
+	registry.register(tools.ReadDirToolName, func() renderer { return lsRenderer{} })
 	registry.register(tools.SourcegraphToolName, func() renderer { return sourcegraphRenderer{} })
 	registry.register(tools.LintToolName, func() renderer { return diagnosticsRenderer{} })
 	registry.register(agent.AgentToolName, func() renderer { return agentRenderer{} })
-	registry.register(tools.TodoToolName, func() renderer { return todoRenderer{} })
+	registry.register(tools.TodoWriteToolName, func() renderer { return todoRenderer{} })
 }
 
 // -----------------------------------------------------------------------------
@@ -790,7 +790,7 @@ type lsRenderer struct {
 
 // Render displays the directory path, defaulting to current directory
 func (lr lsRenderer) Render(v *toolCallCmp) string {
-	var params tools.LSParams
+	var params tools.ReadDirParams
 	var args []string
 	if err := lr.unmarshalParams(v.call.Input, &params); err == nil {
 		path := params.Path
@@ -873,7 +873,7 @@ func (tr todoRenderer) Render(v *toolCallCmp) string {
 		}
 
 		// Parse input to get previous state
-		var params tools.TodoParams
+		var params tools.TodoWriteParams
 		if err := tr.unmarshalParams(v.call.Input, &params); err != nil {
 			return renderPlainContent(v, v.result.Content)
 		}
@@ -1427,11 +1427,11 @@ func prettifyToolName(name string) string {
 		return "Glob"
 	case tools.GrepToolName:
 		return "Grep"
-	case tools.LSToolName:
+	case tools.ReadDirToolName:
 		return "List"
 	case tools.SourcegraphToolName:
 		return "Sourcegraph"
-	case tools.TodoToolName:
+	case tools.TodoWriteToolName:
 		return "Todo"
 	case tools.ViewToolName:
 		return "View"
