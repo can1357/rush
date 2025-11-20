@@ -14,6 +14,7 @@ import (
 
 	"github.com/can1357/rush/genai"
 	"github.com/can1357/rush/genai/providers/openai"
+	"github.com/charmbracelet/catwalk/pkg/catwalk"
 	"github.com/openai/openai-go/v2/option"
 )
 
@@ -67,6 +68,13 @@ func New(opts ...Option) (genai.Provider, error) {
 		openai.WithObjectMode(objectMode),
 	)
 	return openai.New(providerOptions.openaiOptions...)
+}
+
+// WithModels sets the models for the OpenRouter provider.
+func WithModels(models []catwalk.Model) Option {
+	return func(o *options) {
+		o.openaiOptions = append(o.openaiOptions, openai.WithModels(models))
+	}
 }
 
 // WithAPIKey sets the API key for the OpenRouter provider.

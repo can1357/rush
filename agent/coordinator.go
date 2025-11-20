@@ -440,7 +440,7 @@ func (c *coordinator) buildAgentModel(ctx context.Context, sel config.ModelSelec
 	return Model{Model: model, Props: props, Selection: sel}, nil
 }
 
-func (c *coordinator) buildAnthropicProvider(baseURL, apiKey string, headers map[string]string) (genai.Provider, error) {
+func (c *coordinator) buildAnthropicProvider(models []catwalk.Model, baseURL, apiKey string, headers map[string]string) (genai.Provider, error) {
 	hasBearerAuth := false
 	for key := range headers {
 		if strings.ToLower(key) == "authorization" {
@@ -451,7 +451,9 @@ func (c *coordinator) buildAnthropicProvider(baseURL, apiKey string, headers map
 
 	isBearerToken := strings.HasPrefix(apiKey, "Bearer ")
 
-	var opts []anthropic.Option
+	opts := []anthropic.Option{
+		anthropic.WithModels(models),
+	}
 	if apiKey != "" && !hasBearerAuth {
 		if isBearerToken {
 			slog.Debug("API key starts with 'Bearer ', using as Authorization header")
@@ -481,8 +483,9 @@ func (c *coordinator) buildAnthropicProvider(baseURL, apiKey string, headers map
 	return anthropic.New(opts...)
 }
 
-func (c *coordinator) buildOpenaiProvider(baseURL, apiKey string, headers map[string]string) (genai.Provider, error) {
+func (c *coordinator) buildOpenaiProvider(models []catwalk.Model, baseURL, apiKey string, headers map[string]string) (genai.Provider, error) {
 	opts := []openai.Option{
+		openai.WithModels(models),
 		openai.WithAPIKey(apiKey),
 		openai.WithUseResponsesAPI(),
 	}
@@ -499,8 +502,9 @@ func (c *coordinator) buildOpenaiProvider(baseURL, apiKey string, headers map[st
 	return openai.New(opts...)
 }
 
-func (c *coordinator) buildOpenrouterProvider(_, apiKey string, headers map[string]string) (genai.Provider, error) {
+func (c *coordinator) buildOpenrouterProvider(models []catwalk.Model, _, apiKey string, headers map[string]string) (genai.Provider, error) {
 	opts := []openrouter.Option{
+		openrouter.WithModels(models),
 		openrouter.WithAPIKey(apiKey),
 	}
 	if c.cfg.Options.Debug {
@@ -513,8 +517,9 @@ func (c *coordinator) buildOpenrouterProvider(_, apiKey string, headers map[stri
 	return openrouter.New(opts...)
 }
 
-func (c *coordinator) buildOpenaiCompatProvider(baseURL, apiKey string, headers map[string]string, extraBody map[string]any) (genai.Provider, error) {
+func (c *coordinator) buildOpenaiCompatProvider(models []catwalk.Model, baseURL, apiKey string, headers map[string]string, extraBody map[string]any) (genai.Provider, error) {
 	opts := []openaicompat.Option{
+		openaicompat.WithModels(models),
 		openaicompat.WithBaseURL(baseURL),
 		openaicompat.WithAPIKey(apiKey),
 	}
@@ -533,8 +538,9 @@ func (c *coordinator) buildOpenaiCompatProvider(baseURL, apiKey string, headers 
 	return openaicompat.New(opts...)
 }
 
-func (c *coordinator) buildAzureProvider(baseURL, apiKey string, headers map[string]string, options map[string]string) (genai.Provider, error) {
+func (c *coordinator) buildAzureProvider(models []catwalk.Model, baseURL, apiKey string, headers map[string]string, options map[string]string) (genai.Provider, error) {
 	opts := []azure.Option{
+		azure.WithModels(models),
 		azure.WithBaseURL(baseURL),
 		azure.WithAPIKey(apiKey),
 		azure.WithUseResponsesAPI(),
@@ -556,8 +562,9 @@ func (c *coordinator) buildAzureProvider(baseURL, apiKey string, headers map[str
 	return azure.New(opts...)
 }
 
-func (c *coordinator) buildBedrockProvider(headers map[string]string) (genai.Provider, error) {
+func (c *coordinator) buildBedrockProvider(models []catwalk.Model, headers map[string]string) (genai.Provider, error) {
 	var opts []bedrock.Option
+	opts = append(opts, bedrock.WithModels(models))
 	if c.cfg.Options.Debug {
 		httpClient := log.NewHTTPClient()
 		opts = append(opts, bedrock.WithHTTPClient(httpClient))
@@ -572,8 +579,9 @@ func (c *coordinator) buildBedrockProvider(headers map[string]string) (genai.Pro
 	return bedrock.New(opts...)
 }
 
-func (c *coordinator) buildGoogleProvider(baseURL, apiKey string, headers map[string]string) (genai.Provider, error) {
+func (c *coordinator) buildGoogleProvider(models []catwalk.Model, baseURL, apiKey string, headers map[string]string) (genai.Provider, error) {
 	opts := []google.Option{
+		google.WithModels(models),
 		google.WithBaseURL(baseURL),
 		google.WithGeminiAPIKey(apiKey),
 	}
@@ -587,8 +595,10 @@ func (c *coordinator) buildGoogleProvider(baseURL, apiKey string, headers map[st
 	return google.New(opts...)
 }
 
-func (c *coordinator) buildGoogleVertexProvider(headers map[string]string, options map[string]string) (genai.Provider, error) {
-	opts := []google.Option{}
+func (c *coordinator) buildGoogleVertexProvider(models []catwalk.Model, headers map[string]string, options map[string]string) (genai.Provider, error) {
+	opts := []google.Option{
+		google.WithModels(models),
+	}
 	if c.cfg.Options.Debug {
 		httpClient := log.NewHTTPClient()
 		opts = append(opts, google.WithHTTPClient(httpClient))
@@ -644,21 +654,21 @@ func (c *coordinator) buildProvider(providerCfg config.ProviderConfig, model con
 
 	switch providerCfg.Type {
 	case openai.Name:
-		return c.buildOpenaiProvider(baseURL, apiKey, headers)
+		return c.buildOpenaiProvider(providerCfg.Models, baseURL, apiKey, headers)
 	case anthropic.Name:
-		return c.buildAnthropicProvider(baseURL, apiKey, headers)
+		return c.buildAnthropicProvider(providerCfg.Models, baseURL, apiKey, headers)
 	case openrouter.Name:
-		return c.buildOpenrouterProvider(baseURL, apiKey, headers)
+		return c.buildOpenrouterProvider(providerCfg.Models, baseURL, apiKey, headers)
 	case azure.Name:
-		return c.buildAzureProvider(baseURL, apiKey, headers, providerCfg.ExtraParams)
+		return c.buildAzureProvider(providerCfg.Models, baseURL, apiKey, headers, providerCfg.ExtraParams)
 	case bedrock.Name:
-		return c.buildBedrockProvider(headers)
+		return c.buildBedrockProvider(providerCfg.Models, headers)
 	case google.Name:
-		return c.buildGoogleProvider(baseURL, apiKey, headers)
+		return c.buildGoogleProvider(providerCfg.Models, baseURL, apiKey, headers)
 	case "google-vertex":
-		return c.buildGoogleVertexProvider(headers, providerCfg.ExtraParams)
+		return c.buildGoogleVertexProvider(providerCfg.Models, headers, providerCfg.ExtraParams)
 	case openaicompat.Name:
-		return c.buildOpenaiCompatProvider(baseURL, apiKey, headers, providerCfg.ExtraBody)
+		return c.buildOpenaiCompatProvider(providerCfg.Models, baseURL, apiKey, headers, providerCfg.ExtraBody)
 	default:
 		return nil, fmt.Errorf("provider type not supported: %q", providerCfg.Type)
 	}
