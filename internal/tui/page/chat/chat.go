@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"strings"
 	"time"
+	"unicode"
 
 	"charm.land/bubbles/v2/help"
 	"charm.land/bubbles/v2/key"
@@ -432,6 +433,16 @@ func (p *chatPage) Update(msg tea.Msg) (util.Model, tea.Cmd) {
 		case key.Matches(msg, p.keyMap.Details):
 			p.toggleDetails()
 			return p, nil
+		}
+
+		// Auto-activate editor on letter key press when viewing chat
+		if p.focusedPane == PanelTypeChat && unicode.IsLetter(msg.Code) {
+			p.focusedPane = PanelTypeEditor
+			p.editor.Focus()
+			p.chat.Blur()
+			u, cmd := p.editor.Update(msg)
+			p.editor = u.(editor.Editor)
+			return p, cmd
 		}
 
 		switch p.focusedPane {
