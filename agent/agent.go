@@ -152,6 +152,10 @@ func (a *sessionAgent) Run(ctx context.Context, call SessionAgentCall) (*genai.A
 		a.largeModel.Model,
 		genai.WithSystemPrompt(a.systemPrompt),
 		genai.WithTools(a.tools...),
+		genai.WithStopConditions(
+			genai.StepCountIs(50),        // Max 50 agentic turns to prevent infinite loops.
+			genai.MaxTokensUsed(100_000), // Max 100k tokens per agent call.
+		),
 	)
 
 	sessionLock := sync.Mutex{}
@@ -576,6 +580,10 @@ func (a *sessionAgent) Summarize(ctx context.Context, sessionID string, opts gen
 
 	agent := genai.NewAgent(a.largeModel.Model,
 		genai.WithSystemPrompt(string(summaryPrompt)),
+		genai.WithStopConditions(
+			genai.StepCountIs(5),        // Max 5 steps for summarization.
+			genai.MaxTokensUsed(50_000), // Max 50k tokens for summarization.
+		),
 	)
 	summaryMessage, err := a.messages.Create(ctx, sessionID, message.CreateMessageParams{
 		Role:             message.Assistant,
@@ -749,6 +757,10 @@ func (a *sessionAgent) generateTitle(ctx context.Context, session *session.Sessi
 	agent := genai.NewAgent(a.smallModel.Model,
 		genai.WithSystemPrompt(string(titlePrompt)+"\n /no_think"),
 		genai.WithMaxOutputTokens(maxOutput),
+		genai.WithStopConditions(
+			genai.StepCountIs(3),       // Max 3 steps for title generation.
+			genai.MaxTokensUsed(5_000), // Max 5k tokens for title generation.
+		),
 	)
 
 	resp, err := agent.Stream(ctx, genai.AgentStreamCall{

@@ -60,6 +60,7 @@ func generateAgentToolDescription(agents map[string]config.Agent) string {
 	sb.WriteString("- Launch multiple agents concurrently whenever possible, to maximize performance; to do that, use a single message with multiple tool uses\n")
 	sb.WriteString("- When the agent is done, it will return a single message back to you. The result returned by the agent is not visible to the user. To show the user the result, you should send a text message back to the user with a concise summary of the result.\n")
 	sb.WriteString("- Each agent invocation is stateless. You will not be able to send additional messages to the agent, nor will the agent be able to communicate with you outside of its final report. Therefore, your prompt should contain a highly detailed task description for the agent to perform autonomously and you should specify exactly what information the agent should return back to you in its final and only message to you.\n")
+	sb.WriteString("- IMPORTANT: Agent results are intermediate data, not task completions. Use the agent's findings to continue executing the user's request. Do not treat agent reports as 'task complete' signals - they provide context for you to perform the actual work.\n")
 	sb.WriteString("- Agents with \"access to current context\" can see the full conversation history before the tool call. When using these agents, you can write concise prompts that reference earlier context (e.g., \"investigate the error discussed above\") instead of repeating information. The agent will receive all prior messages and understand the context.\n")
 	sb.WriteString("- The agent's outputs should generally be trusted\n")
 	sb.WriteString("- Clearly tell the agent whether you expect it to write code or just to do research (search, file reads, web fetches, etc.), since it is not aware of the user's intent\n")
@@ -227,6 +228,7 @@ func (c *coordinator) agentTool(ctx context.Context, description string) (genai.
 				return genai.ToolResponse{}, fmt.Errorf("error saving parent session: %s", err)
 			}
 
-			return genai.NewTextResponse(result.Response.Content.Text()), nil
+			response := fmt.Sprintf("%s\n\n<system-reminder>Agent '%s' returned findings. Continue with the actual implementation based on these results.</system-reminder>", result.Response.Content.Text(), params.SubagentType)
+			return genai.NewTextResponse(response), nil
 		}), nil
 }
