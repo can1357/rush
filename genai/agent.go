@@ -902,13 +902,12 @@ func (a *agent) Stream(ctx context.Context, opts AgentStreamCall) (*AgentResult,
 }
 
 func (a *agent) prepareTools(tools []AgentTool, activeTools []string, disableAllTools bool) []Tool {
-	preparedTools := make([]Tool, 0, len(tools))
-
 	// If explicitly disabling all tools, return no tools
-	if disableAllTools {
-		return preparedTools
+	if disableAllTools || len(tools) == 0 {
+		return nil
 	}
 
+	preparedTools := make([]Tool, 0, len(tools))
 	for _, tool := range tools {
 		// If activeTools has items, only include tools in the list
 		// If activeTools is empty, include all tools

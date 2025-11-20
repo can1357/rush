@@ -593,6 +593,7 @@ func (a *sessionAgent) Summarize(ctx context.Context, sessionID string, opts gen
 		ProviderOptions: opts,
 		PrepareStep: func(callContext context.Context, options genai.PrepareStepFunctionOptions) (_ context.Context, prepared genai.PrepareStepResult, err error) {
 			prepared.Messages = options.Messages
+			prepared.DisableAllTools = true
 			if a.systemPromptPrefix != "" {
 				prepared.Messages = append([]genai.Message{genai.NewSystemMessage(a.systemPromptPrefix)}, prepared.Messages...)
 			}
@@ -754,6 +755,7 @@ func (a *sessionAgent) generateTitle(ctx context.Context, session *session.Sessi
 		Prompt: fmt.Sprintf("Generate a concise title for the following content:\n\n%s\n <think>\n\n</think>", prompt),
 		PrepareStep: func(callContext context.Context, options genai.PrepareStepFunctionOptions) (_ context.Context, prepared genai.PrepareStepResult, err error) {
 			prepared.Messages = options.Messages
+			prepared.DisableAllTools = true
 			if a.systemPromptPrefix != "" {
 				prepared.Messages = append([]genai.Message{genai.NewSystemMessage(a.systemPromptPrefix)}, prepared.Messages...)
 			}

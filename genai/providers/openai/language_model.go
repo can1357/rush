@@ -238,6 +238,16 @@ func (o languageModel) prepareParams(call genai.Call) (*openai.ChatCompletionNew
 	params.Messages = messages
 	params.Model = o.modelID
 
+	// Check if messages contain any tool-related content
+	hasToolMessages := false
+	for _, msg := range messages {
+		if msg.OfTool != nil || (msg.OfAssistant != nil && msg.OfAssistant.ToolCalls != nil && len(msg.OfAssistant.ToolCalls) > 0) {
+			hasToolMessages = true
+			break
+		}
+	}
+	slog.Debug("Checked messages for tool content", "has_tool_messages", hasToolMessages, "message_count", len(messages))
+
 	if len(call.Tools) > 0 {
 		slog.Debug("Processing tools", "input_count", len(call.Tools), "has_tool_choice", call.ToolChoice != nil)
 		tools, toolChoice, toolWarnings := toOpenAiTools(call.Tools, call.ToolChoice)
@@ -254,6 +264,29 @@ func (o languageModel) prepareParams(call genai.Call) (*openai.ChatCompletionNew
 			slog.Debug("Skipping tools/tool_choice - no valid tools after filtering")
 		}
 		warnings = append(warnings, toolWarnings...)
+	} else if hasToolMessages {
+		// If there are tool messages in the history but no tools in the current call,
+		// we need to add a dummy tool for Anthropic compatibility via LiteLLM.
+		// Anthropic requires at least one tool definition if any message references tools.
+		// This matches LiteLLM's behavior with modify_params=True.
+		slog.Debug("Adding dummy tool due to tool messages in history")
+		params.Tools = []openai.ChatCompletionToolUnionParam{
+			{
+				OfFunction: &openai.ChatCompletionFunctionToolParam{
+					Function: shared.FunctionDefinitionParam{
+						Name:        "_noop",
+						Description: param.NewOpt("Unavailable"),
+						Parameters: openai.FunctionParameters{
+							"type":       "object",
+							"properties": map[string]any{},
+							"required":   []any{},
+						},
+						Strict: param.NewOpt(false),
+					},
+					Type: "function",
+				},
+			},
+		}
 	}
 	return params, warnings, nil
 }
@@ -264,6 +297,27 @@ func (o languageModel) Generate(ctx context.Context, call genai.Call) (*genai.Re
 	if err != nil {
 		return nil, err
 	}
+
+	// Log the actual params being sent to OpenAI
+	var toolChoiceStr string
+	if params.ToolChoice.OfAuto.Value != "" {
+		toolChoiceStr = fmt.Sprintf("auto=%s", params.ToolChoice.OfAuto.Value)
+	} else if params.ToolChoice.OfFunctionToolChoice != nil {
+		toolChoiceStr = fmt.Sprintf("function=%v", params.ToolChoice.OfFunctionToolChoice)
+	} else {
+		toolChoiceStr = "empty/zero"
+	}
+
+	toolsCount := len(params.Tools)
+	slog.Debug("About to call OpenAI API",
+		"has_tools", toolsCount > 0,
+		"tools_count", toolsCount,
+		"tool_choice", toolChoiceStr,
+	)
+	if toolsCount == 0 {
+		params.Tools = nil
+	}
+
 	response, err := o.client.Chat.Completions.New(ctx, *params)
 	if err != nil {
 		return nil, toProviderErr(err)
@@ -330,6 +384,26 @@ func (o languageModel) Stream(ctx context.Context, call genai.Call) (genai.Strea
 
 	params.StreamOptions = openai.ChatCompletionStreamOptionsParam{
 		IncludeUsage: openai.Bool(true),
+	}
+
+	// Log the actual params being sent to OpenAI
+	var toolChoiceStr string
+	if params.ToolChoice.OfAuto.Value != "" {
+		toolChoiceStr = fmt.Sprintf("auto=%s", params.ToolChoice.OfAuto.Value)
+	} else if params.ToolChoice.OfFunctionToolChoice != nil {
+		toolChoiceStr = fmt.Sprintf("function=%v", params.ToolChoice.OfFunctionToolChoice)
+	} else {
+		toolChoiceStr = "empty/zero"
+	}
+
+	toolsCount := len(params.Tools)
+	slog.Debug("About to call OpenAI Streaming API",
+		"has_tools", toolsCount > 0,
+		"tools_count", toolsCount,
+		"tool_choice", toolChoiceStr,
+	)
+	if toolsCount == 0 {
+		params.Tools = nil
 	}
 
 	stream := o.client.Chat.Completions.NewStreaming(ctx, *params)

@@ -167,6 +167,16 @@ func (o responsesLanguageModel) prepareParams(call genai.Call) (*responses.Respo
 	input, inputWarnings := toResponsesPrompt(call.Prompt, modelConfig.systemMessageMode)
 	warnings = append(warnings, inputWarnings...)
 
+	// Check if input contains any tool-related content (function calls or function outputs)
+	hasToolMessages := false
+	for _, item := range input {
+		if item.OfFunctionCall != nil || item.OfFunctionCallOutput != nil {
+			hasToolMessages = true
+			break
+		}
+	}
+	slog.Debug("responses: Checked input for tool content", "has_tool_messages", hasToolMessages, "input_count", len(input))
+
 	var include []IncludeType
 
 	addInclude := func(key IncludeType) {
@@ -337,6 +347,27 @@ func (o responsesLanguageModel) prepareParams(call genai.Call) (*responses.Respo
 		slog.Debug("responses: Set tools and tool_choice in params", "count", len(tools))
 	} else if len(call.Tools) > 0 {
 		slog.Debug("responses: Skipping tools - filtered to zero", "input_count", len(call.Tools))
+	} else if hasToolMessages {
+		// If there are tool messages in the history but no tools in the current call,
+		// we need to add a dummy tool for Anthropic compatibility via LiteLLM.
+		// Anthropic requires at least one tool definition if any message references tools.
+		// This matches LiteLLM's behavior with modify_params=True.
+		slog.Debug("responses: Adding dummy tool due to tool messages in history")
+		params.Tools = []responses.ToolUnionParam{
+			{
+				OfFunction: &responses.FunctionToolParam{
+					Name:        "dummy_tool",
+					Description: param.NewOpt("Dummy tool for Anthropic compatibility when conversation history contains tool calls"),
+					Parameters: responses.FunctionParameters{
+						"type":       "object",
+						"properties": map[string]any{},
+						"required":   []any{},
+					},
+					Strict: param.NewOpt(false),
+					Type:   "function",
+				},
+			},
+		}
 	}
 
 	return params, warnings

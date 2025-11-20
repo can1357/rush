@@ -220,8 +220,8 @@ type Call struct {
 	TopK             *int64      `json:"top_k"`
 	PresencePenalty  *float64    `json:"presence_penalty"`
 	FrequencyPenalty *float64    `json:"frequency_penalty"`
-	Tools            []Tool      `json:"tools"`
-	ToolChoice       *ToolChoice `json:"tool_choice"`
+	Tools            []Tool      `json:"tools,omitempty"`
+	ToolChoice       *ToolChoice `json:"tool_choice,omitempty"`
 
 	// for provider specific options, the key is the provider id
 	ProviderOptions ProviderOptions `json:"provider_options"`
