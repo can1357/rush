@@ -151,12 +151,9 @@ func (app *App) RunNonInteractive(ctx context.Context, output io.Writer, prompt 
 		defaultFG := lipgloss.LightDark(hasDarkBG)(charmtone.Pepper, t.FgBase)
 
 		spinner = format.NewSpinner(ctx, cancel, anim.Settings{
-			Size:        10,
-			Label:       "Generating",
-			LabelColor:  defaultFG,
-			GradColorA:  t.Primary,
-			GradColorB:  t.Secondary,
-			CycleColors: true,
+			Size:       10,
+			Label:      "Generating",
+			LabelColor: defaultFG,
 		})
 		spinner.Start()
 	}

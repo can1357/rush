@@ -66,8 +66,6 @@ var focusedMessageBorder = lipgloss.Border{
 
 // NewMessageCmp creates a new message component with the given message and options
 func NewMessageCmp(msg message.Message) MessageCmp {
-	t := styles.CurrentTheme()
-
 	thinkingViewport := viewport.New()
 	thinkingViewport.SetHeight(1)
 	thinkingViewport.KeyMap = viewport.KeyMap{}
@@ -75,10 +73,7 @@ func NewMessageCmp(msg message.Message) MessageCmp {
 	m := &messageCmp{
 		message: msg,
 		anim: anim.New(anim.Settings{
-			Size:        15,
-			GradColorA:  t.Primary,
-			GradColorB:  t.Secondary,
-			CycleColors: true,
+			Size: 15,
 		}),
 		thinkingViewport: thinkingViewport,
 	}

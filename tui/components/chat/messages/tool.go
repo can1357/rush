@@ -120,19 +120,13 @@ func NewToolCallCmp(parentMessageID string, tc message.ToolCall, permissions per
 	}
 	t := styles.CurrentTheme()
 	m.anim = anim.New(anim.Settings{
-		Size:        15,
-		Label:       "Working",
-		GradColorA:  t.Primary,
-		GradColorB:  t.Secondary,
-		LabelColor:  t.FgBase,
-		CycleColors: true,
+		Size:       15,
+		Label:      "Working",
+		LabelColor: t.FgBase,
 	})
 	if m.isNested {
 		m.anim = anim.New(anim.Settings{
-			Size:        10,
-			GradColorA:  t.Primary,
-			GradColorB:  t.Secondary,
-			CycleColors: true,
+			Size: 10,
 		})
 	}
 	return m
@@ -191,9 +185,14 @@ func (m *toolCallCmp) View() string {
 
 // State management methods
 
-// SetCancelled marks the tool call as cancelled
+// SetCancelled marks the tool call as cancelled and recursively cancels all
+// nested tool calls.
 func (m *toolCallCmp) SetCancelled() {
 	m.cancelled = true
+	// Recursively cancel all nested tool calls.
+	for _, nested := range m.nestedToolCalls {
+		nested.SetCancelled()
+	}
 }
 
 func (m *toolCallCmp) copyTool() tea.Cmd {
