@@ -169,7 +169,7 @@ func coderAgent(r *vcr.Recorder, env fakeEnv, large, small genai.LanguageModel) 
 		t, _ := time.Parse("1/2/2006", "1/1/2025")
 		return t
 	}
-	prompt, err := rootPrompt(
+	prompt, err := maestroPrompt(
 		prompt.WithTimeFunc(fixedTime),
 		prompt.WithPlatform("linux"),
 		prompt.WithWorkingDir(filepath.ToSlash(env.workingDir)),

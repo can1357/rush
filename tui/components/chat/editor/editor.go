@@ -444,7 +444,7 @@ func (m *editorCmp) View() string {
 
 	// Check if extended thinking mode is enabled
 	cfg := m.app.Config()
-	agentCfg := cfg.Agents[config.AgentRoot]
+	agentCfg := cfg.Agents[config.AgentMaestro]
 	currentModel := cfg.Models[agentCfg.Model]
 	thinkingEnabled := currentModel.Think
 	reasoningEffort := currentModel.ReasoningEffort

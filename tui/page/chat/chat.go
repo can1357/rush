@@ -345,16 +345,16 @@ func (p *chatPage) Update(msg tea.Msg) (util.Model, tea.Cmd) {
 
 					// Switch model and enable thinking for plan mode
 					cfg := config.Get()
-					agentCfg := cfg.Agents[config.AgentRoot]
+					agentCfg := cfg.Agents[config.AgentMaestro]
 
 					if msg.Enable {
 						// Entering plan mode: save current model and switch to extra model
 						currentModel := cfg.Models[agentCfg.Model]
 						p.previousModel = &currentModel
 
-						if extraModel := cfg.ExtraModel(); extraModel != nil {
+						if extraModel := cfg.ModelByClass(config.XlargeAI); extraModel != nil {
 							// Switch to extra model
-							selectedModel := cfg.Models[config.SelectedModelTypeExtra]
+							selectedModel := cfg.Models[config.XlargeAI]
 							selectedModel.Think = true // Force thinking on
 							cfg.Models[agentCfg.Model] = selectedModel
 						} else {
@@ -473,7 +473,7 @@ func (p *chatPage) Update(msg tea.Msg) (util.Model, tea.Cmd) {
 			}
 			return p, p.newSession()
 		case key.Matches(msg, p.keyMap.AddAttachment):
-			agentCfg := config.Get().Agents[config.AgentRoot]
+			agentCfg := config.Get().Agents[config.AgentMaestro]
 			model := config.Get().GetModelByType(agentCfg.Model)
 			if model.SupportsImages {
 				return p, util.CmdHandler(commands.OpenFilePickerMsg{})
@@ -645,7 +645,7 @@ func (p *chatPage) updateCompactConfig(compact bool) tea.Cmd {
 func (p *chatPage) toggleThinking() tea.Cmd {
 	return func() tea.Msg {
 		cfg := config.Get()
-		agentCfg := cfg.Agents[config.AgentRoot]
+		agentCfg := cfg.Agents[config.AgentMaestro]
 		currentModel := cfg.Models[agentCfg.Model]
 
 		// Toggle the thinking mode
@@ -667,7 +667,7 @@ func (p *chatPage) toggleThinking() tea.Cmd {
 func (p *chatPage) openReasoningDialog() tea.Cmd {
 	return func() tea.Msg {
 		cfg := config.Get()
-		agentCfg := cfg.Agents[config.AgentRoot]
+		agentCfg := cfg.Agents[config.AgentMaestro]
 		model := cfg.GetModelByType(agentCfg.Model)
 		providerCfg := cfg.GetProviderForModel(agentCfg.Model)
 
@@ -684,7 +684,7 @@ func (p *chatPage) openReasoningDialog() tea.Cmd {
 func (p *chatPage) handleReasoningEffortSelected(effort string) tea.Cmd {
 	return func() tea.Msg {
 		cfg := config.Get()
-		agentCfg := cfg.Agents[config.AgentRoot]
+		agentCfg := cfg.Agents[config.AgentMaestro]
 		currentModel := cfg.Models[agentCfg.Model]
 
 		// Update the model configuration
@@ -867,7 +867,7 @@ func (p *chatPage) sendMessage(text string, attachments []message.Attachment) te
 		// Enable ultrathink for this request only
 		if hasUltrathink {
 			cfg := config.Get()
-			agentCfg := cfg.Agents[config.AgentRoot]
+			agentCfg := cfg.Agents[config.AgentMaestro]
 			currentModel := cfg.Models[agentCfg.Model]
 
 			// Store original state
@@ -1329,14 +1329,14 @@ func (p *chatPage) togglePlanMode() tea.Cmd {
 
 		// Switch to extra model and enable thinking for plan mode
 		cfg := config.Get()
-		agentCfg := cfg.Agents[config.AgentRoot]
+		agentCfg := cfg.Agents[config.AgentMaestro]
 
 		// Save current model for restoration
 		currentModel := cfg.Models[agentCfg.Model]
 		p.previousModel = &currentModel
 
-		if extraModel := cfg.ExtraModel(); extraModel != nil {
-			selectedModel := cfg.Models[config.SelectedModelTypeExtra]
+		if extraModel := cfg.ModelByClass(config.XlargeAI); extraModel != nil {
+			selectedModel := cfg.Models[config.XlargeAI]
 			selectedModel.Think = true
 			cfg.Models[agentCfg.Model] = selectedModel
 		} else {

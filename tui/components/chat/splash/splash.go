@@ -359,7 +359,7 @@ func (s *splashCmp) setPreferredModel(selectedItem models.ModelOption) tea.Cmd {
 		MaxTokens:       model.DefaultMaxTokens,
 	}
 
-	err := cfg.UpdatePreferredModel(config.SelectedModelTypeLarge, selectedModel)
+	err := cfg.UpdatePreferredModel(config.LargeAI, selectedModel)
 	if err != nil {
 		return util.ReportError(err)
 	}
@@ -371,7 +371,7 @@ func (s *splashCmp) setPreferredModel(selectedItem models.ModelOption) tea.Cmd {
 	}
 	if knownProvider == nil {
 		// for local provider we just use the same model
-		err = cfg.UpdatePreferredModel(config.SelectedModelTypeSmall, selectedModel)
+		err = cfg.UpdatePreferredModel(config.SmallAI, selectedModel)
 		if err != nil {
 			return util.ReportError(err)
 		}
@@ -380,7 +380,7 @@ func (s *splashCmp) setPreferredModel(selectedItem models.ModelOption) tea.Cmd {
 		model := cfg.GetModel(string(selectedItem.Provider.ID), smallModel)
 		// should never happen
 		if model == nil {
-			err = cfg.UpdatePreferredModel(config.SelectedModelTypeSmall, selectedModel)
+			err = cfg.UpdatePreferredModel(config.SmallAI, selectedModel)
 			if err != nil {
 				return util.ReportError(err)
 			}
@@ -392,7 +392,7 @@ func (s *splashCmp) setPreferredModel(selectedItem models.ModelOption) tea.Cmd {
 			ReasoningEffort: model.DefaultReasoningEffort,
 			MaxTokens:       model.DefaultMaxTokens,
 		}
-		err = cfg.UpdatePreferredModel(config.SelectedModelTypeSmall, smallSelectedModel)
+		err = cfg.UpdatePreferredModel(config.SmallAI, smallSelectedModel)
 		if err != nil {
 			return util.ReportError(err)
 		}
@@ -700,7 +700,7 @@ func (s *splashCmp) mcpBlock() string {
 
 func (s *splashCmp) currentModelBlock() string {
 	cfg := config.Get()
-	agentCfg := cfg.Agents[config.AgentRoot]
+	agentCfg := cfg.Agents[config.AgentMaestro]
 	model := config.Get().GetModelByType(agentCfg.Model)
 	if model == nil {
 		return ""

@@ -909,11 +909,12 @@ func (tr todoRenderer) Render(v *toolCallCmp) string {
 		summaryStyle := t.S().Base.Foreground(t.FgMuted)
 
 		totalCount := len(params.Todos)
-		if totalCount == 0 {
+		switch totalCount {
+		case 0:
 			summaryParts = append(summaryParts, summaryStyle.Render(" No tasks"))
-		} else if totalCount == 1 {
+		case 1:
 			summaryParts = append(summaryParts, summaryStyle.Render(" 1 task"))
-		} else {
+		default:
 			summaryParts = append(summaryParts, summaryStyle.Render(fmt.Sprintf(" %d tasks", totalCount)))
 		}
 

@@ -420,10 +420,10 @@ func (c *Config) setDefaults(workingDir, dataDir string) {
 		c.Providers = csync.NewMap[string, ProviderConfig]()
 	}
 	if c.Models == nil {
-		c.Models = make(map[SelectedModelType]SelectedModel)
+		c.Models = make(map[ModelType]SelectedModel)
 	}
 	if c.RecentModels == nil {
-		c.RecentModels = make(map[SelectedModelType][]SelectedModel)
+		c.RecentModels = make(map[ModelType][]SelectedModel)
 	}
 	if c.MCP == nil {
 		c.MCP = make(map[string]MCPConfig)
@@ -567,7 +567,7 @@ func (c *Config) configureSelectedModels(knownProviders []catwalk.Provider) erro
 	}
 	large, small := defaultLarge, defaultSmall
 
-	largeModelSelected, largeModelConfigured := c.Models[SelectedModelTypeLarge]
+	largeModelSelected, largeModelConfigured := c.Models[LargeAI]
 	if largeModelConfigured {
 		if largeModelSelected.Model != "" {
 			large.Model = largeModelSelected.Model
@@ -579,7 +579,7 @@ func (c *Config) configureSelectedModels(knownProviders []catwalk.Provider) erro
 		if model == nil {
 			large = defaultLarge
 			// override the model type to large
-			err := c.UpdatePreferredModel(SelectedModelTypeLarge, large)
+			err := c.UpdatePreferredModel(LargeAI, large)
 			if err != nil {
 				return fmt.Errorf("failed to update preferred large model: %w", err)
 			}
@@ -610,7 +610,7 @@ func (c *Config) configureSelectedModels(knownProviders []catwalk.Provider) erro
 			}
 		}
 	}
-	smallModelSelected, smallModelConfigured := c.Models[SelectedModelTypeSmall]
+	smallModelSelected, smallModelConfigured := c.Models[SmallAI]
 	if smallModelConfigured {
 		if smallModelSelected.Model != "" {
 			small.Model = smallModelSelected.Model
@@ -623,7 +623,7 @@ func (c *Config) configureSelectedModels(knownProviders []catwalk.Provider) erro
 		if model == nil {
 			small = defaultSmall
 			// override the model type to small
-			err := c.UpdatePreferredModel(SelectedModelTypeSmall, small)
+			err := c.UpdatePreferredModel(SmallAI, small)
 			if err != nil {
 				return fmt.Errorf("failed to update preferred small model: %w", err)
 			}
@@ -654,8 +654,8 @@ func (c *Config) configureSelectedModels(knownProviders []catwalk.Provider) erro
 			small.Think = smallModelSelected.Think
 		}
 	}
-	c.Models[SelectedModelTypeLarge] = large
-	c.Models[SelectedModelTypeSmall] = small
+	c.Models[LargeAI] = large
+	c.Models[SmallAI] = small
 	return nil
 }
 

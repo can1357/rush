@@ -272,12 +272,7 @@ func (a *appModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 
 		go a.app.UpdateAgentModel(context.TODO())
-
-		modelTypeName := "large"
-		if msg.ModelType == config.SelectedModelTypeSmall {
-			modelTypeName = "small"
-		}
-		return a, util.ReportInfo(fmt.Sprintf("%s model changed to %s", modelTypeName, msg.Model.Model))
+		return a, util.ReportInfo(fmt.Sprintf("%s model changed to %s", msg.ModelType.Name(), msg.Model.Model))
 
 	// File Picker
 	case commands.OpenFilePickerMsg:

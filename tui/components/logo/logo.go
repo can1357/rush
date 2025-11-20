@@ -151,36 +151,6 @@ func renderWord(spacing int, stretchIndex int, letterforms ...letterform) string
 	)
 }
 
-// letterC renders the letter C in a stylized way. It takes an integer that
-// determines how many cells to stretch the letter. If the stretch is less than
-// 1, it defaults to no stretching.
-func letterC(stretch bool) string {
-	// Here's what we're making:
-	//
-	// ▄▀▀▀▀
-	// █
-	//	▀▀▀▀
-
-	left := heredoc.Doc(`
-		▄
-		█
-	`)
-	right := heredoc.Doc(`
-		▀
-
-		▀
-	`)
-	return joinLetterform(
-		left,
-		stretchLetterformPart(right, letterformProps{
-			stretch:    stretch,
-			width:      4,
-			minStretch: 7,
-			maxStretch: 12,
-		}),
-	)
-}
-
 // letterH renders the letter H in a stylized way. It takes an integer that
 // determines how many cells to stretch the letter. If the stretch is less than
 // 1, it defaults to no stretching.

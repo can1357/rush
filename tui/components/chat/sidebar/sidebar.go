@@ -607,9 +607,10 @@ func (m *sidebarCmp) todoBlock() string {
 		iconStyle := lipgloss.NewStyle().Foreground(statusColor)
 		textStyle := lipgloss.NewStyle().Width(maxWidth - 4)
 
-		if item.Status == "completed" {
+		switch item.Status {
+		case "completed":
 			textStyle = textStyle.Foreground(t.FgSubtle)
-		} else if item.Status == "in_progress" {
+		case "in_progress":
 			textStyle = textStyle.Foreground(statusColor)
 		}
 
@@ -670,7 +671,7 @@ func formatTokensAndCost(tokens, contextWindow int64, cost float64) string {
 
 func (s *sidebarCmp) currentModelBlock() string {
 	cfg := config.Get()
-	agentCfg := cfg.Agents[config.AgentRoot]
+	agentCfg := cfg.Agents[config.AgentMaestro]
 
 	selectedModel := cfg.Models[agentCfg.Model]
 

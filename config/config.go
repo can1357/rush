@@ -42,16 +42,47 @@ var defaultContextPaths = []string{
 	"Agents.md",
 }
 
-type SelectedModelType string
+type ModelType uint8
+
+func (m ModelType) Name() string {
+	switch m {
+	case SmallAI:
+		return "small"
+	case LargeAI:
+		return "large"
+	case XlargeAI:
+		return "xlarge"
+	case InheritAI:
+		return "inherit"
+	default:
+		return "unknown"
+	}
+}
+
+func (m ModelType) String() string {
+	switch m {
+	case SmallAI:
+		return "sm"
+	case LargeAI:
+		return "lg"
+	case XlargeAI:
+		return "xl"
+	case InheritAI:
+		return "def"
+	default:
+		return "unknown"
+	}
+}
 
 const (
-	SelectedModelTypeLarge SelectedModelType = "large"
-	SelectedModelTypeSmall SelectedModelType = "small"
-	SelectedModelTypeExtra SelectedModelType = "extra"
+	SmallAI ModelType = iota
+	LargeAI
+	XlargeAI
+	InheritAI
 )
 
 const (
-	AgentRoot    string = "root"
+	AgentMaestro string = "maestro"
 	AgentTask    string = "task"
 	AgentExplore string = "explore"
 )
@@ -266,7 +297,7 @@ type Agent struct {
 	// This is the id of the system prompt used by the agent
 	Disabled bool `json:"disabled,omitempty"`
 
-	Model SelectedModelType `json:"model" jsonschema:"required,description=The model type to use for this agent,enum=large,enum=small,enum=extra,default=large"`
+	Model ModelType `json:"model" jsonschema:"required,description=The model type to use for this agent,enum=large,enum=small,enum=extra,default=large"`
 
 	// The available tools for the agent
 	//  if this is nil, all tools are available
@@ -300,9 +331,9 @@ type Config struct {
 	Schema string `json:"$schema,omitempty"`
 
 	// We currently only support large/small as values here.
-	Models map[SelectedModelType]SelectedModel `json:"models,omitempty" jsonschema:"description=Model configurations for different model types,example={\"large\":{\"model\":\"gpt-4o\",\"provider\":\"openai\"}}"`
+	Models map[ModelType]SelectedModel `json:"models,omitempty" jsonschema:"description=Model configurations for different model types,example={\"large\":{\"model\":\"gpt-4o\",\"provider\":\"openai\"}}"`
 	// Recently used models stored in the data directory config.
-	RecentModels map[SelectedModelType][]SelectedModel `json:"recent_models,omitempty" jsonschema:"description=Recently used models sorted by most recent first"`
+	RecentModels map[ModelType][]SelectedModel `json:"recent_models,omitempty" jsonschema:"description=Recently used models sorted by most recent first"`
 
 	// The providers that are configured
 	Providers *csync.Map[string, ProviderConfig] `json:"providers,omitempty" jsonschema:"description=AI provider configurations"`
@@ -357,7 +388,7 @@ func (c *Config) GetModel(provider, model string) *catwalk.Model {
 	return nil
 }
 
-func (c *Config) GetProviderForModel(modelType SelectedModelType) *ProviderConfig {
+func (c *Config) GetProviderForModel(modelType ModelType) *ProviderConfig {
 	model, ok := c.Models[modelType]
 	if !ok {
 		return nil
@@ -368,7 +399,7 @@ func (c *Config) GetProviderForModel(modelType SelectedModelType) *ProviderConfi
 	return nil
 }
 
-func (c *Config) GetModelByType(modelType SelectedModelType) *catwalk.Model {
+func (c *Config) GetModelByType(modelType ModelType) *catwalk.Model {
 	model, ok := c.Models[modelType]
 	if !ok {
 		return nil
@@ -376,28 +407,15 @@ func (c *Config) GetModelByType(modelType SelectedModelType) *catwalk.Model {
 	return c.GetModel(model.Provider, model.Model)
 }
 
-func (c *Config) LargeModel() *catwalk.Model {
-	model, ok := c.Models[SelectedModelTypeLarge]
+func (c *Config) ModelByClass(modelClass ModelType) *catwalk.Model {
+	if modelClass == InheritAI {
+		modelClass = c.Agents[AgentMaestro].Model
+	}
+	selectedModel, ok := c.Models[modelClass]
 	if !ok {
 		return nil
 	}
-	return c.GetModel(model.Provider, model.Model)
-}
-
-func (c *Config) SmallModel() *catwalk.Model {
-	model, ok := c.Models[SelectedModelTypeSmall]
-	if !ok {
-		return nil
-	}
-	return c.GetModel(model.Provider, model.Model)
-}
-
-func (c *Config) ExtraModel() *catwalk.Model {
-	model, ok := c.Models[SelectedModelTypeExtra]
-	if !ok {
-		return nil
-	}
-	return c.GetModel(model.Provider, model.Model)
+	return c.GetModel(selectedModel.Provider, selectedModel.Model)
 }
 
 func (c *Config) SetCompactMode(enabled bool) error {
@@ -415,7 +433,7 @@ func (c *Config) Resolve(key string) (string, error) {
 	return c.resolver.ResolveValue(key)
 }
 
-func (c *Config) UpdatePreferredModel(modelType SelectedModelType, model SelectedModel) error {
+func (c *Config) UpdatePreferredModel(modelType ModelType, model SelectedModel) error {
 	c.Models[modelType] = model
 	if err := c.SetConfigField(fmt.Sprintf("models.%s", modelType), model); err != nil {
 		return fmt.Errorf("failed to update preferred model: %w", err)
@@ -492,13 +510,13 @@ func (c *Config) SetProviderAPIKey(providerID, apiKey string) error {
 
 const maxRecentModelsPerType = 5
 
-func (c *Config) recordRecentModel(modelType SelectedModelType, model SelectedModel) error {
+func (c *Config) recordRecentModel(modelType ModelType, model SelectedModel) error {
 	if model.Provider == "" || model.Model == "" {
 		return nil
 	}
 
 	if c.RecentModels == nil {
-		c.RecentModels = make(map[SelectedModelType][]SelectedModel)
+		c.RecentModels = make(map[ModelType][]SelectedModel)
 	}
 
 	eq := func(a, b SelectedModel) bool {
@@ -588,11 +606,11 @@ func (c *Config) SetupAgents() {
 	allowedTools := resolveAllowedTools(allToolNames(), c.Options.DisabledTools)
 
 	agents := map[string]Agent{
-		AgentRoot: {
-			ID:           AgentRoot,
-			Name:         "Root",
+		AgentMaestro: {
+			ID:           AgentMaestro,
+			Name:         "Maestro",
 			Description:  "Main agent for coding tasks, software engineering, and general assistance.",
-			Model:        SelectedModelTypeLarge,
+			Model:        LargeAI,
 			ContextPaths: c.Options.ContextPaths,
 			AllowedTools: allowedTools,
 		},
@@ -601,7 +619,7 @@ func (c *Config) SetupAgents() {
 			ID:           AgentTask,
 			Name:         "Task",
 			Description:  "General-purpose agent for researching complex questions, searching for code, and executing multi-step tasks. When you are searching for a keyword or file and are not confident that you will find the right match in the first few tries use this agent to perform the search for you.",
-			Model:        SelectedModelTypeLarge,
+			Model:        LargeAI,
 			ContextPaths: c.Options.ContextPaths,
 			AllowedTools: resolveReadOnlyTools(allowedTools),
 			// NO MCPs or LSPs by default
@@ -612,7 +630,7 @@ func (c *Config) SetupAgents() {
 			ID:           AgentExplore,
 			Name:         "Explore",
 			Description:  "Fast agent specialized for exploring codebases. Use this when you need to quickly find files by patterns (eg. \"src/components/**/*.tsx\"), search code for keywords (eg. \"API endpoints\"), or answer questions about the codebase (eg. \"how do API endpoints work?\").",
-			Model:        SelectedModelTypeSmall,
+			Model:        SmallAI,
 			ContextPaths: c.Options.ContextPaths,
 			AllowedTools: resolveReadOnlyTools(allowedTools),
 			// NO MCPs or LSPs by default

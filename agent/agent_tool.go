@@ -22,7 +22,7 @@ func generateAgentToolDescription(agents map[string]config.Agent) string {
 	sb.WriteString("The Task tool launches specialized agents (subprocesses) that autonomously handle complex tasks. Each agent type has specific capabilities and tools available to it.\n\n")
 	sb.WriteString("Available agent types and the tools they have access to:\n")
 
-	// Only include task and explore agents (exclude root)
+	// Only include task and explore agents (exclude maestro)
 	agentTypes := []string{config.AgentTask, config.AgentExplore}
 
 	for _, agentID := range agentTypes {
@@ -32,11 +32,6 @@ func generateAgentToolDescription(agents map[string]config.Agent) string {
 		}
 
 		// Format: - agent_id: Description (Model: large/small; Tools: tool1, tool2, ...)
-		modelType := "large"
-		if agent.Model == config.SelectedModelTypeSmall {
-			modelType = "small"
-		}
-
 		toolsList := strings.Join(agent.AllowedTools, ", ")
 		if toolsList == "" {
 			toolsList = "All tools"
@@ -45,7 +40,7 @@ func generateAgentToolDescription(agents map[string]config.Agent) string {
 		sb.WriteString(fmt.Sprintf("- %s: %s (Model: %s; Tools: %s)\n",
 			agentID,
 			agent.Description,
-			modelType,
+			agent.Model,
 			toolsList,
 		))
 	}

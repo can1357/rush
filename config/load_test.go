@@ -463,7 +463,7 @@ func TestConfig_setupAgentsWithNoDisabledTools(t *testing.T) {
 	}
 
 	cfg.SetupAgents()
-	coderAgent, ok := cfg.Agents[AgentRoot]
+	coderAgent, ok := cfg.Agents[AgentMaestro]
 	require.True(t, ok)
 	assert.Equal(t, allToolNames(), coderAgent.AllowedTools)
 
@@ -484,7 +484,7 @@ func TestConfig_setupAgentsWithDisabledTools(t *testing.T) {
 	}
 
 	cfg.SetupAgents()
-	coderAgent, ok := cfg.Agents[AgentRoot]
+	coderAgent, ok := cfg.Agents[AgentMaestro]
 	require.True(t, ok)
 
 	assert.Equal(t, []string{"agent", "ask_user_question", "bash", "job_output", "job_kill", "exit_plan_mode", "multiedit", "lsp_diagnostics", "lsp_references", "fetch", "agentic_fetch", "glob", "ls", "sourcegraph", "todo_write", "view", "write"}, coderAgent.AllowedTools)
@@ -508,7 +508,7 @@ func TestConfig_setupAgentsWithEveryReadOnlyToolDisabled(t *testing.T) {
 	}
 
 	cfg.SetupAgents()
-	coderAgent, ok := cfg.Agents[AgentRoot]
+	coderAgent, ok := cfg.Agents[AgentMaestro]
 	require.True(t, ok)
 	assert.Equal(t, []string{"agent", "ask_user_question", "bash", "job_output", "job_kill", "download", "edit", "exit_plan_mode", "multiedit", "lsp_diagnostics", "lsp_references", "fetch", "agentic_fetch", "todo_write", "write"}, coderAgent.AllowedTools)
 
@@ -1121,8 +1121,8 @@ func TestConfig_configureSelectedModels(t *testing.T) {
 		}
 
 		cfg := &Config{
-			Models: map[SelectedModelType]SelectedModel{
-				"large": {
+			Models: map[ModelType]SelectedModel{
+				LargeAI: {
 					Model: "larger-model",
 				},
 			},
@@ -1135,8 +1135,8 @@ func TestConfig_configureSelectedModels(t *testing.T) {
 
 		err = cfg.configureSelectedModels(knownProviders)
 		require.NoError(t, err)
-		large := cfg.Models[SelectedModelTypeLarge]
-		small := cfg.Models[SelectedModelTypeSmall]
+		large := cfg.Models[LargeAI]
+		small := cfg.Models[SmallAI]
 		require.Equal(t, "larger-model", large.Model)
 		require.Equal(t, "openai", large.Provider)
 		require.Equal(t, int64(2000), large.MaxTokens)
@@ -1181,8 +1181,8 @@ func TestConfig_configureSelectedModels(t *testing.T) {
 		}
 
 		cfg := &Config{
-			Models: map[SelectedModelType]SelectedModel{
-				"small": {
+			Models: map[ModelType]SelectedModel{
+				SmallAI: {
 					Model:     "a-small-model",
 					Provider:  "anthropic",
 					MaxTokens: 300,
@@ -1197,8 +1197,8 @@ func TestConfig_configureSelectedModels(t *testing.T) {
 
 		err = cfg.configureSelectedModels(knownProviders)
 		require.NoError(t, err)
-		large := cfg.Models[SelectedModelTypeLarge]
-		small := cfg.Models[SelectedModelTypeSmall]
+		large := cfg.Models[LargeAI]
+		small := cfg.Models[SmallAI]
 		require.Equal(t, "large-model", large.Model)
 		require.Equal(t, "openai", large.Provider)
 		require.Equal(t, int64(1000), large.MaxTokens)
@@ -1228,8 +1228,8 @@ func TestConfig_configureSelectedModels(t *testing.T) {
 		}
 
 		cfg := &Config{
-			Models: map[SelectedModelType]SelectedModel{
-				"large": {
+			Models: map[ModelType]SelectedModel{
+				LargeAI: {
 					MaxTokens: 100,
 				},
 			},
@@ -1242,7 +1242,7 @@ func TestConfig_configureSelectedModels(t *testing.T) {
 
 		err = cfg.configureSelectedModels(knownProviders)
 		require.NoError(t, err)
-		large := cfg.Models[SelectedModelTypeLarge]
+		large := cfg.Models[LargeAI]
 		require.Equal(t, "large-model", large.Model)
 		require.Equal(t, "openai", large.Provider)
 		require.Equal(t, int64(100), large.MaxTokens)

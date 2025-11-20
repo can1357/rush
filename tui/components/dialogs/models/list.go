@@ -115,13 +115,13 @@ func (m *ModelListComponent) SetModelType(modelType int) tea.Cmd {
 
 	cfg := config.Get()
 	var currentModel config.SelectedModel
-	selectedType := config.SelectedModelTypeLarge
+	selectedType := config.LargeAI
 	if m.modelType == LargeModelType {
-		currentModel = cfg.Models[config.SelectedModelTypeLarge]
-		selectedType = config.SelectedModelTypeLarge
+		currentModel = cfg.Models[config.LargeAI]
+		selectedType = config.LargeAI
 	} else {
-		currentModel = cfg.Models[config.SelectedModelTypeSmall]
-		selectedType = config.SelectedModelTypeSmall
+		currentModel = cfg.Models[config.SmallAI]
+		selectedType = config.SmallAI
 	}
 	recentItems := cfg.RecentModels[selectedType]
 

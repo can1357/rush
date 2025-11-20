@@ -8,8 +8,8 @@ import (
 	"github.com/can1357/rush/config"
 )
 
-//go:embed templates/root.md.tpl
-var rootPromptTmpl []byte
+//go:embed templates/maestro.md.tpl
+var maestroPromptTmpl []byte
 
 //go:embed templates/task.md.tpl
 var taskPromptTmpl []byte
@@ -20,8 +20,8 @@ var explorePromptTmpl []byte
 //go:embed templates/initialize.md.tpl
 var initializePromptTmpl []byte
 
-func rootPrompt(opts ...prompt.Option) (*prompt.Prompt, error) {
-	systemPrompt, err := prompt.NewPrompt("root", string(rootPromptTmpl), opts...)
+func maestroPrompt(opts ...prompt.Option) (*prompt.Prompt, error) {
+	systemPrompt, err := prompt.NewPrompt("maestro", string(maestroPromptTmpl), opts...)
 	if err != nil {
 		return nil, err
 	}

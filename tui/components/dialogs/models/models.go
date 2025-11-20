@@ -35,7 +35,7 @@ const (
 // ModelSelectedMsg is sent when a model is selected
 type ModelSelectedMsg struct {
 	Model     config.SelectedModel
-	ModelType config.SelectedModelType
+	ModelType config.ModelType
 }
 
 // CloseModelDialogMsg is sent when a model is selected
@@ -64,7 +64,7 @@ type modelDialogCmp struct {
 	needsAPIKey       bool
 	apiKeyInput       *APIKeyInput
 	selectedModel     *ModelOption
-	selectedModelType config.SelectedModelType
+	selectedModelType config.ModelType
 	isAPIKeyValid     bool
 	apiKeyValue       string
 }
@@ -157,11 +157,11 @@ func (m *modelDialogCmp) Update(msg tea.Msg) (util.Model, tea.Cmd) {
 			// Normal model selection
 			selectedItem := m.modelList.SelectedModel()
 
-			var modelType config.SelectedModelType
+			var modelType config.ModelType
 			if m.modelList.GetModelType() == LargeModelType {
-				modelType = config.SelectedModelTypeLarge
+				modelType = config.LargeAI
 			} else {
-				modelType = config.SelectedModelTypeSmall
+				modelType = config.SmallAI
 			}
 
 			// Check if provider is configured

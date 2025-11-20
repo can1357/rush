@@ -96,13 +96,13 @@ func NewCoordinator(
 		agents:      make(map[string]SessionAgent),
 	}
 
-	agentCfg, ok := cfg.Agents[config.AgentRoot]
+	agentCfg, ok := cfg.Agents[config.AgentMaestro]
 	if !ok {
-		return nil, errors.New("root agent not configured")
+		return nil, errors.New("maestro agent not configured")
 	}
 
 	// TODO: make this dynamic when we support multiple agents
-	prompt, err := rootPrompt(prompt.WithWorkingDir(c.cfg.WorkingDir()))
+	prompt, err := maestroPrompt(prompt.WithWorkingDir(c.cfg.WorkingDir()))
 	if err != nil {
 		return nil, err
 	}
@@ -112,7 +112,7 @@ func NewCoordinator(
 		return nil, err
 	}
 	c.currentAgent = agent
-	c.agents[config.AgentRoot] = agent
+	c.agents[config.AgentMaestro] = agent
 	return c, nil
 }
 
@@ -400,15 +400,14 @@ func (c *coordinator) buildTools(ctx context.Context, agent config.Agent) ([]gen
 
 // TODO: when we support multiple agents we need to change this so that we pass in the agent specific model config
 func (c *coordinator) buildAgentModels(ctx context.Context) (Model, Model, error) {
-	largeModelCfg, ok := c.cfg.Models[config.SelectedModelTypeLarge]
+	largeModelCfg, ok := c.cfg.Models[config.LargeAI]
 	if !ok {
 		return Model{}, Model{}, errors.New("large model not selected")
 	}
-	smallModelCfg, ok := c.cfg.Models[config.SelectedModelTypeSmall]
+	smallModelCfg, ok := c.cfg.Models[config.SmallAI]
 	if !ok {
 		return Model{}, Model{}, errors.New("small model not selected")
 	}
-
 	largeProviderCfg, ok := c.cfg.Providers.Get(largeModelCfg.Provider)
 	if !ok {
 		return Model{}, Model{}, errors.New("large model provider not configured")
@@ -749,9 +748,9 @@ func (c *coordinator) UpdateModels(ctx context.Context) error {
 	}
 	c.currentAgent.SetModels(large, small)
 
-	agentCfg, ok := c.cfg.Agents[config.AgentRoot]
+	agentCfg, ok := c.cfg.Agents[config.AgentMaestro]
 	if !ok {
-		return errors.New("root agent not configured")
+		return errors.New("maestro agent not configured")
 	}
 
 	tools, err := c.buildTools(ctx, agentCfg)
