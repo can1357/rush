@@ -27,17 +27,17 @@ type OpenRouterModelsResponse struct {
 
 // OpenRouterModel represents a single model in the OpenRouter API response
 type OpenRouterModel struct {
-	ID                   string                  `json:"id"`
-	Name                 string                  `json:"name"`
-	Created              int64                   `json:"created"`
-	Description          string                  `json:"description,omitempty"`
-	ContextLength        int                     `json:"context_length"`
-	MaxCompletionTokens  int                     `json:"max_completion_tokens,omitempty"`
-	Pricing              OpenRouterPricing       `json:"pricing"`
-	Architecture         *OpenRouterArchitecture `json:"architecture,omitempty"`
-	TopProvider          *OpenRouterTopProvider  `json:"top_provider,omitempty"`
-	PerRequestLimits     *OpenRouterLimits       `json:"per_request_limits,omitempty"`
-	SupportedParameters  []string                `json:"supported_parameters,omitempty"`
+	ID                  string                  `json:"id"`
+	Name                string                  `json:"name"`
+	Created             int64                   `json:"created"`
+	Description         string                  `json:"description,omitempty"`
+	ContextLength       int                     `json:"context_length"`
+	MaxCompletionTokens int                     `json:"max_completion_tokens,omitempty"`
+	Pricing             OpenRouterPricing       `json:"pricing"`
+	Architecture        *OpenRouterArchitecture `json:"architecture,omitempty"`
+	TopProvider         *OpenRouterTopProvider  `json:"top_provider,omitempty"`
+	PerRequestLimits    *OpenRouterLimits       `json:"per_request_limits,omitempty"`
+	SupportedParameters []string                `json:"supported_parameters,omitempty"`
 }
 
 // OpenRouterPricing represents the pricing information for a model

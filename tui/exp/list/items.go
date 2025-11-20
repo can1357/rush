@@ -83,7 +83,7 @@ func NewCompletionItem[T any](text string, value T, opts ...CompletionItemOption
 		opt(o)
 	}
 	if o.id == "" {
-		o.id = uuid.NewString()
+		o.id = uuid.Must(uuid.NewV7()).String()
 	}
 	c.id = o.id
 	c.bgColor = o.bgColor
@@ -341,7 +341,7 @@ func NewItemSection(title string) ItemSection {
 	return &itemSectionModel{
 		title: title,
 		inx:   -1,
-		id:    uuid.NewString(),
+		id:    uuid.Must(uuid.NewV7()).String(),
 	}
 }
 

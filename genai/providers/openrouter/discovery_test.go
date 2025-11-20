@@ -20,11 +20,11 @@ import (
 
 func TestDiscoverModels(t *testing.T) {
 	tests := []struct {
-		name           string
-		response       OpenRouterModelsResponse
-		statusCode     int
-		wantErr        bool
-		wantModelsLen  int
+		name            string
+		response        OpenRouterModelsResponse
+		statusCode      int
+		wantErr         bool
+		wantModelsLen   int
 		checkFirstModel bool
 	}{
 		{
@@ -32,11 +32,11 @@ func TestDiscoverModels(t *testing.T) {
 			response: OpenRouterModelsResponse{
 				Data: []OpenRouterModel{
 					{
-						ID:              "anthropic/claude-3.5-sonnet",
-						Name:            "Anthropic: Claude 3.5 Sonnet",
-						Created:         1690502400,
-						Description:     "Claude 3.5 Sonnet",
-						ContextLength:   200000,
+						ID:                  "anthropic/claude-3.5-sonnet",
+						Name:                "Anthropic: Claude 3.5 Sonnet",
+						Created:             1690502400,
+						Description:         "Claude 3.5 Sonnet",
+						ContextLength:       200000,
 						MaxCompletionTokens: 8192,
 						Pricing: OpenRouterPricing{
 							Prompt:     "0.000003",
@@ -46,10 +46,10 @@ func TestDiscoverModels(t *testing.T) {
 						},
 					},
 					{
-						ID:              "openai/gpt-4o",
-						Name:            "OpenAI: GPT-4o",
-						Created:         1690502400,
-						ContextLength:   128000,
+						ID:                  "openai/gpt-4o",
+						Name:                "OpenAI: GPT-4o",
+						Created:             1690502400,
+						ContextLength:       128000,
 						MaxCompletionTokens: 16384,
 						Pricing: OpenRouterPricing{
 							Prompt:     "0.0000025",
@@ -143,9 +143,9 @@ func TestToCatwalkModel(t *testing.T) {
 		{
 			name: "model with full metadata",
 			input: OpenRouterModel{
-				ID:              "test/model",
-				Name:            "Test Model",
-				ContextLength:   100000,
+				ID:                  "test/model",
+				Name:                "Test Model",
+				ContextLength:       100000,
 				MaxCompletionTokens: 4096,
 				Pricing: OpenRouterPricing{
 					Prompt:     "0.000005",

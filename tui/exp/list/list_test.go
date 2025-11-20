@@ -582,7 +582,7 @@ type selectableItem struct {
 
 func NewSimpleItem(content string) *simpleItem {
 	return &simpleItem{
-		id:      uuid.NewString(),
+		id:      uuid.Must(uuid.NewV7()).String(),
 		width:   0,
 		content: content,
 	}

@@ -352,7 +352,7 @@ func (o languageModel) Generate(ctx context.Context, call genai.Call) (*genai.Re
 		if annotation.Type == "url_citation" {
 			content = append(content, genai.SourceContent{
 				SourceType: genai.SourceTypeURL,
-				ID:         uuid.NewString(),
+				ID:         uuid.Must(uuid.NewV7()).String(),
 				URL:        annotation.URLCitation.URL,
 				Title:      annotation.URLCitation.Title,
 			})
@@ -583,7 +583,7 @@ func (o languageModel) Stream(ctx context.Context, call genai.Call) (genai.Strea
 						if annotation.Type == "url_citation" {
 							if !yield(genai.StreamPart{
 								Type:       genai.StreamPartTypeSource,
-								ID:         uuid.NewString(),
+								ID:         uuid.Must(uuid.NewV7()).String(),
 								SourceType: genai.SourceTypeURL,
 								URL:        annotation.URLCitation.URL,
 								Title:      annotation.URLCitation.Title,

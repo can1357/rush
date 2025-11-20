@@ -397,7 +397,7 @@ func (m *assistantSectionModel) ID() string {
 func NewAssistantSection(message message.Message, lastUserMessageTime time.Time) AssistantSection {
 	return &assistantSectionModel{
 		width:               0,
-		id:                  uuid.NewString(),
+		id:                  uuid.Must(uuid.NewV7()).String(),
 		message:             message,
 		lastUserMessageTime: lastUserMessageTime,
 	}

@@ -513,7 +513,6 @@ Plan mode is active. The user indicated that they do not want you to execute yet
 			genai.StepCountIs(50),
 		},
 	})
-
 	if err != nil {
 		isCancelErr := errors.Is(err, context.Canceled)
 		isPermissionErr := errors.Is(err, permission.ErrorPermissionDenied)
@@ -790,8 +789,7 @@ func (a *sessionAgent) Summarize(ctx context.Context, sessionID string, opts gen
 	// Just in case, get just the last usage info.
 	usage := resp.Response.Usage
 	currentSession.SummaryMessageID = summaryMessage.ID
-	// Reset active context token counts to the summary window; cost already recorded.
-	// The new context consists of the summary message (which was the output of this call).
+
 	currentSession.CompletionTokens = 0
 	currentSession.PromptTokens = usage.OutputTokens
 	_, err = a.sessions.Save(genCtx, currentSession)

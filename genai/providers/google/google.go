@@ -69,7 +69,7 @@ func New(opts ...Option) (genai.Provider, error) {
 	options := options{
 		headers: map[string]string{},
 		toolCallIDFunc: func() string {
-			return uuid.NewString()
+			return uuid.Must(uuid.NewV7()).String()
 		},
 	}
 	for _, o := range opts {

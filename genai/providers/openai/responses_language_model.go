@@ -733,7 +733,7 @@ func (o responsesLanguageModel) Generate(ctx context.Context, call genai.Call) (
 						case "url_citation":
 							content = append(content, genai.SourceContent{
 								SourceType: genai.SourceTypeURL,
-								ID:         uuid.NewString(),
+								ID:         uuid.Must(uuid.NewV7()).String(),
 								URL:        annotation.URL,
 								Title:      annotation.Title,
 							})
@@ -748,7 +748,7 @@ func (o responsesLanguageModel) Generate(ctx context.Context, call genai.Call) (
 							}
 							content = append(content, genai.SourceContent{
 								SourceType: genai.SourceTypeDocument,
-								ID:         uuid.NewString(),
+								ID:         uuid.Must(uuid.NewV7()).String(),
 								MediaType:  "text/plain",
 								Title:      title,
 								Filename:   filename,
