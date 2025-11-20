@@ -889,7 +889,9 @@ func (tr agentRenderer) Render(v *toolCallCmp) string {
 	if res, done := earlyState(header, v); v.cancelled && done {
 		return res
 	}
-	taskTag := t.S().Base.Bold(true).Padding(0, 1).MarginLeft(2).Background(t.BlueLight).Foreground(t.White).Render("Task")
+	// Use actual subagent type instead of hardcoded "Task"
+	agentType := strings.Title(params.SubagentType) // "explore" -> "Explore", "task" -> "Task"
+	taskTag := t.S().Base.Bold(true).Padding(0, 1).MarginLeft(2).Background(t.BlueLight).Foreground(t.White).Render(agentType)
 	remainingWidth := v.textWidth() - lipgloss.Width(header) - lipgloss.Width(taskTag) - 2
 	remainingWidth = min(remainingWidth, 120-lipgloss.Width(taskTag)-2)
 	prompt = t.S().Muted.Width(remainingWidth).Render(prompt)
