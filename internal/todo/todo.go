@@ -62,13 +62,21 @@ func (s *service) Create(ctx context.Context, sessionID, content, activeForm, st
 		return Todo{}, fmt.Errorf("failed to get max position: %w", err)
 	}
 
+	// Convert maxPos to int64
+	var position int64 = 1
+	if maxPos != nil {
+		if pos, ok := maxPos.(int64); ok {
+			position = pos + 1
+		}
+	}
+
 	dbTodo, err := s.q.CreateTodo(ctx, db.CreateTodoParams{
 		ID:         uuid.New().String(),
 		SessionID:  sessionID,
 		Content:    content,
 		ActiveForm: activeForm,
 		Status:     status,
-		Position:   maxPos + 1,
+		Position:   position,
 	})
 	if err != nil {
 		return Todo{}, fmt.Errorf("failed to create todo: %w", err)
@@ -102,10 +110,8 @@ func (s *service) List(ctx context.Context, sessionID string) ([]Todo, error) {
 
 func (s *service) UpdateStatus(ctx context.Context, id, status string) (Todo, error) {
 	dbTodo, err := s.q.UpdateTodoStatus(ctx, db.UpdateTodoStatusParams{
-		ID:       id,
-		Status:   status,
-		Status_2: status,
-		Status_3: status,
+		ID:     id,
+		Status: status,
 	})
 	if err != nil {
 		return Todo{}, fmt.Errorf("failed to update todo status: %w", err)

@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"charm.land/fantasy"
+	"github.com/charmbracelet/crush/internal/session"
 	"github.com/charmbracelet/crush/internal/todo"
 )
 
@@ -35,7 +36,7 @@ type TodoResponseMetadata struct {
 	Todos     []todo.Todo `json:"todos"`
 }
 
-func NewTodoTool(todoService todo.Service) fantasy.AgentTool {
+func NewTodoTool(todoService todo.Service, sessionService session.Service) fantasy.AgentTool {
 	return fantasy.NewAgentTool(
 		TodoToolName,
 		string(todoDescription),
@@ -94,6 +95,13 @@ func NewTodoTool(todoService todo.Service) fantasy.AgentTool {
 			todos, err := todoService.ReplaceAll(ctx, sessionID, inputs)
 			if err != nil {
 				return fantasy.ToolResponse{}, fmt.Errorf("failed to update todos: %w", err)
+			}
+
+			// Update session to track TodoWrite usage
+			sess, err := sessionService.Get(ctx, sessionID)
+			if err == nil {
+				sess.LastTodoWriteTurn = sess.AssistantTurnCount
+				_, _ = sessionService.Save(ctx, sess)
 			}
 
 			// Format response

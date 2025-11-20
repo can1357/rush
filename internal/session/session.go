@@ -13,16 +13,19 @@ import (
 )
 
 type Session struct {
-	ID               string
-	ParentSessionID  string
-	Title            string
-	MessageCount     int64
-	PromptTokens     int64
-	CompletionTokens int64
-	SummaryMessageID string
-	Cost             float64
-	CreatedAt        int64
-	UpdatedAt        int64
+	ID                 string
+	ParentSessionID    string
+	Title              string
+	MessageCount       int64
+	PromptTokens       int64
+	CompletionTokens   int64
+	SummaryMessageID   string
+	Cost               float64
+	CreatedAt          int64
+	UpdatedAt          int64
+	LastTodoWriteTurn  int64
+	LastReminderTurn   int64
+	AssistantTurnCount int64
 }
 
 type Service interface {
@@ -120,7 +123,10 @@ func (s *service) Save(ctx context.Context, session Session) (Session, error) {
 			String: session.SummaryMessageID,
 			Valid:  session.SummaryMessageID != "",
 		},
-		Cost: session.Cost,
+		Cost:               session.Cost,
+		LastTodoWriteTurn:  session.LastTodoWriteTurn,
+		LastReminderTurn:   session.LastReminderTurn,
+		AssistantTurnCount: session.AssistantTurnCount,
 	})
 	if err != nil {
 		return Session{}, err
@@ -144,16 +150,19 @@ func (s *service) List(ctx context.Context) ([]Session, error) {
 
 func (s service) fromDBItem(item db.Session) Session {
 	return Session{
-		ID:               item.ID,
-		ParentSessionID:  item.ParentSessionID.String,
-		Title:            item.Title,
-		MessageCount:     item.MessageCount,
-		PromptTokens:     item.PromptTokens,
-		CompletionTokens: item.CompletionTokens,
-		SummaryMessageID: item.SummaryMessageID.String,
-		Cost:             item.Cost,
-		CreatedAt:        item.CreatedAt,
-		UpdatedAt:        item.UpdatedAt,
+		ID:                 item.ID,
+		ParentSessionID:    item.ParentSessionID.String,
+		Title:              item.Title,
+		MessageCount:       item.MessageCount,
+		PromptTokens:       item.PromptTokens,
+		CompletionTokens:   item.CompletionTokens,
+		SummaryMessageID:   item.SummaryMessageID.String,
+		Cost:               item.Cost,
+		CreatedAt:          item.CreatedAt,
+		UpdatedAt:          item.UpdatedAt,
+		LastTodoWriteTurn:  item.LastTodoWriteTurn,
+		LastReminderTurn:   item.LastReminderTurn,
+		AssistantTurnCount: item.AssistantTurnCount,
 	}
 }
 

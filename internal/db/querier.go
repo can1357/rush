@@ -22,7 +22,7 @@ type Querier interface {
 	DeleteTodosBySession(ctx context.Context, sessionID string) error
 	GetFile(ctx context.Context, id string) (File, error)
 	GetFileByPathAndSession(ctx context.Context, arg GetFileByPathAndSessionParams) (File, error)
-	GetMaxTodoPosition(ctx context.Context, sessionID string) (int64, error)
+	GetMaxTodoPosition(ctx context.Context, sessionID string) (interface{}, error)
 	GetMessage(ctx context.Context, id string) (Message, error)
 	GetSessionByID(ctx context.Context, id string) (Session, error)
 	GetTodoByID(ctx context.Context, id string) (Todo, error)

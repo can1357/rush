@@ -27,6 +27,7 @@ import (
 	"charm.land/fantasy/providers/openai"
 	"charm.land/fantasy/providers/openrouter"
 	"github.com/charmbracelet/catwalk/pkg/catwalk"
+	"github.com/charmbracelet/crush/internal/agent/reminder"
 	"github.com/charmbracelet/crush/internal/agent/tools"
 	"github.com/charmbracelet/crush/internal/config"
 	"github.com/charmbracelet/crush/internal/csync"
@@ -83,6 +84,7 @@ type sessionAgent struct {
 	tools                []fantasy.AgentTool
 	sessions             session.Service
 	messages             message.Service
+	reminders            *reminder.Service
 	disableAutoSummarize bool
 	isYolo               bool
 
@@ -99,6 +101,7 @@ type SessionAgentOptions struct {
 	IsYolo               bool
 	Sessions             session.Service
 	Messages             message.Service
+	Reminders            *reminder.Service
 	Tools                []fantasy.AgentTool
 }
 
@@ -112,6 +115,7 @@ func NewSessionAgent(
 		systemPrompt:         opts.SystemPrompt,
 		sessions:             opts.Sessions,
 		messages:             opts.Messages,
+		reminders:            opts.Reminders,
 		disableAutoSummarize: opts.DisableAutoSummarize,
 		tools:                opts.Tools,
 		isYolo:               opts.IsYolo,
@@ -238,8 +242,21 @@ func (a *sessionAgent) Run(ctx context.Context, call SessionAgentCall) (*fantasy
 				}
 			}
 
-			if a.systemPromptPrefix != "" {
-				prepared.Messages = append([]fantasy.Message{fantasy.NewSystemMessage(a.systemPromptPrefix)}, prepared.Messages...)
+			// Inject todo reminders if available
+			combinedPrefix := a.systemPromptPrefix
+			if a.reminders != nil {
+				reminderText, reminderErr := a.reminders.BuildReminders(callContext, call.SessionID)
+				if reminderErr == nil && reminderText != "" {
+					if combinedPrefix != "" {
+						combinedPrefix = combinedPrefix + "\n\n" + reminderText
+					} else {
+						combinedPrefix = reminderText
+					}
+				}
+			}
+
+			if combinedPrefix != "" {
+				prepared.Messages = append([]fantasy.Message{fantasy.NewSystemMessage(combinedPrefix)}, prepared.Messages...)
 			}
 
 			var assistantMsg message.Message
@@ -367,6 +384,12 @@ func (a *sessionAgent) Run(ctx context.Context, call SessionAgentCall) (*fantasy
 			}
 			currentAssistant.AddFinish(finishReason, "", "")
 			a.updateSessionUsage(a.largeModel, &currentSession, stepResult.Usage, a.openrouterCost(stepResult.ProviderMetadata))
+
+			// Increment turn count if message has actual content (not thinking-only)
+			if !currentAssistant.IsThinkingOnly() {
+				currentSession.AssistantTurnCount++
+			}
+
 			sessionLock.Lock()
 			_, sessionErr := a.sessions.Save(genCtx, currentSession)
 			sessionLock.Unlock()

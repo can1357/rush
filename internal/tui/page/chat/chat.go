@@ -108,12 +108,11 @@ type chatPage struct {
 	keyMap  KeyMap
 
 	// Components
-	header   header.Header
-	sidebar  sidebar.Sidebar
-	chat     chat.MessageListCmp
-	editor   editor.Editor
-	splash   splash.Splash
-	todoList todolist.TodoList
+	header  header.Header
+	sidebar sidebar.Sidebar
+	chat    chat.MessageListCmp
+	editor  editor.Editor
+	splash  splash.Splash
 
 	// Simple state flags
 	showingDetails   bool
@@ -132,7 +131,6 @@ func New(app *app.App) ChatPage {
 		chat:        chat.New(app),
 		editor:      editor.New(app),
 		splash:      splash.New(),
-		todoList:    todolist.New(),
 		focusedPane: PanelTypeSplash,
 	}
 }
@@ -349,9 +347,9 @@ func (p *chatPage) Update(msg tea.Msg) (util.Model, tea.Cmd) {
 		return p, nil
 
 	case todolist.TodoListUpdateMsg:
-		u, cmd := p.todoList.Update(msg)
-		p.todoList = u.(todolist.TodoList)
-		return p, cmd
+		// Forward todos to sidebar for rendering
+		p.sidebar.SetTodos(msg.Todos)
+		return p, nil
 
 	case pubsub.Event[questionpkg.QuestionRequest]:
 		// Question request - open dialog
@@ -515,25 +513,11 @@ func (p *chatPage) View() string {
 			)
 		} else {
 			sidebarView := p.sidebar.View()
-			todoView := p.todoList.View()
-
-			// Combine sidebar and todo list vertically
-			var rightPanel string
-			if todoView != "" {
-				rightPanel = lipgloss.JoinVertical(
-					lipgloss.Left,
-					sidebarView,
-					"",
-					todoView,
-				)
-			} else {
-				rightPanel = sidebarView
-			}
 
 			messages := lipgloss.JoinHorizontal(
 				lipgloss.Left,
 				messagesView,
-				rightPanel,
+				sidebarView,
 			)
 			chatView = lipgloss.JoinVertical(
 				lipgloss.Left,

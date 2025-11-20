@@ -3,6 +3,7 @@ package sidebar
 import (
 	"context"
 	"fmt"
+	"image/color"
 	"slices"
 	"strings"
 
@@ -16,6 +17,7 @@ import (
 	"github.com/charmbracelet/crush/internal/history"
 	"github.com/charmbracelet/crush/internal/home"
 	"github.com/charmbracelet/crush/internal/lsp"
+	"github.com/charmbracelet/crush/internal/todo"
 	"github.com/charmbracelet/crush/internal/pubsub"
 	"github.com/charmbracelet/crush/internal/session"
 	"github.com/charmbracelet/crush/internal/tui/components/chat"
@@ -62,6 +64,7 @@ type Sidebar interface {
 	layout.Sizeable
 	SetSession(session session.Session) tea.Cmd
 	SetCompactMode(bool)
+	SetTodos(todos []todo.Todo)
 }
 
 type sidebarCmp struct {
@@ -73,6 +76,7 @@ type sidebarCmp struct {
 	compactMode   bool
 	history       history.Service
 	files         *csync.Map[string, SessionFile]
+	todos         []todo.Todo
 }
 
 func New(history history.Service, lspClients *csync.Map[string, *lsp.Client], compact bool) Sidebar {
@@ -168,6 +172,10 @@ func (m *sidebarCmp) View() string {
 			"",
 			m.mcpBlock(),
 		)
+		// Add todo list if there are todos
+		if len(m.todos) > 0 {
+			parts = append(parts, "", m.todoBlock())
+		}
 	}
 
 	return style.Render(
@@ -503,6 +511,84 @@ func (m *sidebarCmp) mcpBlock() string {
 		ShowSection: true,
 		SectionName: core.Section("MCPs", m.getMaxWidth()),
 	}, true)
+}
+
+func (m *sidebarCmp) SetTodos(todos []todo.Todo) {
+	m.todos = todos
+}
+
+func (m *sidebarCmp) todoBlock() string {
+	if len(m.todos) == 0 {
+		return ""
+	}
+
+	t := styles.CurrentTheme()
+	maxWidth := m.getMaxWidth()
+
+	// Calculate available height for todos
+	availableHeight := m.calculateAvailableHeight()
+	// Subtract space for files, LSPs, and MCPs sections
+	maxFiles, maxLSPs, maxMCPs := m.getDynamicLimits()
+	usedHeight := maxFiles + maxLSPs + maxMCPs + 6 // +6 for section headers
+	maxTodos := max(3, availableHeight-usedHeight)
+
+	// Determine how many items to show
+	itemsToShow := len(m.todos)
+	if maxTodos > 0 && maxTodos < len(m.todos) {
+		itemsToShow = maxTodos
+	}
+
+	var lines []string
+
+	// Header with section styling
+	lines = append(lines, core.Section("Tasks", maxWidth))
+
+	// Render each todo
+	for i := 0; i < itemsToShow; i++ {
+		item := m.todos[i]
+		var statusIcon string
+		var statusColor color.Color
+		var text string
+
+		switch item.Status {
+		case "completed":
+			statusIcon = "✓"
+			statusColor = t.Success
+			text = item.Content
+		case "in_progress":
+			statusIcon = "⟳"
+			statusColor = t.Info
+			text = item.ActiveForm
+		case "pending":
+			statusIcon = "○"
+			statusColor = t.FgSubtle
+			text = item.Content
+		}
+
+		iconStyle := lipgloss.NewStyle().Foreground(statusColor)
+		textStyle := lipgloss.NewStyle().Width(maxWidth - 4)
+
+		if item.Status == "completed" {
+			textStyle = textStyle.Foreground(t.FgSubtle)
+		} else if item.Status == "in_progress" {
+			textStyle = textStyle.Foreground(statusColor)
+		}
+
+		line := fmt.Sprintf("  %s %s", iconStyle.Render(statusIcon), textStyle.Render(text))
+		lines = append(lines, line)
+	}
+
+	// Add truncation indicator if needed
+	if maxTodos > 0 && len(m.todos) > maxTodos {
+		remaining := len(m.todos) - maxTodos
+		if remaining == 1 {
+			lines = append(lines, t.S().Base.Foreground(t.FgMuted).Render("  …"))
+		} else {
+			lines = append(lines, t.S().Base.Foreground(t.FgSubtle).Render(fmt.Sprintf("  …and %d more", remaining)))
+		}
+	}
+
+	return lipgloss.JoinVertical(lipgloss.Left, lines...)
 }
 
 func formatTokensAndCost(tokens, contextWindow int64, cost float64) string {

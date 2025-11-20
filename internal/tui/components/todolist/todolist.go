@@ -21,6 +21,7 @@ type TodoList interface {
 	util.Model
 	SetTodos(todos []todo.Todo)
 	GetTodos() []todo.Todo
+	ViewWithMaxItems(maxItems int) string
 }
 
 // todoList is the implementation
@@ -61,37 +62,36 @@ func (t *todoList) GetTodos() []todo.Todo {
 }
 
 func (t *todoList) View() string {
+	return t.ViewWithMaxItems(0)
+}
+
+// ViewWithMaxItems renders the todo list with a maximum number of items shown.
+// If maxItems is 0 or greater than the number of todos, all todos are shown.
+// If there are more todos than maxItems, a truncation indicator is shown.
+func (t *todoList) ViewWithMaxItems(maxItems int) string {
 	if len(t.todos) == 0 {
 		return ""
 	}
 
 	theme := styles.CurrentTheme()
 
-	// Count by status for header
-	completed := 0
-	inProgress := 0
-	pending := 0
-	for _, todo := range t.todos {
-		switch todo.Status {
-		case "completed":
-			completed++
-		case "in_progress":
-			inProgress++
-		case "pending":
-			pending++
-		}
-	}
-
-	var s string
+	var lines []string
 
 	// Header
 	headerStyle := lipgloss.NewStyle().
 		Bold(true).
 		Foreground(theme.FgSubtle)
-	s += headerStyle.Render(fmt.Sprintf("Tasks (%d)", len(t.todos))) + "\n"
+	lines = append(lines, headerStyle.Render(fmt.Sprintf("Tasks (%d)", len(t.todos))))
+
+	// Determine how many items to show
+	itemsToShow := len(t.todos)
+	if maxItems > 0 && maxItems < len(t.todos) {
+		itemsToShow = maxItems
+	}
 
 	// Render each todo
-	for i, item := range t.todos {
+	for i := 0; i < itemsToShow; i++ {
+		item := t.todos[i]
 		var statusIcon string
 		var statusColor color.Color
 		var text string
@@ -121,13 +121,18 @@ func (t *todoList) View() string {
 		}
 
 		line := fmt.Sprintf("  %s %s", iconStyle.Render(statusIcon), textStyle.Render(text))
-		s += line
+		lines = append(lines, line)
+	}
 
-		// Add newline unless it's the last item
-		if i < len(t.todos)-1 {
-			s += "\n"
+	// Add truncation indicator if needed
+	if maxItems > 0 && len(t.todos) > maxItems {
+		remaining := len(t.todos) - maxItems
+		if remaining == 1 {
+			lines = append(lines, theme.S().Base.Foreground(theme.FgMuted).Render("  …"))
+		} else {
+			lines = append(lines, theme.S().Base.Foreground(theme.FgSubtle).Render(fmt.Sprintf("  …and %d more", remaining)))
 		}
 	}
 
-	return s
+	return lipgloss.JoinVertical(lipgloss.Left, lines...)
 }

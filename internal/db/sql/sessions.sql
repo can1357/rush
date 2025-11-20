@@ -41,7 +41,10 @@ SET
     prompt_tokens = ?,
     completion_tokens = ?,
     summary_message_id = ?,
-    cost = ?
+    cost = ?,
+    last_todo_write_turn = ?,
+    last_reminder_turn = ?,
+    assistant_turn_count = ?
 WHERE id = ?
 RETURNING *;
 

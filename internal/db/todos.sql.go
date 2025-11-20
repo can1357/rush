@@ -43,7 +43,7 @@ type CreateTodoParams struct {
 }
 
 func (q *Queries) CreateTodo(ctx context.Context, arg CreateTodoParams) (Todo, error) {
-	row := q.db.QueryRowContext(ctx, createTodo,
+	row := q.queryRow(ctx, q.createTodoStmt, createTodo,
 		arg.ID,
 		arg.SessionID,
 		arg.Content,
@@ -72,7 +72,7 @@ WHERE id = ?
 `
 
 func (q *Queries) DeleteTodo(ctx context.Context, id string) error {
-	_, err := q.db.ExecContext(ctx, deleteTodo, id)
+	_, err := q.exec(ctx, q.deleteTodoStmt, deleteTodo, id)
 	return err
 }
 
@@ -82,7 +82,7 @@ WHERE session_id = ?
 `
 
 func (q *Queries) DeleteTodosBySession(ctx context.Context, sessionID string) error {
-	_, err := q.db.ExecContext(ctx, deleteTodosBySession, sessionID)
+	_, err := q.exec(ctx, q.deleteTodosBySessionStmt, deleteTodosBySession, sessionID)
 	return err
 }
 
@@ -92,9 +92,9 @@ FROM todos
 WHERE session_id = ?
 `
 
-func (q *Queries) GetMaxTodoPosition(ctx context.Context, sessionID string) (int64, error) {
-	row := q.db.QueryRowContext(ctx, getMaxTodoPosition, sessionID)
-	var max_position int64
+func (q *Queries) GetMaxTodoPosition(ctx context.Context, sessionID string) (interface{}, error) {
+	row := q.queryRow(ctx, q.getMaxTodoPositionStmt, getMaxTodoPosition, sessionID)
+	var max_position interface{}
 	err := row.Scan(&max_position)
 	return max_position, err
 }
@@ -106,7 +106,7 @@ WHERE id = ? LIMIT 1
 `
 
 func (q *Queries) GetTodoByID(ctx context.Context, id string) (Todo, error) {
-	row := q.db.QueryRowContext(ctx, getTodoByID, id)
+	row := q.queryRow(ctx, q.getTodoByIDStmt, getTodoByID, id)
 	var i Todo
 	err := row.Scan(
 		&i.ID,
@@ -130,12 +130,12 @@ ORDER BY position ASC
 `
 
 func (q *Queries) ListTodosBySession(ctx context.Context, sessionID string) ([]Todo, error) {
-	rows, err := q.db.QueryContext(ctx, listTodosBySession, sessionID)
+	rows, err := q.query(ctx, q.listTodosBySessionStmt, listTodosBySession, sessionID)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	var items []Todo
+	items := []Todo{}
 	for rows.Next() {
 		var i Todo
 		if err := rows.Scan(
@@ -178,7 +178,7 @@ type UpdateTodoContentParams struct {
 }
 
 func (q *Queries) UpdateTodoContent(ctx context.Context, arg UpdateTodoContentParams) (Todo, error) {
-	row := q.db.QueryRowContext(ctx, updateTodoContent, arg.Content, arg.ActiveForm, arg.ID)
+	row := q.queryRow(ctx, q.updateTodoContentStmt, updateTodoContent, arg.Content, arg.ActiveForm, arg.ID)
 	var i Todo
 	err := row.Scan(
 		&i.ID,
@@ -206,7 +206,7 @@ type UpdateTodoPositionParams struct {
 }
 
 func (q *Queries) UpdateTodoPosition(ctx context.Context, arg UpdateTodoPositionParams) error {
-	_, err := q.db.ExecContext(ctx, updateTodoPosition, arg.Position, arg.ID)
+	_, err := q.exec(ctx, q.updateTodoPositionStmt, updateTodoPosition, arg.Position, arg.ID)
 	return err
 }
 
@@ -224,17 +224,17 @@ RETURNING id, session_id, content, active_form, status, position, created_at, up
 `
 
 type UpdateTodoStatusParams struct {
-	Status   string `json:"status"`
-	Status_2 string `json:"status_2"`
-	Status_3 string `json:"status_3"`
-	ID       string `json:"id"`
+	Status  string      `json:"status"`
+	Column2 interface{} `json:"column_2"`
+	Column3 interface{} `json:"column_3"`
+	ID      string      `json:"id"`
 }
 
 func (q *Queries) UpdateTodoStatus(ctx context.Context, arg UpdateTodoStatusParams) (Todo, error) {
-	row := q.db.QueryRowContext(ctx, updateTodoStatus,
+	row := q.queryRow(ctx, q.updateTodoStatusStmt, updateTodoStatus,
 		arg.Status,
-		arg.Status_2,
-		arg.Status_3,
+		arg.Column2,
+		arg.Column3,
 		arg.ID,
 	)
 	var i Todo

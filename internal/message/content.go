@@ -136,6 +136,27 @@ type Message struct {
 	IsSummaryMessage bool
 }
 
+// IsThinkingOnly returns true if all parts (excluding Finish) are ReasoningContent
+func (m *Message) IsThinkingOnly() bool {
+	if m.Role != Assistant {
+		return false
+	}
+	if len(m.Parts) == 0 {
+		return false
+	}
+	for _, part := range m.Parts {
+		switch part.(type) {
+		case ReasoningContent:
+			continue
+		case Finish:
+			continue
+		default:
+			return false
+		}
+	}
+	return true
+}
+
 func (m *Message) Content() TextContent {
 	for _, part := range m.Parts {
 		if c, ok := part.(TextContent); ok {
